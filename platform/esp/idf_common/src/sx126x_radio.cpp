@@ -37,6 +37,11 @@ constexpr uint8_t kCmdSetDioIrqParams = 0x08;
 constexpr uint8_t kCmdGetIrqStatus = 0x12;
 constexpr uint8_t kCmdClearIrqStatus = 0x02;
 constexpr uint8_t kCmdSetDio2AsRfSwitchCtrl = 0x9D;
+constexpr uint8_t kCmdSetDio3AsTcxoCtrl = 0x97;
+constexpr uint8_t kCmdGetStatus = 0xC0;
+constexpr uint8_t kCmdGetStats = 0x10;
+constexpr uint8_t kCmdGetDeviceErrors = 0x17;
+constexpr uint8_t kCmdClearDeviceErrors = 0x07;
 constexpr uint8_t kCmdGetRssiInst = 0x15;
 constexpr uint8_t kCmdGetRxBufferStatus = 0x13;
 constexpr uint8_t kCmdReadBuffer = 0x1E;
@@ -86,8 +91,26 @@ constexpr uint16_t kRegLoraSyncWordMsb = 0x0740;
 constexpr uint16_t kRegCrcInitialMsb = 0x06BC;
 constexpr uint16_t kRegCrcPolynomialMsb = 0x06BE;
 constexpr uint16_t kRegVersionString = 0x0320;
+constexpr uint16_t kRegRxGain = 0x08AC;
+constexpr uint16_t kRegRxGainRetention0 = 0x029F;
+constexpr uint8_t kRxGainBoosted = 0x96;
+constexpr uint8_t kRxGainPowerSaving = 0x94;
+// DIO3 TCXO control voltage code 0x00 = 1.6V (datasheet SetDIO3AsTCXOCtrl table).
+// RadioLib and the LilyGo cpp_bus_driver both default the SX1262 TCXO to 1.6V
+// with a 5ms startup; the board feeds the TCXO from DIO3.
+constexpr uint8_t kTcxoVoltage1V6 = 0x00;
+constexpr uint32_t kTcxoStartupTimeUs = 5000;
 constexpr float kFrequencyStepHz = 0.9536743164f;
 constexpr uint32_t kCrystalFreqHz = 32000000UL;
+// SetDIO3AsTCXOCtrl / SetRx timeouts are expressed in 15.625us RTC steps.
+uint32_t microseconds_to_rtc_step(uint32_t time_us)
+{
+    constexpr uint32_t kNumerator = 64;
+    constexpr uint32_t kDenominator = 1000;
+    const uint64_t steps =
+        (static_cast<uint64_t>(time_us) * kNumerator + (kDenominator - 1)) / kDenominator;
+    return static_cast<uint32_t>(steps);
+}
 
 const char* spi_host_name(int host)
 {
@@ -298,7 +321,10 @@ bool board_uses_internal_dio2_rf_switch()
 #if defined(TRAIL_MATE_ESP_BOARD_TAB5)
     return true;
 #elif defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
-    return false;
+    // On the T-Display-P4 the SX1262 selects its own TX/RX antenna path through
+    // DIO2 (the proven RadioLib driver always enables this). The XL9535
+    // lora_rf_switch line only powers the shared front-end and stays asserted.
+    return true;
 #else
     return false;
 #endif
@@ -518,17 +544,41 @@ bool Sx126xRadio::init_locked()
         return false;
     }
 
-    uint8_t calibrate = 0x7F;
-    write_command_locked(kCmdCalibrate, &calibrate, 1, true);
+    const uint8_t standby_rc = kStandbyRc;
+    write_command_locked(kCmdSetStandby, &standby_rc, 1, true);
 
     set_packet_type_locked(kPacketTypeLoRa);
     set_buffer_base_locked(0x00, 0x00);
     const uint8_t regulator = kRegulatorDcDc;
     write_command_locked(kCmdSetRegulatorMode, &regulator, 1, true);
+
+    // The LilyGo T-Display-P4 powers the SX1262 reference oscillator from a TCXO
+    // on DIO3 (DIO3 is not broken out for any other use). It must be enabled and
+    // allowed to settle BEFORE calibration: empirically, without DIO3-TCXO the
+    // chip cannot sustain RX and drops back to standby (mode 2) with a dead
+    // -127 dBm floor; with it enabled the chip reaches RX (mode 5) and the LNA
+    // sees real RF. (The XOSC_START_ERR latched at cold boot is a benign
+    // power-on artifact present either way and is cleared below.)
+    set_dio3_as_tcxo_ctrl_locked(kTcxoVoltage1V6, kTcxoStartupTimeUs);
+
+    // Recalibrate everything now that the TCXO is the active reference, then
+    // clear the stale cold-boot oscillator/PLL error flags.
+    uint8_t calibrate = 0x7F;
+    write_command_locked(kCmdCalibrate, &calibrate, 1, true);
+    vTaskDelay(pdMS_TO_TICKS(5));
+    wait_ready_locked();
+    {
+        const uint8_t no_data[2] = {0x00, 0x00};
+        write_command_locked(kCmdClearDeviceErrors, no_data, sizeof(no_data), true);
+    }
+
+    // DIO2 is not broken out on this board; the SX1262 must steer its own
+    // internal TX/RX RF path through DIO2-as-RF-switch (RadioLib always enables
+    // it). Without it the receiver front-end is never connected, so RxDone
+    // cannot fire even though a TX burst still leaves the chip.
     if (board_uses_internal_dio2_rf_switch())
     {
-        const uint8_t dio2_rf_switch = 0x01;
-        write_command_locked(kCmdSetDio2AsRfSwitchCtrl, &dio2_rf_switch, 1, true);
+        set_dio2_as_rf_switch_locked(true);
     }
     const uint8_t fallback = kFallbackStandbyRc;
     write_command_locked(kCmdSetRxTxFallbackMode, &fallback, 1, true);
@@ -536,6 +586,17 @@ bool Sx126xRadio::init_locked()
 
     const uint8_t ocp = ocp_for_60ma();
     write_register_locked(kRegOcpConfiguration, &ocp, 1);
+
+    const uint8_t status = read_chip_status_locked();
+    uint8_t dev_err[2] = {0};
+    (void)read_command_locked(kCmdGetDeviceErrors, nullptr, 0, dev_err, sizeof(dev_err), true);
+    const uint16_t errors = (static_cast<uint16_t>(dev_err[0]) << 8) | dev_err[1];
+    ESP_LOGI(kTag,
+             "SX1262 init complete: status=0x%02X mode=%u tcxo=on dio2_rf_switch=%d dev_errors=0x%04X",
+             status,
+             static_cast<unsigned>((status >> 4) & 0x07),
+             board_uses_internal_dio2_rf_switch() ? 1 : 0,
+             static_cast<unsigned>(errors));
     return true;
 #endif
 }
@@ -811,6 +872,54 @@ bool Sx126xRadio::set_dio_irq_params_locked(uint16_t irq_mask, uint16_t dio1_mas
     return write_command_locked(kCmdSetDioIrqParams, data, sizeof(data), true);
 }
 
+bool Sx126xRadio::set_dio3_as_tcxo_ctrl_locked(uint8_t voltage_code, uint32_t startup_time_us)
+{
+    const uint32_t timeout = microseconds_to_rtc_step(startup_time_us);
+    const uint8_t data[4] = {
+        voltage_code,
+        static_cast<uint8_t>((timeout >> 16) & 0xFF),
+        static_cast<uint8_t>((timeout >> 8) & 0xFF),
+        static_cast<uint8_t>(timeout & 0xFF),
+    };
+    return write_command_locked(kCmdSetDio3AsTcxoCtrl, data, sizeof(data), true);
+}
+
+bool Sx126xRadio::set_dio2_as_rf_switch_locked(bool enable)
+{
+    const uint8_t data = enable ? 0x01 : 0x00;
+    return write_command_locked(kCmdSetDio2AsRfSwitchCtrl, &data, 1, true);
+}
+
+bool Sx126xRadio::set_rx_boosted_gain_locked(bool enable)
+{
+    const uint8_t value = enable ? kRxGainBoosted : kRxGainPowerSaving;
+    if (!write_register_locked(kRegRxGain, &value, 1))
+    {
+        return false;
+    }
+    // Persist the gain across the SX1262's internal RX warm-restarts by adding
+    // the RX-gain register to the retention list (datasheet section 9.6;
+    // RadioLib does this with persist=true). Otherwise the chip silently
+    // reverts to power-saving gain on the first internal restart and loses
+    // sensitivity.
+    const uint8_t retention[3] = {
+        0x01,
+        static_cast<uint8_t>((kRegRxGain >> 8) & 0xFF),
+        static_cast<uint8_t>(kRegRxGain & 0xFF),
+    };
+    return write_register_locked(kRegRxGainRetention0, retention, sizeof(retention));
+}
+
+uint8_t Sx126xRadio::read_chip_status_locked()
+{
+    uint8_t status = 0;
+    if (!read_command_locked(kCmdGetStatus, nullptr, 0, &status, 1, true))
+    {
+        return 0;
+    }
+    return status;
+}
+
 bool Sx126xRadio::clear_irq_locked(uint16_t flags)
 {
     const uint8_t data[2] = {
@@ -1035,10 +1144,39 @@ bool Sx126xRadio::startReceive()
         return false;
     }
     board_prepare_lora_direction(false);
+    // Boosted-gain RX (reg 0x08AC = 0x96) maximizes sensitivity, matching the
+    // reference driver before it parks the chip in continuous RX.
+    set_rx_boosted_gain_locked(true);
     const bool ok = set_dio_irq_params_locked(kIrqRxDone | kIrqTimeout | kIrqCrcErr, kIrqRxDone) &&
                     clear_irq_locked(kIrqAll) &&
                     set_buffer_base_locked(0x00, 0x00) &&
                     set_rx_locked(kRxTimeoutInf);
+
+    if (ok && rx_diag_count_ < 2)
+    {
+        // One-shot, non-blocking confirmation that the chip actually entered RX
+        // (chipMode 0x5) and that the receive statistics are advancing. Kept
+        // lightweight so it never disturbs an in-flight reception.
+        const uint8_t status = read_chip_status_locked();
+        const unsigned mode = (status >> 4) & 0x07;
+        uint8_t rssi_raw = 0;
+        (void)read_command_locked(kCmdGetRssiInst, nullptr, 0, &rssi_raw, 1, true);
+        uint8_t stats[6] = {0};
+        (void)read_command_locked(kCmdGetStats, nullptr, 0, stats, sizeof(stats), true);
+        const uint16_t pkt_rx = (static_cast<uint16_t>(stats[0]) << 8) | stats[1];
+        const uint16_t crc_err = (static_cast<uint16_t>(stats[2]) << 8) | stats[3];
+        const uint16_t hdr_err = (static_cast<uint16_t>(stats[4]) << 8) | stats[5];
+        ESP_LOGI(kTag,
+                 "SX1262 RX diag[%lu]: status=0x%02X mode=%u(0x5=RX) rssi=%.1fdBm stats(rx=%u crc_err=%u hdr_err=%u)",
+                 static_cast<unsigned long>(rx_diag_count_),
+                 status,
+                 mode,
+                 static_cast<double>(rssi_raw) / -2.0,
+                 static_cast<unsigned>(pkt_rx),
+                 static_cast<unsigned>(crc_err),
+                 static_cast<unsigned>(hdr_err));
+        ++rx_diag_count_;
+    }
     give_mutex(mutex_);
     return ok;
 }

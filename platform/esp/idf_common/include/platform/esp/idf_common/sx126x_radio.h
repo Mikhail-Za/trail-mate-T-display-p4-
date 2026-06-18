@@ -65,6 +65,10 @@ class Sx126xRadio
     bool set_rf_frequency_locked(float freq_mhz);
     bool set_tx_power_locked(int8_t tx_power);
     bool set_dio_irq_params_locked(uint16_t irq_mask, uint16_t dio1_mask);
+    bool set_dio3_as_tcxo_ctrl_locked(uint8_t voltage_code, uint32_t startup_time_us);
+    bool set_dio2_as_rf_switch_locked(bool enable);
+    bool set_rx_boosted_gain_locked(bool enable);
+    uint8_t read_chip_status_locked();
     bool clear_irq_locked(uint16_t flags);
     bool set_buffer_base_locked(uint8_t tx_base, uint8_t rx_base);
     bool set_rx_locked(uint32_t timeout_raw);
@@ -96,6 +100,7 @@ class Sx126xRadio
     float freq_mhz_ = 0.0f;
     uint8_t last_rx_offset_ = 0;
     uint32_t users_ = 0;
+    uint32_t rx_diag_count_ = 0;
     char last_error_[96] = {0};
 };
 

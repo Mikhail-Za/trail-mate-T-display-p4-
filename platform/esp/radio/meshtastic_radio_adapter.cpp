@@ -574,9 +574,27 @@ void MeshtasticRadioAdapter::pollRadio()
         return;
     }
 
-    board_.clearRadioIrqFlags(irq);
-    if ((irq & kIrqRxDone) == 0)
+    // The SX1262 IRQ-status register reports ALL events that have occurred, not
+    // just the ones routed to a DIO pin. During a reception in continuous RX it
+    // raises non-terminal progress flags (PreambleDetected / SyncWordValid /
+    // HeaderValid) well before RxDone. If we clear those and re-arm RX here we
+    // abort the in-flight packet and RxDone never fires. Only act on terminal
+    // events; leave a reception that is merely in progress untouched.
+    const bool rx_done = (irq & kIrqRxDone) != 0;
+    const bool rx_error = (irq & (kIrqHeaderErr | kIrqCrcErr | kIrqTimeout)) != 0;
+    if (!rx_done && !rx_error)
     {
+        // Reception in progress (or a stray progress IRQ); do not disturb RX.
+        return;
+    }
+
+    board_.clearRadioIrqFlags(irq);
+    if (!rx_done)
+    {
+        if (rx_error)
+        {
+            ESP_LOGI(kTag, "radio irq=0x%04lX", static_cast<unsigned long>(irq));
+        }
         rx_started_ = false;
         ensureReceiveStarted();
         return;
@@ -597,7 +615,7 @@ void MeshtasticRadioAdapter::pollRadio()
         processReceivedPacket(buffer, static_cast<size_t>(packet_length));
     }
 
-    if ((irq & (kIrqHeaderErr | kIrqCrcErr | kIrqTimeout)) != 0)
+    if (rx_error)
     {
         ESP_LOGI(kTag, "radio irq=0x%04lX", static_cast<unsigned long>(irq));
     }
