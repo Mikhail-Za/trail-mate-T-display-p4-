@@ -28,6 +28,145 @@ set(TRAILMATE_ESP_IDF_CORE_SYS_SOURCES
     "${TRAILMATE_ROOT}/modules/core_sys/src/sys/clock.cpp"
     "${TRAILMATE_ROOT}/modules/core_sys/src/platform/ui/timezone_profile.cpp")
 
+# core_team: the chat screen's team-action plumbing (chat_page_runtime.cpp
+# unconditionally builds a TeamActionRuntimeSink, and team_runtime_adapters.cpp's
+# TeamControllerChatCommandPort statically references TeamController::onChat /
+# setKeysFromPsk) drags in the team usecase + protocol codecs at link time even
+# though getTeamController() returns nullptr at runtime. These are pure C++/stdlib
+# (crypto/runtime/event-sink are injected ITeamCrypto/ITeamRuntime/ITeamEventSink
+# ports, never instantiated here), so the closure is the controller+service
+# forwarders plus the team_* wire/mgmt/chat/waypoint/position/track codecs.
+set(TRAILMATE_ESP_IDF_CORE_TEAM_SOURCES
+    "${TRAILMATE_ROOT}/modules/core_team/src/usecase/team_controller.cpp"
+    "${TRAILMATE_ROOT}/modules/core_team/src/usecase/team_service.cpp"
+    "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_chat.cpp"
+    "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_location_marker.cpp"
+    "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_mgmt.cpp"
+    "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_wire.cpp"
+    "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_waypoint.cpp"
+    "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_position.cpp"
+    "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_track.cpp")
+
+# ---------------------------------------------------------------------------
+# Minimal LoRa-chat producer set (consumed by the IDF chat facade/factory in
+# TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES). Scope = Meshtastic text chat only:
+# chat/contact services + RAM store + the Meshtastic codec the radio adapter
+# encodes/decodes with, plus the LVGL chat screen and its portable presentation
+# deps. SKIP the meshcore/lxmf/rnode/reticulum protocol families, team/admin,
+# map, and the SD/flash chat stores.
+# ---------------------------------------------------------------------------
+
+# core_chat domain + use cases + RAM store + contact node-store blob format.
+set(TRAILMATE_ESP_IDF_CORE_CHAT_SOURCES
+    "${TRAILMATE_ROOT}/modules/core_chat/src/domain/chat_model.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/usecase/chat_service.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/usecase/contact_service.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/store/ram_store.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/contact_store_core.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/node_store_core.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/node_store_blob_format.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/mesh_protocol_utils.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/mc_region_presets.cpp")
+
+# Meshtastic wire codec used by platform/esp/radio/meshtastic_radio_adapter.cpp.
+set(TRAILMATE_ESP_IDF_CORE_CHAT_MESHTASTIC_SOURCES
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshtastic/mt_codec_pb.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshtastic/mt_dedup.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshtastic/mt_node_payload.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshtastic/mt_packet_wire.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshtastic/mt_pki_crypto.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshtastic/mt_protocol_helpers.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshtastic/mt_radio_config.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshtastic/mt_region.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshtastic/compression/unishox2.cpp")
+
+# nanopb runtime + generated Meshtastic protobuf descriptors (.pb.cpp) the codec
+# links against.
+set(TRAILMATE_ESP_IDF_CORE_CHAT_NANOPB_SOURCES
+    "${TRAILMATE_ROOT}/modules/core_chat/third_party/nanopb/pb_common.c"
+    "${TRAILMATE_ROOT}/modules/core_chat/third_party/nanopb/pb_decode.c"
+    "${TRAILMATE_ROOT}/modules/core_chat/third_party/nanopb/pb_encode.c")
+
+file(GLOB TRAILMATE_ESP_IDF_CORE_CHAT_GENERATED_SOURCES
+    "${TRAILMATE_ROOT}/modules/core_chat/generated/meshtastic/*.pb.cpp")
+
+# Arduino-common chat infra the factory instantiates directly: only the
+# ChatEventBusBridge observer (pure: EventBus::publish + chat_service.h).
+#
+# The Arduino contact_store.cpp / meshtastic/node_store.cpp / internal/
+# blob_store_io.cpp shells are intentionally EXCLUDED: they are persistence
+# shells over NodeStoreCore/ContactStoreCore that hard-include <SPI.h>,
+# <Arduino.h>, and <Preferences.h> (via storage/sd_card_runtime.h), none of
+# which exist in the pure ESP-IDF build. The minimal RAM-only chat scope drives
+# NodeStoreCore/ContactStoreCore directly with in-memory blob stores in
+# idf_chat_factory.cpp instead (mirrors platform/linux/.../linux_app_services.cpp).
+set(TRAILMATE_ESP_IDF_ARDUINO_CHAT_SOURCES
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/chat/infra/chat_event_bus_bridge.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/sys/event_bus.cpp")
+
+# Portable presentation/runtime deps of the LVGL chat screen.
+set(TRAILMATE_ESP_IDF_CHAT_PRESENTATION_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_presentation/src/chat/chat_workspace_model.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_presentation/src/key_verification/key_verification_model.cpp"
+    "${TRAILMATE_ROOT}/modules/chat_presentation_adapters/src/chat_conversation_mapper.cpp"
+    "${TRAILMATE_ROOT}/modules/chat_presentation_adapters/src/chat_message_mapper.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_chat_runtime/src/chat_delivery_action_port_adapter.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_chat_runtime/src/chat_delivery_event_projection_adapter.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_chat_runtime/src/chat_page_runtime_event_pump.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_key_verification_runtime/src/key_verification_action_sink.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_key_verification_runtime/src/key_verification_presentation_source.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/delivery/chat_delivery_action_service.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/delivery/chat_delivery_event_port.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/delivery/chat_delivery_event_projector.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/delivery/chat_delivery_message_projection.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/delivery/chat_delivery_read_model.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/delivery/legacy_chat_delivery_bridge.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/delivery/legacy_chat_send_result_mapper.cpp")
+
+# LVGL chat screen (ui_shared) + the chat-screen presentation_sources/team_action
+# sinks it instantiates + the IME widget the composer uses.
+set(TRAILMATE_ESP_IDF_CHAT_UI_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_compose_components.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_compose_input.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_compose_layout.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_compose_styles.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_conversation_components.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_conversation_input.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_conversation_layout.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_conversation_styles.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_message_list_components.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_message_list_input.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_message_list_layout.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_message_list_styles.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_page_runtime.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_page_shell.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_protocol_support.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_send_flow.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_team_workflow.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/chat/chat_ui_controller.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/presentation_sources/chat_presentation_source.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/presentation_sources/runtime_chat_action_sink.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/presentation_sources/team_chat_action_sink.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/presentation_sources/team_chat_presentation_source.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/team_actions/team_action_runtime_sink.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/team_actions/team_runtime_adapters.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/team_presentation/team_rich_payload_projector.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/top_bar.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/components/two_pane_layout.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/components/two_pane_nav.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/components/two_pane_styles.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/components/info_card.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/components/air_status_footer.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/presentation_sources/runtime_device_status_source.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/ime/ime_widget.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/ime/pinyin_ime.cpp")
+
+# Chat-screen LVGL renderers from the ux-pack common layer (modal + picker the
+# chat controller wires).
+set(TRAILMATE_ESP_IDF_CHAT_UX_PACK_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_lvgl_ux_packs/src/common/key_verification_modal_renderer.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_lvgl_ux_packs/src/common/team_position_picker_renderer.cpp")
+
 set(TRAILMATE_ESP_IDF_UI_SHARED_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/alert.c"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/ble_topbar.c"
@@ -61,11 +200,21 @@ set(TRAILMATE_ESP_IDF_UI_SHARED_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/presentation_sources/runtime_gps_status_source.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/runtime/memory_profile.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/system_notification.cpp"
-    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/Setting.c")
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/Setting.c"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/Chat.c"
+    # Team position-marker icon descriptors (lv_image_dsc_t) referenced as extern
+    # "C" symbols by ui_lvgl_ux_packs/.../team_position_picker_renderer.cpp, which
+    # the chat controller pulls in even though team mode is stubbed off at runtime.
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/AreaCleared.c"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/BaseCamp.c"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/GoodFind.c"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/rally.c"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/sos.c")
 
 set(TRAILMATE_ESP_IDF_UI_PRESENTATION_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_presentation/src/gps/gps_status_model.cpp"
-    "${TRAILMATE_ROOT}/modules/ui_presentation/src/menu/menu_model.cpp")
+    "${TRAILMATE_ROOT}/modules/ui_presentation/src/menu/menu_model.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_presentation/src/device/device_status_model.cpp")
 
 set(TRAILMATE_ESP_IDF_UI_LVGL_UX_PACK_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_lvgl_ux_packs/src/packs/cardputer_compact_ux_pack.cpp"
@@ -99,6 +248,8 @@ set(TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_common.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_dispatcher.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_wireless_companion_runtime.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_chat_factory.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_chat_facade.cpp"
     "${TRAILMATE_ROOT}/platform/esp/radio/meshtastic_radio_adapter.cpp")
 
 set(TRAILMATE_ESP_IDF_TAB5_BOARD_SOURCES

@@ -11,6 +11,7 @@
 #include "platform/esp/boards/board_runtime.h"
 #include "platform/esp/idf_common/bsp_runtime.h"
 #include "platform/esp/idf_common/debug/sd_coredump_export.h"
+#include "platform/esp/idf_common/idf_chat_facade.h"
 #include "platform/esp/idf_common/startup_support.h"
 #include "platform/esp/idf_common/wireless_companion/c6_companion.h"
 #include "platform/ui/device_runtime.h"
@@ -135,6 +136,36 @@ void runEsp32LvglStartupRuntime(const Esp32LvglRuntimeConfig& config)
     else
     {
         ESP_LOGW(config.log_tag, "prepareBootUi failed to acquire LVGL lock");
+    }
+
+    // Bind the minimal LoRa-chat app facade BEFORE idf_app_runtime_access::initialize.
+    // That accessor latches app_context_bound from app::hasAppFacade(), and the
+    // startup shell's messaging hook reads app::messagingFacade(), so the facade
+    // must be live first. Board init above has resolved the LoraBoard, so the
+    // factory can build the radio adapter now. The facade is a function-local
+    // static: the loop task never returns, so this gives it process lifetime and a
+    // single instance, and its initialize() calls app::bindAppFacade(*this).
+    const platform::esp::boards::AppContextInitHandles board_handles =
+        platform::esp::boards::resolveAppContextInitHandles();
+    if (board_handles.lora_board != nullptr)
+    {
+        static platform::esp::idf_common::IdfChatFacade s_chat_facade(*board_handles.lora_board,
+                                                                      board_handles.board);
+        if (!s_chat_facade.initialize())
+        {
+            ESP_LOGW(config.log_tag, "LoRa-chat app facade failed to initialize for %s",
+                     config.target_name);
+        }
+        else
+        {
+            ESP_LOGI(config.log_tag, "LoRa-chat app facade bound for %s", config.target_name);
+        }
+    }
+    else
+    {
+        ESP_LOGW(config.log_tag,
+                 "LoRa board unavailable; LoRa-chat app facade not bound for %s",
+                 config.target_name);
     }
 
     idf_app_runtime_access::initialize(config);

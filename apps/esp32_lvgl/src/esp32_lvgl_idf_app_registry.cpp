@@ -2,8 +2,11 @@
 
 #include "platform/ui/wireless_companion_runtime.h"
 #include "ui/app_catalog.h"
+#include "ui/app_runtime.h"
 #include "ui/callback_app_screen.h"
 #include "ui/localization.h"
+#include "ui/page/page_host.h"
+#include "ui/screens/chat/chat_page_shell.h"
 #include "ui/ui_theme.h"
 
 #include <cstdio>
@@ -14,6 +17,7 @@ namespace
 extern "C"
 {
     extern const lv_image_dsc_t Setting;
+    extern const lv_image_dsc_t Chat;
 }
 
 struct CompanionPageState
@@ -133,7 +137,31 @@ ui::CallbackAppScreen s_companion_app("c6_companion",
                                       companion_exit,
                                       &s_companion_page_state);
 
-AppScreen* s_apps[] = {&s_companion_app};
+// Chat shell entry. Mirrors modules/ui_shared/src/ui/app_catalog_builder.cpp:
+// the chat page shell's enter/exit take a ui::page::Host* as user_data, and the
+// menu host routes the page's back/exit request to ui_request_exit_to_menu().
+void request_menu_exit(void*)
+{
+    ::ui_request_exit_to_menu();
+}
+
+ui::page::Host make_menu_host()
+{
+    ui::page::Host host{};
+    host.request_exit = request_menu_exit;
+    return host;
+}
+
+ui::page::Host s_chat_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_chat_app("chat",
+                                 "Chat",
+                                 &Chat,
+                                 chat::ui::shell::enter,
+                                 chat::ui::shell::exit,
+                                 &s_chat_menu_host);
+
+AppScreen* s_apps[] = {&s_chat_app, &s_companion_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 
