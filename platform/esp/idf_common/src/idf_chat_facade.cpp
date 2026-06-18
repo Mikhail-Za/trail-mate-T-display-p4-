@@ -18,6 +18,8 @@
 
 #include <cstring>
 
+#include "esp_log.h"
+
 #include "app/app_facade_access.h"
 #include "board/LoraBoard.h"
 #include "chat/usecase/chat_service.h"
@@ -423,7 +425,18 @@ void IdfChatFacade::dispatchPendingEvents(std::size_t max_events)
 
 void IdfChatFacade::pumpMeshAndDrainEvents(std::size_t max_events)
 {
-    if (!initialized_ || !runtime_.isValid())
+    // TEMP DIAG (radio pump trace): prove this runs on-device and show guard state.
+    static uint32_t s_pump_n = 0;
+    const bool gated = (!initialized_ || !runtime_.isValid());
+    if (s_pump_n < 5U || (s_pump_n % 256U) == 0U)
+    {
+        ESP_LOGI("idf-pump", "pump n=%lu gated=%d adapter=%p",
+                 static_cast<unsigned long>(s_pump_n), gated ? 1 : 0,
+                 static_cast<void*>(runtime_.mesh_adapter));
+    }
+    ++s_pump_n;
+
+    if (gated)
     {
         return;
     }

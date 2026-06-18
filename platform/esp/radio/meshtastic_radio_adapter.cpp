@@ -257,11 +257,25 @@ void MeshtasticRadioAdapter::setLastRxStats(float rssi, float snr)
 
 void MeshtasticRadioAdapter::processSendQueue()
 {
+    // TEMP DIAG (radio pump trace): ground truth at the convergence point.
+    static uint32_t s_psq_n = 0;
     pollRadio();
+    bool attempted = false;
+    bool result = false;
     if (!nodeinfo_broadcast_sent_ && ready_)
     {
-        nodeinfo_broadcast_sent_ = broadcastNodeInfo();
+        attempted = true;
+        result = broadcastNodeInfo();
+        nodeinfo_broadcast_sent_ = result;
     }
+    if (s_psq_n < 5U || (s_psq_n % 256U) == 0U || attempted)
+    {
+        ESP_LOGI(kTag, "psq n=%lu ready=%d online=%d ni_sent=%d attempt=%d result=%d",
+                 static_cast<unsigned long>(s_psq_n), ready_ ? 1 : 0,
+                 board_.isRadioOnline() ? 1 : 0, nodeinfo_broadcast_sent_ ? 1 : 0,
+                 attempted ? 1 : 0, result ? 1 : 0);
+    }
+    ++s_psq_n;
 }
 
 chat::NodeId MeshtasticRadioAdapter::getNodeId() const

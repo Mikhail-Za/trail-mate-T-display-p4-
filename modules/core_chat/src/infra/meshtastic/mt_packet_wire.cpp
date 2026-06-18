@@ -7,27 +7,43 @@
 
 #include <cstring>
 
+// Meshtastic channel payloads are AES-CTR encrypted, so the wire codec needs an
+// AES-CTR backend. Two are supported and produce an identical keystream:
+//   1. Arduino: the rweather/Crypto library (<AES.h>/<CTR.h>).
+//   2. ESP-IDF: the bundled mbedtls AES-CTR (requires `mbedtls` in the component
+//      REQUIRES so the header resolves and links).
+// With neither, any PSK-protected channel (i.e. every default channel) cannot be
+// encrypted or decrypted, so TX/RX silently fails.
 #if __has_include(<AES.h>) && __has_include(<CTR.h>)
 #include <AES.h>
 #include <CTR.h>
 #define TRAILMATE_MESHTASTIC_WIRE_HAS_ARDUINO_CRYPTO 1
-#endif
-
-#ifndef TRAILMATE_MESHTASTIC_WIRE_HAS_ARDUINO_CRYPTO
+#else
 #define TRAILMATE_MESHTASTIC_WIRE_HAS_ARDUINO_CRYPTO 0
 #endif
+
+#if !TRAILMATE_MESHTASTIC_WIRE_HAS_ARDUINO_CRYPTO && defined(ESP_PLATFORM) && \
+    __has_include(<mbedtls/aes.h>)
+#include <mbedtls/aes.h>
+#define TRAILMATE_MESHTASTIC_WIRE_HAS_MBEDTLS_CRYPTO 1
+#else
+#define TRAILMATE_MESHTASTIC_WIRE_HAS_MBEDTLS_CRYPTO 0
+#endif
+
+#define TRAILMATE_MESHTASTIC_WIRE_HAS_CRYPTO \
+    (TRAILMATE_MESHTASTIC_WIRE_HAS_ARDUINO_CRYPTO || TRAILMATE_MESHTASTIC_WIRE_HAS_MBEDTLS_CRYPTO)
 
 namespace chat
 {
 namespace meshtastic
 {
 
-#if TRAILMATE_MESHTASTIC_WIRE_HAS_ARDUINO_CRYPTO
+#if TRAILMATE_MESHTASTIC_WIRE_HAS_CRYPTO
 namespace
 {
 
-constexpr size_t kMaxBlockSize = 256;
-
+// In-place AES-CTR over `buffer` (CTR is symmetric: same call encrypts and
+// decrypts). `nonce` is the 16-byte Meshtastic IV/counter.
 void aesCtrCrypt(const uint8_t* key, size_t key_len, uint8_t* nonce,
                  uint8_t* buffer, size_t len)
 {
@@ -36,6 +52,8 @@ void aesCtrCrypt(const uint8_t* key, size_t key_len, uint8_t* nonce,
         return;
     }
 
+#if TRAILMATE_MESHTASTIC_WIRE_HAS_ARDUINO_CRYPTO
+    constexpr size_t kMaxBlockSize = 256;
     uint8_t scratch[kMaxBlockSize];
     if (len > sizeof(scratch))
     {
@@ -60,6 +78,29 @@ void aesCtrCrypt(const uint8_t* key, size_t key_len, uint8_t* nonce,
         ctr.setCounterSize(4);
         ctr.encrypt(buffer, scratch, len);
     }
+#else
+    // mbedtls AES-CTR. Meshtastic's IV is [packet_id LE (8)][from_node LE (4)]
+    // [block counter (4, starts 0)]. mbedtls increments the full 128-bit counter
+    // big-endian; for our short (<16-block) payloads only the low 4 bytes move,
+    // so the keystream matches the rweather setCounterSize(4) path -- and matches
+    // Meshtastic itself, which is required for over-the-air interop.
+    if (key_len != 16 && key_len != 32)
+    {
+        return;
+    }
+    mbedtls_aes_context ctx;
+    mbedtls_aes_init(&ctx);
+    if (mbedtls_aes_setkey_enc(&ctx, key, static_cast<unsigned int>(key_len * 8)) == 0)
+    {
+        size_t nc_off = 0;
+        uint8_t stream_block[16];
+        uint8_t nonce_counter[16];
+        memset(stream_block, 0, sizeof(stream_block));
+        memcpy(nonce_counter, nonce, sizeof(nonce_counter));
+        mbedtls_aes_crypt_ctr(&ctx, len, &nc_off, nonce_counter, stream_block, buffer, buffer);
+    }
+    mbedtls_aes_free(&ctx);
+#endif
 }
 
 } // namespace
@@ -83,7 +124,7 @@ bool buildWirePacket(const uint8_t* data_payload, size_t data_len,
 
     if (psk && psk_len > 0)
     {
-#if TRAILMATE_MESHTASTIC_WIRE_HAS_ARDUINO_CRYPTO
+#if TRAILMATE_MESHTASTIC_WIRE_HAS_CRYPTO
         uint8_t nonce[16];
         memset(nonce, 0, sizeof(nonce));
         const uint64_t packet_id64 = static_cast<uint64_t>(packet_id);
@@ -166,7 +207,7 @@ bool decryptPayload(const PacketHeaderWire& header,
     }
 
     memcpy(out_plaintext, cipher, cipher_len);
-#if TRAILMATE_MESHTASTIC_WIRE_HAS_ARDUINO_CRYPTO
+#if TRAILMATE_MESHTASTIC_WIRE_HAS_CRYPTO
     uint8_t nonce[16];
     memset(nonce, 0, sizeof(nonce));
     const uint64_t packet_id64 = static_cast<uint64_t>(header.id);

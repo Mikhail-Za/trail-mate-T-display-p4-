@@ -151,6 +151,10 @@ void runEsp32LvglStartupRuntime(const Esp32LvglRuntimeConfig& config)
     {
         static platform::esp::idf_common::IdfChatFacade s_chat_facade(*board_handles.lora_board,
                                                                       board_handles.board);
+        // Region: the default AppConfig seeds CN (region code 4); this is a US board, so set
+        // US (1) before initialize() applies the radio config. The facade ctor explicitly
+        // permits overwriting getConfig() before initialize(); region is a uint8 Meshtastic code.
+        s_chat_facade.getConfig().meshtastic_config.region = 1; // US, 902-928 MHz ISM
         if (!s_chat_facade.initialize())
         {
             ESP_LOGW(config.log_tag, "LoRa-chat app facade failed to initialize for %s",

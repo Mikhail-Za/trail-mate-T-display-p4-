@@ -260,3 +260,6 @@ CMakeCache.txt
 
 # sdkconfig local override
 sdkconfig.old
+
+# goalkeeper durable state
+.goalkeeper/

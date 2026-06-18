@@ -43,6 +43,7 @@ idf_component_register(
         espcoredump
         fatfs
         m5stack_tab5
+        mbedtls
         nvs_flash
         sensor_bmi270
         t_display_p4
