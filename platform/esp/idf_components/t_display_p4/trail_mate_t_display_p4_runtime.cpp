@@ -647,7 +647,9 @@ bool create_display()
         return false;
     }
 
-    lv_display_set_rotation(s_display, LV_DISPLAY_ROTATION_90);
+    // Portrait, to match the DualMesh dual-boot firmwares (MeshOS / Meshtastic) on
+    // this 540x1168 panel. Upstream defaults to ROTATION_90 (landscape).
+    lv_display_set_rotation(s_display, LV_DISPLAY_ROTATION_0);
     return true;
 }
 
