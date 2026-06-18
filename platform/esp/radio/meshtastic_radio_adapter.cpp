@@ -472,6 +472,14 @@ void MeshtasticRadioAdapter::processReceivedPacket(const uint8_t* data, size_t s
 
     node_last_channel_[header.from] = channel;
 
+    // Symmetric to the tx log: a real received+decoded packet (passed parse, dedup,
+    // channel match, decrypt, and decode). header.from is never our own id (filtered
+    // above), and rssi reflects the actual reception, so this is a trustworthy RX signal.
+    ESP_LOGI(kTag, "rx from=%08lX to=%08lX id=%08lX port=%u rssi=%.0f snr=%.1f",
+             static_cast<unsigned long>(header.from), static_cast<unsigned long>(header.to),
+             static_cast<unsigned long>(header.id), static_cast<unsigned>(decoded.portnum),
+             static_cast<double>(last_rx_rssi_), static_cast<double>(last_rx_snr_));
+
     const bool to_us = (header.to == node_id_);
     const bool is_broadcast = (header.to == kBroadcastNodeId);
     const bool want_ack = (header.flags & chat::meshtastic::PACKET_FLAGS_WANT_ACK_MASK) != 0;
