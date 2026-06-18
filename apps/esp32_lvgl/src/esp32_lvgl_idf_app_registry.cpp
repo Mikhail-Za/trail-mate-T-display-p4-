@@ -82,6 +82,16 @@ void companion_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_flex_flow(state->root, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(state->root, 8, 0);
 
+    // Back button: the C6 page previously had no way out (forced a reboot).
+    // Route to the launcher menu via the same exit the Chat app uses.
+    lv_obj_t* back_btn = lv_button_create(state->root);
+    lv_obj_set_width(back_btn, LV_PCT(45));
+    lv_obj_t* back_lbl = lv_label_create(back_btn);
+    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(
+        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+
     add_label(state->root, ::ui::i18n::tr("C6 Companion"), &lv_font_montserrat_14, ui::theme::text());
 
     const auto st = platform::ui::wireless_companion::status();
