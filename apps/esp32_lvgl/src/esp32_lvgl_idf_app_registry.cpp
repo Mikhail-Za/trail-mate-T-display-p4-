@@ -7,6 +7,7 @@
 #include "ui/localization.h"
 #include "ui/page/page_host.h"
 #include "ui/screens/chat/chat_page_shell.h"
+#include "ui/screens/contacts/contacts_page_shell.h"
 #include "ui/ui_theme.h"
 
 #include <cstdio>
@@ -171,7 +172,20 @@ ui::CallbackAppScreen s_chat_app("chat",
                                  chat::ui::shell::exit,
                                  &s_chat_menu_host);
 
-AppScreen* s_apps[] = {&s_chat_app, &s_companion_app};
+// Contacts (mesh node list). Mirrors the chat binding: the contacts page shell's
+// enter/exit take a ui::page::Host* as user_data, and the page routes its back
+// request through ui_request_exit_to_menu() via the menu host. Backing data
+// (ContactService + node store) is provided live by IdfChatFacade.
+ui::page::Host s_contacts_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_contacts_app("contacts",
+                                     "Contacts",
+                                     &Chat,
+                                     contacts::ui::shell::enter,
+                                     contacts::ui::shell::exit,
+                                     &s_contacts_menu_host);
+
+AppScreen* s_apps[] = {&s_chat_app, &s_contacts_app, &s_companion_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 

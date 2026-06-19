@@ -161,6 +161,39 @@ set(TRAILMATE_ESP_IDF_CHAT_UI_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/ime/ime_widget.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/ime/pinyin_ime.cpp")
 
+# ---------------------------------------------------------------------------
+# Contacts app (mesh NODE LIST: other nodes seen, last-heard, SNR/RSSI, per-node
+# detail). stable_id = 'contacts'. Reuses the chat producer set (chat/contact
+# services, RAM node store, chat screen widgets the contacts compose/conversation
+# panels embed). Adds the contacts page set, the node_info per-node detail screen,
+# and the map-tile WIDGET (map_viewport + the arduino_common map_tiles tile engine
+# + the ui_map_runtime tile producers it links) used to draw the node-detail
+# mini-map. The map_tiles engine is FreeRTOS-based (not Arduino) and degrades to an
+# empty map when no SD tiles are present, so it builds and runs in the pure
+# IDF/no-SD self-test. SKIP the full map app + its live overlay projection.
+set(TRAILMATE_ESP_IDF_CONTACTS_UI_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/contacts/contacts_page_components.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/contacts/contacts_page_input.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/contacts/contacts_page_layout.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/contacts/contacts_page_runtime.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/contacts/contacts_page_shell.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/contacts/contacts_page_styles.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/contacts/contacts_state.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/contacts/contacts_team_snapshot_source.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/node_info/node_info_page_components.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/node_info/node_info_page_layout.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/map/map_viewport.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/widgets/map/map_tiles.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_map_runtime/src/map_tiles/filesystem_map_tile_source.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_map_runtime/src/map_tiles/map_tile_render_queue.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_map_runtime/src/map_tiles/map_tile_resolver.cpp"
+    # Toast widget: the contacts compose panel (chat_compose) and the node_info
+    # layer-notice path call ::ui::widgets::Toast::show(); the GPS screen that
+    # owns the free show_toast() in Arduino/Linux builds is out of scope here, so
+    # node_info's show_toast() is provided by the IDF compat producer below.
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/toast/toast_widget.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_toast_compat.cpp")
+
 # Chat-screen LVGL renderers from the ux-pack common layer (modal + picker the
 # chat controller wires).
 set(TRAILMATE_ESP_IDF_CHAT_UX_PACK_SOURCES
@@ -234,6 +267,7 @@ set(TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/bsp_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/c6_companion_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/debug/sd_coredump_export.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/display_spi_lock.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/gps_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_device_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_gps_runtime.cpp"
