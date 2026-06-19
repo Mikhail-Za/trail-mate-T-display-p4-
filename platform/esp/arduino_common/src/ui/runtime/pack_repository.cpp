@@ -1217,6 +1217,27 @@ void log_path_probe(const char* scope, const std::string& logical_path)
                 kStorageSd);
 }
 
+// The ARDUINO branch logs a separate probe through the LVGL filesystem driver
+// (F:/SD letters). The pure ESP-IDF branch reaches pack storage straight through
+// POSIX on the SD mount point, so there is no distinct LVGL-FS view: report the
+// same host-resolved probe under the LVGL scope so log_package_payload_probe()
+// (shared, non-ARDUINO) keeps the symbol it calls and the diagnostic stays real.
+void log_lvgl_path_probe(const char* scope, const std::string& logical_path)
+{
+    std::size_t size = 0;
+    const bool file_exists = logical_file_exists(logical_path);
+    const bool dir_exists = logical_dir_exists(logical_path);
+    const bool size_ok = file_exists && logical_file_size(logical_path, size);
+    std::printf("[Packs][Probe][LVGL] %s logical=%s host=%s file=%d dir=%d size_ok=%d size=%lu\n",
+                scope ? scope : "path",
+                logical_path.c_str(),
+                host_path(logical_path).c_str(),
+                file_exists ? 1 : 0,
+                dir_exists ? 1 : 0,
+                size_ok ? 1 : 0,
+                static_cast<unsigned long>(size));
+}
+
 bool remove_file_if_exists(const std::string& logical_path)
 {
     if (!logical_file_exists(logical_path))

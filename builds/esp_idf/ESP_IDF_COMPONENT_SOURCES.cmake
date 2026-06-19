@@ -249,6 +249,29 @@ set(TRAILMATE_ESP_IDF_GNSS_UI_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/gnss/gnss_skyplot_page_shell.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/common/placeholder_page.cpp")
 
+# ---------------------------------------------------------------------------
+# Extensions app (Wi-Fi / companion extensions status panel: language-pack
+# catalog browser + install/update/uninstall + per-package detail).
+# stable_id = 'extensions'. The screen reads Wi-Fi reachability via
+# platform::ui::wifi::status() (already compiled) and the package catalog/install
+# state via ui::runtime::packs::* (pack_repository.cpp). Its other UI deps -- the
+# TopBar/two_pane_layout/two_pane_styles/info_card components, busy_overlay +
+# system_notification widgets, page_profile, localization, theme -- are all
+# already in the chat/settings/ui_shared sets.
+#
+# The pack_repository backend lives in arduino_common but its translation unit
+# has a pure ESP-IDF (non-ARDUINO) branch (#if defined(ESP_PLATFORM) ... #else)
+# that talks to the SD card via bsp_runtime::sdcard_mount_point() and fetches the
+# remote catalog with esp_http_client + the json/mbedtls(esp_crt_bundle)/miniz
+# components (added to main's REQUIRES). card_ready()/firmware_version()
+# (platform_ui_device_runtime), current_memory_profile() (memory_profile.cpp),
+# and reload_language() (resource_pack_registry) are all already-compiled
+# producers, so only these two screen .cpp's plus the backend are new here.
+set(TRAILMATE_ESP_IDF_EXTENSIONS_UI_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/extensions/extensions_page_runtime.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/extensions/extensions_page_shell.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/runtime/pack_repository.cpp")
+
 # Chat-screen LVGL renderers from the ux-pack common layer (modal + picker the
 # chat controller wires).
 set(TRAILMATE_ESP_IDF_CHAT_UX_PACK_SOURCES

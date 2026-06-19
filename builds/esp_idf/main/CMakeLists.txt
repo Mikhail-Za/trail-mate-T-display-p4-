@@ -29,6 +29,7 @@ idf_component_register(
         ${TRAILMATE_ESP_IDF_CONTACTS_UI_SOURCES}
         ${TRAILMATE_ESP_IDF_SETTINGS_UI_SOURCES}
         ${TRAILMATE_ESP_IDF_GNSS_UI_SOURCES}
+        ${TRAILMATE_ESP_IDF_EXTENSIONS_UI_SOURCES}
         ${TRAILMATE_ESP_IDF_CHAT_UX_PACK_SOURCES}
         ${TRAILMATE_ESP_IDF_UI_SHARED_SOURCES}
         ${TRAILMATE_ESP_IDF_UI_PRESENTATION_SOURCES}
@@ -39,12 +40,14 @@ idf_component_register(
     REQUIRES
         driver
         esp_app_format
+        esp_http_client
         esp_lcd
         esp_lvgl_port
         esp_serial_slave_link
         esp_timer
         espcoredump
         fatfs
+        json
         m5stack_tab5
         mbedtls
         nvs_flash

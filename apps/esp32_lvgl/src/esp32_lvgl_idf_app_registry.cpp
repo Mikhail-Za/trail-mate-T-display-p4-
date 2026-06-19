@@ -8,6 +8,7 @@
 #include "ui/page/page_host.h"
 #include "ui/screens/chat/chat_page_shell.h"
 #include "ui/screens/contacts/contacts_page_shell.h"
+#include "ui/screens/extensions/extensions_page_shell.h"
 #include "ui/screens/gnss/gnss_skyplot_page_shell.h"
 #include "ui/screens/settings/settings_page_shell.h"
 #include "ui/ui_theme.h"
@@ -220,8 +221,31 @@ ui::CallbackAppScreen s_skyplot_app("sky_plot",
                                     gnss::ui::shell::exit,
                                     &s_skyplot_menu_host);
 
-AppScreen* s_apps[] = {
-    &s_chat_app, &s_contacts_app, &s_settings_app, &s_skyplot_app, &s_companion_app};
+// Extensions (Wi-Fi / companion extensions status panel: language-pack catalog,
+// install/update/uninstall + per-package detail). stable_id = 'extensions'.
+// Mirrors the chat/contacts/settings binding: the extensions page shell's
+// enter/exit take a ui::page::Host* as user_data and route the back request
+// through ui_request_exit_to_menu() via the menu host. The screen reads catalog
+// state through platform::ui::wifi::status() + ui::runtime::packs::fetch_catalog()
+// (the ESP-IDF pack_repository backend), both compiled producers; it does no
+// network I/O on enter (the catalog fetch returns early unless Wi-Fi is connected
+// and the self-test board is offline), and exit() just deletes the root with no
+// queued async work, so it tears down cleanly in the boot self-test.
+ui::page::Host s_extensions_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_extensions_app("extensions",
+                                       "Extensions",
+                                       &Setting,
+                                       extensions::ui::shell::enter,
+                                       extensions::ui::shell::exit,
+                                       &s_extensions_menu_host);
+
+AppScreen* s_apps[] = {&s_chat_app,
+                       &s_contacts_app,
+                       &s_settings_app,
+                       &s_skyplot_app,
+                       &s_extensions_app,
+                       &s_companion_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 
