@@ -8,6 +8,7 @@
 #include "ui/page/page_host.h"
 #include "ui/screens/chat/chat_page_shell.h"
 #include "ui/screens/contacts/contacts_page_shell.h"
+#include "ui/screens/settings/settings_page_shell.h"
 #include "ui/ui_theme.h"
 
 #include <cstdio>
@@ -185,7 +186,23 @@ ui::CallbackAppScreen s_contacts_app("contacts",
                                      contacts::ui::shell::exit,
                                      &s_contacts_menu_host);
 
-AppScreen* s_apps[] = {&s_chat_app, &s_contacts_app, &s_companion_app};
+// Settings (device/radio/channel/GPS config editor + broadcast-nodeinfo action).
+// Mirrors the chat/contacts binding: the settings page shell's enter/exit take a
+// ui::page::Host* as user_data and route the back request through
+// ui_request_exit_to_menu() via the menu host. The editor reads/writes live config
+// through app::configFacade().getConfig() (provided by IdfChatFacade) and the
+// platform::ui::* runtime services (time/device/tracker/wifi/gps/screen/
+// firmware_update/settings_backup/settings_store/team_ui_store/wireless_companion).
+ui::page::Host s_settings_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_settings_app("settings",
+                                     "Settings",
+                                     &Setting,
+                                     settings::ui::shell::enter,
+                                     settings::ui::shell::exit,
+                                     &s_settings_menu_host);
+
+AppScreen* s_apps[] = {&s_chat_app, &s_contacts_app, &s_settings_app, &s_companion_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 

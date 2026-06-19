@@ -370,9 +370,14 @@ static void refresh_wireless_companion_state_from_runtime()
     const wireless_companion_runtime::Status status = wireless_companion_runtime::status();
     if (status.detail[0] != '\0')
     {
+        // status.message[96] + status.detail[128] both exceed the 96-byte
+        // c6_companion_status target; bound each field with a precision so the
+        // composed "msg (detail)" line provably fits (58 + " (" + 30 + ")" + NUL
+        // = 92 <= 96). Companion status lines are short, so this only clips a
+        // pathologically long detail, which is acceptable for a display string.
         std::snprintf(g_settings.c6_companion_status,
                       sizeof(g_settings.c6_companion_status),
-                      "%s (%s)",
+                      "%.58s (%.30s)",
                       status.message,
                       status.detail);
         return;
@@ -4054,6 +4059,20 @@ void create(lv_obj_t* parent)
 
 void destroy()
 {
+    // Cancel any pending deferred category switch. on_filter_focused() schedules
+    // apply_pending_category_cb via lv_async_call when a filter button gains focus
+    // (which happens during input init when the controller focuses the default
+    // filter). That callback runs later on the LVGL task and dereferences
+    // g_state.list_panel / rebuilds the list. If the screen is torn down before
+    // lv_timer_handler drains the async queue (e.g. the boot self-test harness
+    // enters and exits the screen without pumping the LVGL loop in between), the
+    // callback would fire against freed/reset state and crash or hang the LVGL
+    // task. Cancel it here so destroy() leaves no work scheduled against this
+    // screen's (about-to-be-freed) objects.
+    lv_async_call_cancel(apply_pending_category_cb, nullptr);
+    s_category_update_scheduled = false;
+    s_pending_category = -1;
+
     if (g_state.modal_root)
     {
         modal_close();
@@ -4069,12 +4088,18 @@ void destroy()
         s_firmware_overlay_owned = false;
     }
     settings::ui::input::cleanup();
-    if (g_state.root)
+    if (g_state.root && lv_obj_is_valid(g_state.root))
     {
-        lv_obj_del_async(g_state.root);
+        // Delete synchronously (matches the chat/contacts teardown contract).
+        // lv_obj_del_async would defer the free to the next lv_timer_handler pass,
+        // but callers can delete this screen's parent immediately afterwards (the
+        // boot self-test harness does enter()->exit()->lv_obj_del(parent) without
+        // pumping the LVGL timer loop in between), which would free the root out
+        // from under the still-pending async delete.
+        lv_obj_del(g_state.root);
         g_state.root = nullptr;
     }
-    if (g_state.parent)
+    if (g_state.parent && lv_obj_is_valid(g_state.parent))
     {
         lv_obj_invalidate(g_state.parent);
     }

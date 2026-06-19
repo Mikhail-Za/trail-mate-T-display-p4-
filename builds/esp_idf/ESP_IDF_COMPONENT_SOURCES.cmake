@@ -194,6 +194,43 @@ set(TRAILMATE_ESP_IDF_CONTACTS_UI_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/toast/toast_widget.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_toast_compat.cpp")
 
+# ---------------------------------------------------------------------------
+# Settings app (device/radio/channel/GPS config editor + broadcast-nodeinfo
+# action). stable_id = 'settings'. The editor reads/writes live config via
+# app::configFacade().getConfig() (AppConfig, provided by IdfChatFacade) and the
+# platform::ui::* runtime services. Most of those producers are already compiled
+# in TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES (time, device, tracker, wifi, gps,
+# team_ui_store, wireless_companion, settings_store -- which also implements the
+# platform::ui::screen contract inline). This adds the two remaining producers the
+# settings screen references -- firmware_update + settings_backup (self-contained
+# IDF "unsupported" runtimes, no Arduino deps) -- in the PLATFORM block below.
+#
+# Screen set = the settings page .cpp's plus the portable presentation/runtime
+# deps it instantiates: the SettingsModel (ui_presentation) bound to the
+# RuntimeSettingsSource/ActionSink (ui_shared presentation_sources), and the
+# busy_overlay widget the firmware-update progress path drives. menu_layout,
+# info_card, system_notification, the mc/mt region presets, and the two_pane_*
+# components are already in the chat/contacts/ui_shared sets.
+set(TRAILMATE_ESP_IDF_SETTINGS_UI_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/settings/settings_page_components.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/settings/settings_page_input.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/settings/settings_page_layout.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/settings/settings_page_runtime.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/settings/settings_page_shell.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/settings/settings_page_styles.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/settings/settings_state.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/presentation_sources/runtime_settings_source.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/busy_overlay.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_presentation/src/settings/settings_model.cpp"
+    # The settings screen pulls in the menu/dashboard refresh path
+    # (menu_layout::refresh_localized_text -> dashboard widgets), which makes the
+    # dashboard mesh + compass widgets reachable (previously gc-section'd away in
+    # the chat/contacts-only boot). Those widgets bind the live mesh-status model
+    # to its runtime source; both are portable (facade + team_ui_snapshot_store,
+    # all already-compiled producers) so add them here.
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/presentation_sources/runtime_mesh_status_source.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_presentation/src/mesh/mesh_status_model.cpp")
+
 # Chat-screen LVGL renderers from the ux-pack common layer (modal + picker the
 # chat controller wires).
 set(TRAILMATE_ESP_IDF_CHAT_UX_PACK_SOURCES
@@ -264,13 +301,17 @@ set(TRAILMATE_ESP_IDF_UI_LVGL_UX_PACK_SOURCES
 set(TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/boards/src/board_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/app_runtime_support.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ble_manager_stub.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/bsp_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/c6_companion_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/debug/sd_coredump_export.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/display_spi_lock.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/gps_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_device_runtime.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_firmware_update_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_gps_runtime.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_orientation_runtime.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_settings_backup_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_team_ui_store_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_settings_store.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_time_runtime.cpp"

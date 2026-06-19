@@ -91,6 +91,21 @@ void handle_low_battery(const BatteryInfo& info)
     (void)info;
 }
 
+bool supports_configurable_battery_gauge()
+{
+    // The configurable-gauge path exists only for boards with a user-writable
+    // fuel-gauge capacity register exposed through prefs (e.g. the T-Lora-Pager
+    // BQ27220 path in the Arduino runtime). The T-Display-P4 / Tab5 IDF targets
+    // read level straight from the board, so there is no configurable gauge here.
+    return false;
+}
+
+void reload_configurable_battery_gauge()
+{
+    // No configurable gauge on the IDF targets (see supports_* above): nothing to
+    // reload from prefs.
+}
+
 bool supports_screen_brightness()
 {
     return true;
