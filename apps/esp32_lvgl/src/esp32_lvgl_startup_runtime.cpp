@@ -184,6 +184,11 @@ void runEsp32LvglStartupRuntime(const Esp32LvglRuntimeConfig& config)
     {
         static platform::esp::idf_common::IdfChatFacade s_chat_facade(*board_handles.lora_board,
                                                                       board_handles.board);
+        // Protocol (Phase 2, boot-time selection): default the IDF firmware to MeshCore.
+        // The factory branches on mesh_protocol to construct the MeshCoreAdapter, and
+        // activeMeshConfig() then returns the MeshCore config. The facade ctor explicitly
+        // permits overwriting getConfig() before initialize().
+        s_chat_facade.getConfig().mesh_protocol = chat::MeshProtocol::MeshCore;
         // Region: the default AppConfig seeds CN (region code 4); this is a US board, so set
         // US (1) before initialize() applies the radio config. The facade ctor explicitly
         // permits overwriting getConfig() before initialize(); region is a uint8 Meshtastic code.

@@ -25,8 +25,11 @@
 #include <utility> // std::move
 #include <vector>
 
+#include "esp_log.h"
+
 #include "board/LoraBoard.h"
 #include "chat/domain/chat_model.h"
+#include "chat/domain/chat_types.h" // chat::MeshProtocol
 #include "chat/infra/contact_store_core.h"
 #include "chat/infra/node_store_core.h"
 #include "chat/infra/store/ram_store.h"
@@ -35,6 +38,7 @@
 #include "chat/usecase/chat_service.h"
 #include "chat/usecase/contact_service.h"
 #include "platform/esp/arduino_common/chat/infra/chat_event_bus_bridge.h"
+#include "platform/esp/arduino_common/chat/infra/meshcore/meshcore_adapter.h"
 
 namespace platform::esp::idf_common
 {
@@ -195,18 +199,42 @@ IdfChatRuntime createIdfChatRuntime(const app::AppConfig& config, LoraBoard& lor
     }
 
     // The radio adapter IS the mesh runtime. Build it from the board's LoRa
-    // radio, retain a typed borrow for the facade (getMeshAdapter / inline pump),
-    // then hand ownership to the bundle's mesh_runtime slot. Apply the active
-    // mesh config up front so the radio is configured before first TX/RX.
-    auto adapter = std::unique_ptr<platform::esp::radio::MeshtasticRadioAdapter>(
-        new platform::esp::radio::MeshtasticRadioAdapter(lora_board));
+    // radio, retain a borrow through the shared chat::IMeshAdapter seam for the
+    // facade (getMeshAdapter / inline pump), then hand ownership to the bundle's
+    // mesh_runtime slot. Apply the active mesh config up front so the radio is
+    // configured before first TX/RX.
+    //
+    // Protocol selection (Phase 2, boot-time): construct the MeshCore adapter when
+    // config.mesh_protocol is MeshCore, otherwise the Meshtastic radio adapter.
+    // Both implement chat::IMeshAdapter and take the same LoraBoard&, so the rest
+    // of the wiring (borrow, move into the chat runtime, ChatService ctor) is
+    // identical. config.activeMeshConfig() already returns the matching mesh
+    // config for the selected protocol.
+    std::unique_ptr<chat::IMeshAdapter> adapter;
+    if (config.mesh_protocol == chat::MeshProtocol::MeshCore)
+    {
+        adapter.reset(new chat::meshcore::MeshCoreAdapter(lora_board));
+    }
+    else
+    {
+        adapter.reset(new platform::esp::radio::MeshtasticRadioAdapter(lora_board));
+    }
     if (!adapter)
     {
         return runtime;
     }
     adapter->applyConfig(config.activeMeshConfig());
 
-    runtime.mesh_adapter = adapter.get();             // non-owning borrow
+    // Boot marker: announce the active adapter's real node id (derived from its
+    // identity inside applyConfig() above), analogous to the Meshtastic adapter's
+    // "radio ready node=" line. The MeshCore boot self-test check greps for this.
+    if (config.mesh_protocol == chat::MeshProtocol::MeshCore)
+    {
+        ESP_LOGI("idf-mc", "meshcore-ready node=%08lX",
+                 static_cast<unsigned long>(adapter->getNodeId()));
+    }
+
+    runtime.mesh_adapter = adapter.get();             // non-owning borrow (IMeshAdapter)
     chat.mesh_runtime = std::move(adapter);            // owner (as IMeshAdapter)
 
     chat.service = std::unique_ptr<chat::ChatService>(new chat::ChatService(

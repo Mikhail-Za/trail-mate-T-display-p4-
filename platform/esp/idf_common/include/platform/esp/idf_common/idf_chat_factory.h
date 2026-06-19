@@ -37,16 +37,20 @@ namespace platform::esp::idf_common
  * for the process lifetime.
  *
  * The concrete radio adapter is owned by `chat.mesh_runtime` (a unique_ptr<IMeshAdapter>
- * that here points at a MeshtasticRadioAdapter -- the radio IS the runtime, no
+ * that points at the protocol adapter selected by config.mesh_protocol -- a
+ * platform::esp::radio::MeshtasticRadioAdapter for Meshtastic or a
+ * chat::meshcore::MeshCoreAdapter for MeshCore; the radio IS the runtime, no
  * router wrapper).  `mesh_adapter` is a non-owning borrow of that exact object,
- * exposed so the facade can satisfy getMeshAdapter() and pump the radio without
- * a downcast.  It stays valid for as long as `chat.mesh_runtime` does.
+ * held through the shared chat::IMeshAdapter seam (both adapters implement it and
+ * take the same LoraBoard&), exposed so the facade can satisfy getMeshAdapter()
+ * and pump the radio without a downcast.  It stays valid for as long as
+ * `chat.mesh_runtime` does.
  */
 struct IdfChatRuntime
 {
     app::ContactServicesBundle contacts;
     app::ChatServicesBundle chat;
-    platform::esp::radio::MeshtasticRadioAdapter* mesh_adapter = nullptr; // borrow of chat.mesh_runtime
+    chat::IMeshAdapter* mesh_adapter = nullptr; // borrow of chat.mesh_runtime (Meshtastic or MeshCore)
 
     bool isValid() const
     {

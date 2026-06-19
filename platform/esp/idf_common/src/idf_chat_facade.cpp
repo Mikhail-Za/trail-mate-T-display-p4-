@@ -323,7 +323,13 @@ void IdfChatFacade::broadcastNodeInfo()
 {
     if (runtime_.mesh_adapter)
     {
-        (void)runtime_.mesh_adapter->broadcastNodeInfo();
+        // Route through the protocol-agnostic IMeshAdapter seam so this works for
+        // both the Meshtastic and MeshCore adapters (mesh_adapter is borrowed as
+        // chat::IMeshAdapter*). For the Meshtastic adapter SendIdBroadcast maps
+        // straight to its broadcastNodeInfo(); the MeshCore adapter emits its own
+        // identity/advert broadcast for the same action.
+        (void)runtime_.mesh_adapter->triggerDiscoveryAction(
+            ::chat::MeshDiscoveryAction::SendIdBroadcast);
     }
 }
 
