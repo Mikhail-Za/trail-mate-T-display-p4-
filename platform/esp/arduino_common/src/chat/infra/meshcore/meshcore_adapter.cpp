@@ -12,11 +12,10 @@
 #include "mesh/protocol/meshcore/meshcore_protocol_strategy.h"
 #include "platform/esp/arduino_common/app_tasks.h"
 #include "sys/event_bus.h"
-#include <AES.h>
-#include <Arduino.h>
-#include <Preferences.h>
-#include <RadioLib.h>
-#include <SHA256.h>
+#include "esp_mac.h"
+#include "esp_random.h"
+#include "esp_timer.h"
+#include "mbedtls/sha256.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -25,6 +24,88 @@
 #include <cstring>
 #include <limits>
 #include <vector>
+
+// RadioLib is not on the ESP-IDF include path (the IDF build drives the SX1262
+// through LoraBoard, not RadioLib). The adapter only references these three
+// RadioLib result codes; mirror their canonical RadioLib values here. The IDF
+// LoraBoard::transmitRadio()/startRadioReceive() return 0 on success and a
+// negative value on failure, so RADIOLIB_ERR_NONE == 0 matches the board's
+// success contract exactly.
+#ifndef RADIOLIB_ERR_NONE
+#define RADIOLIB_ERR_NONE 0
+#endif
+#ifndef RADIOLIB_ERR_SPI_WRITE_FAILED
+#define RADIOLIB_ERR_SPI_WRITE_FAILED (-16)
+#endif
+#ifndef RADIOLIB_ERR_UNSUPPORTED
+#define RADIOLIB_ERR_UNSUPPORTED (-19)
+#endif
+
+namespace
+{
+// IDF-portable monotonic millisecond clock, replacing Arduino millis().
+inline uint32_t millis()
+{
+    return static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
+}
+
+// IDF-portable replacement for Arduino random(min, max): returns a value in the
+// half-open range [min, max) backed by the hardware RNG. Matches the Arduino
+// contract the adapter's TX-jitter/backoff sites rely on (random(1, 5),
+// random(0, 6)); a degenerate/empty range yields min.
+inline long randomRange(long min_value, long max_value)
+{
+    if (max_value <= min_value)
+    {
+        return min_value;
+    }
+    const uint32_t span = static_cast<uint32_t>(max_value - min_value);
+    return min_value + static_cast<long>(esp_random() % span);
+}
+
+// Small mbedtls-backed SHA-256 accumulator mirroring the Arduino <SHA256.h>
+// object surface the adapter used (update() + truncating finalize()). The
+// adapter only ever takes the leading bytes of the digest (a 4-byte ack value),
+// which finalize(out, len) provides by truncation, exactly like Crypto's
+// SHA256::finalize(buf, len).
+class MeshCoreAdapterSha256
+{
+  public:
+    MeshCoreAdapterSha256()
+    {
+        mbedtls_sha256_init(&ctx_);
+        mbedtls_sha256_starts(&ctx_, 0);
+    }
+
+    ~MeshCoreAdapterSha256()
+    {
+        mbedtls_sha256_free(&ctx_);
+    }
+
+    void update(const void* data, size_t len)
+    {
+        if (!data || len == 0)
+        {
+            return;
+        }
+        mbedtls_sha256_update(&ctx_, static_cast<const unsigned char*>(data), len);
+    }
+
+    void finalize(void* out, size_t out_len)
+    {
+        if (!out || out_len == 0)
+        {
+            return;
+        }
+        uint8_t full[32] = {};
+        mbedtls_sha256_finish(&ctx_, full);
+        std::memcpy(out, full, (out_len < sizeof(full)) ? out_len : sizeof(full));
+    }
+
+  private:
+    mbedtls_sha256_context ctx_{};
+};
+} // namespace
 
 namespace chat
 {
@@ -272,10 +353,6 @@ void formatMeshCoreFallbackShortName(uint8_t peer_hash, char* out, size_t out_le
 
 MeshCoreAdapter::MeshCoreAdapter(LoraBoard& board)
     : board_(board),
-      initialized_(false),
-      last_raw_packet_len_(0),
-      has_pending_raw_packet_(false),
-      next_msg_id_(1),
       min_tx_interval_ms_(0),
       last_tx_ms_(0),
       encrypt_mode_(0),
@@ -286,10 +363,14 @@ MeshCoreAdapter::MeshCoreAdapter(LoraBoard& board)
       last_rx_snr_(NAN),
       last_noise_floor_dbm_(0),
       tx_airtime_ms_(0),
-      rx_airtime_ms_(0)
+      rx_airtime_ms_(0),
+      initialized_(false),
+      last_raw_packet_len_(0),
+      has_pending_raw_packet_(false),
+      next_msg_id_(1)
 {
-    const uint64_t raw = ESP.getEfuseMac();
-    const uint8_t* mac = reinterpret_cast<const uint8_t*>(&raw);
+    uint8_t mac[8] = {};
+    (void)esp_efuse_mac_get_default(mac);
     node_id_ = (static_cast<uint32_t>(mac[2]) << 24) |
                (static_cast<uint32_t>(mac[3]) << 16) |
                (static_cast<uint32_t>(mac[4]) << 8) |
@@ -1681,11 +1762,8 @@ MeshActionResult MeshCoreAdapter::transmitFrameNowDetailed(const uint8_t* data, 
                                 : 0U;
 
     int state = RADIOLIB_ERR_UNSUPPORTED;
-#if defined(ARDUINO_LILYGO_LORA_SX1262) || defined(ARDUINO_LILYGO_LORA_SX1280) || \
-    defined(ARDUINO_LILYGO_LORA_LR1121)
     app::AppTasks::requestRadioReceiveRestart();
     state = board_.transmitRadio(data, len);
-#endif
     if (state == RADIOLIB_ERR_NONE)
     {
         ParsedPacket parsed;
@@ -1982,7 +2060,7 @@ uint32_t MeshCoreAdapter::computeVerificationNumber(NodeId peer, uint64_t nonce)
     const uint32_t high = std::max(node_id_, peer);
 
     uint8_t digest[sizeof(uint32_t)] = {};
-    SHA256 sha;
+    MeshCoreAdapterSha256 sha;
     sha.update(key32, sizeof(key32));
     sha.update(reinterpret_cast<const uint8_t*>(&low), sizeof(low));
     sha.update(reinterpret_cast<const uint8_t*>(&high), sizeof(high));
@@ -2995,7 +3073,7 @@ MeshActionResult MeshCoreAdapter::sendDirectTextDetailed(ChannelId channel, cons
     uint32_t ack_value = 0;
     if (identity_.isReady() && txt_type == kTxtTypePlain)
     {
-        SHA256 sha;
+        MeshCoreAdapterSha256 sha;
         sha.update(plain, plain_len);
         sha.update(identity_.publicKey(), kMeshcorePubKeySize);
         sha.finalize(reinterpret_cast<uint8_t*>(&ack_value), sizeof(ack_value));
@@ -3324,8 +3402,6 @@ void MeshCoreAdapter::applyConfig(const MeshConfig& config)
     last_auto_discover_hash_ = 0;
     loadPeerPubKeysFromPrefs();
 
-#if defined(ARDUINO_LILYGO_LORA_SX1262) || defined(ARDUINO_LILYGO_LORA_SX1280) || \
-    defined(ARDUINO_LILYGO_LORA_LR1121)
     if (board_.isRadioOnline())
     {
         board_.configureLoraRadio(config_.meshcore_freq_mhz,
@@ -3337,7 +3413,6 @@ void MeshCoreAdapter::applyConfig(const MeshConfig& config)
                                   kLoraSyncWordPrivate,
                                   2);
     }
-#endif
     initialized_ = true;
 }
 
@@ -3716,7 +3791,7 @@ void MeshCoreAdapter::handleRawPacketInternal(const uint8_t* data, size_t size, 
             {
                 t_ms = 1;
             }
-            const uint32_t delay_ms = static_cast<uint32_t>(random(1, 5)) * t_ms * 4U;
+            const uint32_t delay_ms = static_cast<uint32_t>(randomRange(1, 5)) * t_ms * 4U;
             if (config_.tx_enabled)
             {
                 enqueueScheduled(frame, frame_len, delay_ms);
@@ -4064,7 +4139,7 @@ void MeshCoreAdapter::handleRawPacketInternal(const uint8_t* data, size_t size, 
             const uint32_t rx_delay = computeRxDelayMs(config_.meshcore_rx_delay_base, score, air_ms);
             const uint32_t tx_step = static_cast<uint32_t>(
                 std::lround(static_cast<float>(air_ms) * config_.meshcore_airtime_factor));
-            const uint32_t tx_delay = static_cast<uint32_t>(random(0, 6)) * tx_step;
+            const uint32_t tx_delay = static_cast<uint32_t>(randomRange(0, 6)) * tx_step;
             const uint32_t total_delay = rx_delay + tx_delay;
             enqueueScheduled(fwd.data(), fwd.size(), total_delay);
 
@@ -4384,7 +4459,7 @@ void MeshCoreAdapter::handleRawPacketInternal(const uint8_t* data, size_t size, 
                         ++text_len;
                     }
 
-                    SHA256 sha;
+                    MeshCoreAdapterSha256 sha;
                     sha.update(plain, 5 + text_len);
                     sha.update(sender_pubkey, kMeshcorePubKeySize);
                     sha.finalize(reinterpret_cast<uint8_t*>(&ack_value), sizeof(ack_value));
@@ -4427,7 +4502,7 @@ void MeshCoreAdapter::handleRawPacketInternal(const uint8_t* data, size_t size, 
                         ++text_len;
                     }
 
-                    SHA256 sha;
+                    MeshCoreAdapterSha256 sha;
                     sha.update(plain, 9 + text_len);
                     sha.update(self_pubkey, kMeshcorePubKeySize);
                     sha.finalize(reinterpret_cast<uint8_t*>(&ack_value), sizeof(ack_value));

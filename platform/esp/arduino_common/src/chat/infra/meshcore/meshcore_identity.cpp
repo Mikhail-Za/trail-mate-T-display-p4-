@@ -7,7 +7,7 @@
 #include "../../internal/blob_store_io.h"
 #include "chat/infra/meshcore/meshcore_identity_crypto.h"
 
-#include <Arduino.h>
+#include "esp_random.h"
 #include <cstring>
 
 namespace chat

@@ -103,6 +103,52 @@ set(TRAILMATE_ESP_IDF_CORE_CHAT_NANOPB_SOURCES
 file(GLOB TRAILMATE_ESP_IDF_CORE_CHAT_GENERATED_SOURCES
     "${TRAILMATE_ROOT}/modules/core_chat/generated/meshtastic/*.pb.cpp")
 
+# ---------------------------------------------------------------------------
+# MeshCore protocol family (the open-source MeshCore stack, ported into the IDF
+# build alongside the Meshtastic path). Mirrors the meshtastic source groups
+# above. Scope = the MeshCore protocol engine, its vendored Ed25519 crypto, the
+# core_mesh MeshCore strategy + identity flow, and the platform adapter +
+# identity that bind it to the shared LoraBoard / IMeshAdapter seam. The
+# symmetric crypto (AES-128 / SHA-256 / HMAC) in meshcore_protocol_helpers.cpp
+# routes to mbedtls under #if defined(ESP_PLATFORM), so it builds unmodified;
+# mbedtls is already in main's REQUIRES.
+#
+# core_chat MeshCore helpers. mc_region_presets.cpp is intentionally NOT listed
+# here: it is already part of TRAILMATE_ESP_IDF_CORE_CHAT_SOURCES (re-adding it
+# would be a duplicate-source error).
+set(TRAILMATE_ESP_IDF_CORE_CHAT_MESHCORE_SOURCES
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/meshcore_identity_crypto.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/meshcore_payload_helpers.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/meshcore_protocol_helpers.cpp")
+
+# Vendored Ed25519 (orlp/ed25519, plain portable C99 with a bundled sha512) used
+# for MeshCore identity keygen / sign / verify / ECDH.
+set(TRAILMATE_ESP_IDF_CORE_CHAT_MESHCORE_ED25519_SOURCES
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/crypto/ed25519/fe.c"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/crypto/ed25519/ge.c"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/crypto/ed25519/key_exchange.c"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/crypto/ed25519/keypair.c"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/crypto/ed25519/sc.c"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/crypto/ed25519/sha512.c"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/crypto/ed25519/sign.c"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/infra/meshcore/crypto/ed25519/verify.c")
+
+# core_mesh MeshCore protocol strategy + identity flow.
+set(TRAILMATE_ESP_IDF_CORE_MESH_MESHCORE_SOURCES
+    "${TRAILMATE_ROOT}/modules/core_mesh/src/protocol/meshcore/meshcore_protocol_strategy.cpp"
+    "${TRAILMATE_ROOT}/modules/core_mesh/src/protocol/meshcore/mc_identity_flow.cpp")
+
+# The platform MeshCore adapter + identity (the IDF-portable forms of the Arduino
+# shells: SHA-256 -> mbedtls, millis() -> esp_timer, radio via LoraBoard, NVS via
+# the IDF blob store below), plus the IDF-native NVS blob store that backs
+# MeshCore identity/peer persistence and the no-op app_tasks radio-receive hooks
+# the adapter's TX path references.
+set(TRAILMATE_ESP_IDF_PLATFORM_MESHCORE_SOURCES
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/chat/infra/meshcore/meshcore_adapter.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/chat/infra/meshcore/meshcore_identity.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_blob_store_io.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_app_tasks_radio_compat.cpp")
+
 # Arduino-common chat infra the factory instantiates directly: only the
 # ChatEventBusBridge observer (pure: EventBus::publish + chat_service.h).
 #
