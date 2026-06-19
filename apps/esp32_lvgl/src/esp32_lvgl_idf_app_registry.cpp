@@ -11,6 +11,7 @@
 #include "ui/screens/energy_sweep/energy_sweep_page_shell.h"
 #include "ui/screens/extensions/extensions_page_shell.h"
 #include "ui/screens/gnss/gnss_skyplot_page_shell.h"
+#include "ui/screens/pc_link/pc_link_page_shell.h"
 #include "ui/screens/settings/settings_page_shell.h"
 #include "ui/screens/tracker/tracker_page_shell.h"
 #include "ui/ui_theme.h"
@@ -295,6 +296,30 @@ ui::CallbackAppScreen s_energy_sweep_app("energy_sweep",
                                          energy_sweep::ui::shell::exit,
                                          &s_energy_sweep_menu_host);
 
+// PC Link (USB-CDC host bridge: shows link state + RX/TX frame counters; in
+// RNode-protocol mode it presents as a KISS modem for Reticulum). stable_id =
+// 'pc_link'. Mirrors the chat/contacts/settings binding: the pc_link page shell's
+// enter/exit take a ui::page::Host* (pc_link::ui::shell::Host is an alias of
+// ::ui::page::Host) as user_data and route the back request through
+// ui_request_exit_to_menu() via the menu host. The shell wraps the runtime with
+// the header-only page_shell_fallback template; placeholder_page::show/hide
+// (non-inline) is ALREADY linked via TRAILMATE_ESP_IDF_GNSS_UI_SOURCES, so it is
+// not repeated in the PC Link set. is_available() ==
+// platform::ui::hostlink::is_supported() == true on the P4 (USB-Serial-JTAG), so
+// the live runtime is entered. enter() starts the hostlink task (which just waits
+// for a host during the boot self-test, none attached) and exit() stops it +
+// deletes the root synchronously (lv_timer_del of the refresh timer, no queued
+// lv_async_call), so it is self-test safe. The screen labels itself from
+// app::appFacade().getMeshProtocol() (provided by IdfChatFacade).
+ui::page::Host s_pc_link_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_pc_link_app("pc_link",
+                                    "PC Link",
+                                    &Setting,
+                                    pc_link::ui::shell::enter,
+                                    pc_link::ui::shell::exit,
+                                    &s_pc_link_menu_host);
+
 AppScreen* s_apps[] = {&s_chat_app,
                        &s_contacts_app,
                        &s_settings_app,
@@ -302,6 +327,7 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_extensions_app,
                        &s_tracker_app,
                        &s_energy_sweep_app,
+                       &s_pc_link_app,
                        &s_companion_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);

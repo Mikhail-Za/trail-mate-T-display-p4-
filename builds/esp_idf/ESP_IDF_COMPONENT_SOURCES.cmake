@@ -21,7 +21,20 @@ set(TRAILMATE_ESP_IDF_PRODUCT_COMPOSITION_SOURCES
 
 set(TRAILMATE_ESP_IDF_CORE_HOSTLINK_SOURCES
     "${TRAILMATE_ROOT}/modules/core_hostlink/src/c6_frame_codec_c.c"
-    "${TRAILMATE_ROOT}/modules/core_hostlink/src/c6_frame_codec.cpp")
+    "${TRAILMATE_ROOT}/modules/core_hostlink/src/c6_frame_codec.cpp"
+    # Host (PC) link codec: the session state machine, the frame
+    # encoder/decoder + CRC, the command/handshake router, and the
+    # service/event/app-data/config payload builders. These are pure
+    # C++/stdlib (no Arduino/ESP deps) and back the PC Link app's USB-CDC
+    # bridge (TRAILMATE_ESP_IDF_PC_LINK_UI_SOURCES). c6_frame_codec above is the
+    # separate SDIO-to-C6 codec and is unrelated to this host link.
+    "${TRAILMATE_ROOT}/modules/core_hostlink/src/hostlink_session.cpp"
+    "${TRAILMATE_ROOT}/modules/core_hostlink/src/hostlink_codec.cpp"
+    "${TRAILMATE_ROOT}/modules/core_hostlink/src/hostlink_frame_router.cpp"
+    "${TRAILMATE_ROOT}/modules/core_hostlink/src/hostlink_service_codec.cpp"
+    "${TRAILMATE_ROOT}/modules/core_hostlink/src/hostlink_app_data_codec.cpp"
+    "${TRAILMATE_ROOT}/modules/core_hostlink/src/hostlink_config_codec.cpp"
+    "${TRAILMATE_ROOT}/modules/core_hostlink/src/hostlink_event_codec.cpp")
 
 set(TRAILMATE_ESP_IDF_CORE_SYS_SOURCES
     "${TRAILMATE_ROOT}/modules/core_sys/src/app/app_facade_access.cpp"
@@ -322,6 +335,48 @@ set(TRAILMATE_ESP_IDF_ENERGY_SWEEP_UI_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/energy_sweep/energy_sweep_page_runtime.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/energy_sweep/energy_sweep_page_shell.cpp")
 
+# ---------------------------------------------------------------------------
+# PC Link app (USB-CDC bridge to a PC companion: shows host link state +
+# RX/TX frame counters; in RNode-protocol mode it presents as a KISS modem for
+# Reticulum). stable_id = 'pc_link'; screen dir is screens/pc_link. The screen
+# reads link state via platform::ui::hostlink::* and labels itself from
+# app::appFacade().getMeshProtocol() (provided by IdfChatFacade). The page shell
+# wraps the runtime with the header-only page_shell_fallback template, whose
+# placeholder_page::show/hide (non-inline) translation unit is ALREADY linked via
+# TRAILMATE_ESP_IDF_GNSS_UI_SOURCES, so it is intentionally NOT repeated here (a
+# second copy would be a duplicate-symbol link error). is_available() ==
+# platform::ui::hostlink::is_supported(), which is true on the P4 (it has the
+# USB-Serial-JTAG controller), so the live runtime is entered. enter() spawns the
+# hostlink FreeRTOS task (no USB host attached during the boot self-test, so it
+# simply sits in the "Waiting for host" state) and exit() stops it + deletes the
+# root synchronously (lv_timer_del of the 300ms refresh timer, no queued
+# lv_async_call), so it is self-test safe.
+#
+# Backing = the IDF hostlink runtime (platform_ui_hostlink_runtime.cpp, added to
+# the PLATFORM block) which delegates to the shared (arduino_common) hostlink
+# service. That service is FreeRTOS/stdlib-portable, not Arduino-bound: it speaks
+# the host link wire protocol over the IDF USB-Serial-JTAG transport
+# (idf_common/usb_cdc_transport.cpp -- the IDF implementation of the usb_cdc::
+# interface, NOT the Arduino one) using the core_hostlink codec set above, and
+# reaches mesh/team/config through the app facades (app::messagingFacade()/
+# teamFacade()/configFacade(), all the bound IdfChatFacade). Its only Arduino-GPS
+# coupling is the gps::gps_get_data() free function it calls when streaming GPS
+# events; that single symbol is provided for the IDF build by
+# idf_hostlink_gps_compat.cpp (added to the PLATFORM block), which forwards to the
+# live platform::ui::gps fix. set_time_epoch() uses settimeofday() on the P4
+# (the tab5 RTC branch is compiled out unless TRAIL_MATE_ESP_BOARD_TAB5).
+#
+# team_presence_model.cpp (the isTeamMemberOnline helper the team-state bridge
+# uses) is the only ui_shared straggler not already pulled by another app set.
+set(TRAILMATE_ESP_IDF_PC_LINK_UI_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/pc_link/pc_link_page_runtime.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/pc_link/pc_link_page_shell.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/team_presence/team_presence_model.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/hostlink/hostlink_service.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/hostlink/hostlink_config_service.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/hostlink/hostlink_bridge_radio.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/usb_cdc_transport.cpp")
+
 # Chat-screen LVGL renderers from the ux-pack common layer (modal + picker the
 # chat controller wires).
 set(TRAILMATE_ESP_IDF_CHAT_UX_PACK_SOURCES
@@ -416,6 +471,13 @@ set(TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_common.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_dispatcher.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_wireless_companion_runtime.cpp"
+    # PC Link host-bridge backend: the platform::ui::hostlink runtime (delegates
+    # to the shared ::hostlink service over the IDF USB-Serial-JTAG transport)
+    # plus the gps::gps_get_data() free-function compat the service needs to
+    # stream GPS events from the live IDF GPS fix. See the
+    # TRAILMATE_ESP_IDF_PC_LINK_UI_SOURCES block for the full rationale.
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_hostlink_runtime.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_hostlink_gps_compat.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_chat_factory.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_chat_facade.cpp"
     "${TRAILMATE_ROOT}/platform/esp/radio/meshtastic_radio_adapter.cpp")
