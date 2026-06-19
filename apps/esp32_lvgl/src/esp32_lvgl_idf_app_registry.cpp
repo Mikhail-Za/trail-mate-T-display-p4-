@@ -8,6 +8,7 @@
 #include "ui/page/page_host.h"
 #include "ui/screens/chat/chat_page_shell.h"
 #include "ui/screens/contacts/contacts_page_shell.h"
+#include "ui/screens/gnss/gnss_skyplot_page_shell.h"
 #include "ui/screens/settings/settings_page_shell.h"
 #include "ui/ui_theme.h"
 
@@ -202,7 +203,25 @@ ui::CallbackAppScreen s_settings_app("settings",
                                      settings::ui::shell::exit,
                                      &s_settings_menu_host);
 
-AppScreen* s_apps[] = {&s_chat_app, &s_contacts_app, &s_settings_app, &s_companion_app};
+// Sky-plot / GNSS satellite view (sky-plot of satellites in view + per-satellite
+// signal table). stable_id = 'sky_plot'. Mirrors the chat/contacts/settings
+// binding: the gnss page shell's enter/exit take a ui::page::Host* (gnss::ui::
+// shell::Host is an alias of ::ui::page::Host) as user_data and route the back
+// request through ui_request_exit_to_menu() via the menu host. The shell falls
+// back to a placeholder when device::gps_supported() is false; on this board it is
+// true, so the live runtime reads platform::ui::gps::get_gnss_snapshot() (already a
+// compiled producer). Self-contained: no map/SD dependency.
+ui::page::Host s_skyplot_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_skyplot_app("sky_plot",
+                                    "Satellites",
+                                    &Setting,
+                                    gnss::ui::shell::enter,
+                                    gnss::ui::shell::exit,
+                                    &s_skyplot_menu_host);
+
+AppScreen* s_apps[] = {
+    &s_chat_app, &s_contacts_app, &s_settings_app, &s_skyplot_app, &s_companion_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 

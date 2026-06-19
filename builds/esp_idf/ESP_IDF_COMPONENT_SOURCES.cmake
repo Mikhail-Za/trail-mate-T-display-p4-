@@ -231,6 +231,24 @@ set(TRAILMATE_ESP_IDF_SETTINGS_UI_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/presentation_sources/runtime_mesh_status_source.cpp"
     "${TRAILMATE_ROOT}/modules/ui_presentation/src/mesh/mesh_status_model.cpp")
 
+# ---------------------------------------------------------------------------
+# Sky-plot / GNSS satellite app (sky-plot of satellites in view + per-satellite
+# signal/elevation table). stable_id = 'sky_plot'; screen dir is screens/gnss.
+# Self-contained, no map/SD dependency. The page shell wraps the runtime with the
+# header-only page_shell_fallback template: when device::gps_supported() is false
+# it shows the shared placeholder_page; otherwise the live runtime reads satellites
+# via platform::ui::gps::get_gnss_snapshot() (already compiled in
+# TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES). Its other deps -- the TopBar widget,
+# app_runtime group helpers, page_profile, font_utils, ui_common battery readout --
+# are all already in the chat/ui_shared/platform sets. Only the two gnss screen
+# .cpp's are new here, plus placeholder_page.cpp: the fallback template instantiates
+# placeholder_page::show/hide (non-inline), so its translation unit must link even
+# though gps_supported() is true on this board and the placeholder path is not taken.
+set(TRAILMATE_ESP_IDF_GNSS_UI_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/gnss/gnss_skyplot_page_runtime.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/gnss/gnss_skyplot_page_shell.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/common/placeholder_page.cpp")
+
 # Chat-screen LVGL renderers from the ux-pack common layer (modal + picker the
 # chat controller wires).
 set(TRAILMATE_ESP_IDF_CHAT_UX_PACK_SOURCES
