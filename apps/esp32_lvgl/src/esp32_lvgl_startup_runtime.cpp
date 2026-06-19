@@ -88,6 +88,39 @@ ui::startup_shell::Hooks buildShellHooks()
     };
     return hooks;
 }
+
+// DEV SMOKE TEST (to be gated out before shipping): enter + exit every catalog
+// app once into a throwaway, never-loaded screen, logging appselftest:<id>:ok.
+// This proves each bound app's screen-build code runs without crashing on real
+// hardware. The goalkeeper app-bind checks grep for the :ok line; a panic
+// between :enter and :ok pinpoints the broken app.
+void runAppSelfTest(const ui::AppCatalog& apps, const char* log_tag)
+{
+    const size_t n = ui::catalogCount(apps);
+    ESP_LOGI(log_tag, "appselftest:begin count=%u", static_cast<unsigned>(n));
+    for (size_t i = 0; i < n; ++i)
+    {
+        AppScreen* app = ui::catalogAt(apps, i);
+        if (app == nullptr)
+        {
+            continue;
+        }
+        const char* id = app->stable_id() ? app->stable_id() : "unknown";
+        if (!lockUi(2000))
+        {
+            ESP_LOGW(log_tag, "appselftest:%s:locktimeout", id);
+            continue;
+        }
+        ESP_LOGI(log_tag, "appselftest:%s:enter", id);
+        lv_obj_t* parent = lv_obj_create(nullptr);
+        app->enter(parent);
+        app->exit(parent);
+        lv_obj_del(parent);
+        unlockUi();
+        ESP_LOGI(log_tag, "appselftest:%s:ok", id);
+    }
+    ESP_LOGI(log_tag, "appselftest:done");
+}
 #endif
 
 } // namespace
@@ -209,6 +242,8 @@ void runEsp32LvglStartupRuntime(const Esp32LvglRuntimeConfig& config)
     {
         ESP_LOGW(config.log_tag, "finalizeStartup failed to acquire LVGL lock");
     }
+
+    runAppSelfTest(shell_hooks.apps, config.log_tag);
 
     startEsp32LvglLoopRuntime(config);
 
