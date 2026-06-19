@@ -8,6 +8,7 @@
 #include "ui/page/page_host.h"
 #include "ui/screens/chat/chat_page_shell.h"
 #include "ui/screens/contacts/contacts_page_shell.h"
+#include "ui/screens/energy_sweep/energy_sweep_page_shell.h"
 #include "ui/screens/extensions/extensions_page_shell.h"
 #include "ui/screens/gnss/gnss_skyplot_page_shell.h"
 #include "ui/screens/settings/settings_page_shell.h"
@@ -265,12 +266,42 @@ ui::CallbackAppScreen s_tracker_app("tracker",
                                     tracker::ui::shell::exit,
                                     &s_tracker_menu_host);
 
+// Energy Sweep (LoRa RSSI spectrum sweep over the configured region band).
+// stable_id = 'energy_sweep'. Mirrors the chat/contacts/settings binding: the
+// energy-sweep page shell's enter/exit take a ui::page::Host* (energy_sweep::ui::
+// shell::Host is an alias of ::ui::page::Host) as user_data and route the back
+// request through ui_request_exit_to_menu() via the menu host. The shell wraps the
+// runtime with the header-only page_shell_fallback template; placeholder_page::
+// show/hide (non-inline) is ALREADY linked via TRAILMATE_ESP_IDF_GNSS_UI_SOURCES,
+// so it is intentionally NOT repeated in the energy-sweep set (a second copy would
+// be a duplicate-symbol link error). is_available() == lora::is_supported() ==
+// kBoardProfile.has_lora (true on tdisplayp4_tft), so the live runtime is entered.
+// enter() runs purely simulated (init_sweep_state); it does NOT acquire the shared
+// SX126x radio -- the radio is acquired lazily only when SCAN is pressed
+// (acquire_radio_runtime), and the boot self-test only enters+exits, so no radio
+// contention with the chat radio occurs. exit() tears down synchronously
+// (teardown_radio_context releases only if a scan acquired the radio; lv_timer_del
+// of the refresh timer; lv_obj_del of the root) with no queued lv_async_call, so it
+// is self-test safe. Backing producer platform::ui::lora
+// (platform_ui_lora_runtime.cpp over Sx126xRadio) is added to the PLATFORM block;
+// platform::ui::screen sleep control (disable_sleep/enable_sleep) is already
+// provided inline by screen_sleep.cpp, and device::delay_ms by the device runtime.
+ui::page::Host s_energy_sweep_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_energy_sweep_app("energy_sweep",
+                                         "Sub-GHz Scan",
+                                         &Setting,
+                                         energy_sweep::ui::shell::enter,
+                                         energy_sweep::ui::shell::exit,
+                                         &s_energy_sweep_menu_host);
+
 AppScreen* s_apps[] = {&s_chat_app,
                        &s_contacts_app,
                        &s_settings_app,
                        &s_skyplot_app,
                        &s_extensions_app,
                        &s_tracker_app,
+                       &s_energy_sweep_app,
                        &s_companion_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);

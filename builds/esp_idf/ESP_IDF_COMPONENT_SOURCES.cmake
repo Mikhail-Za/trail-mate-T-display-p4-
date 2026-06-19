@@ -297,6 +297,31 @@ set(TRAILMATE_ESP_IDF_TRACKER_UI_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/tracker/tracker_page_shell.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/tracker/tracker_state.cpp")
 
+# ---------------------------------------------------------------------------
+# Energy Sweep app (LoRa RSSI spectrum sweep over the configured region band:
+# per-bin RSSI bars, noise floor + hot-bin detection, "best" clear-channel pick).
+# stable_id = 'energy_sweep'. The screen samples RSSI through platform::ui::lora::*
+# (configure_receive/read_instant_rssi over the shared SX126x radio) and derives
+# the sweep band from the live mesh config via app::configFacade().getConfig() +
+# the region tables (chat::meshtastic::getRegionTable / chat::meshcore::
+# findRegionPresetById, both already compiled in the MESHTASTIC/CORE_CHAT sets). It
+# only acquires the radio lazily on a SCAN press (acquire_radio_runtime); on entry
+# it shows simulated bars, so the boot self-test enters+exits with no radio
+# contention. Screen-sleep is held off during the view via platform::ui::screen::
+# disable_sleep/enable_sleep -- already provided inline by screen_sleep.cpp (no shim
+# needed). device::delay_ms (inter-sample settle) comes from the device runtime.
+# The page shell wraps the runtime with the header-only page_shell_fallback
+# template, whose placeholder_page::show/hide (non-inline) translation unit is
+# ALREADY linked via TRAILMATE_ESP_IDF_GNSS_UI_SOURCES, so it is intentionally NOT
+# repeated here (a second copy would be a duplicate-symbol link error). Only the two
+# energy_sweep screen .cpp's are new here; the backing producer
+# platform_ui_lora_runtime.cpp is added to the PLATFORM block below. All other UI
+# deps -- localization, theme, app_runtime group helpers, fonts, ui_common -- are
+# already in the chat/ui_shared/platform sets.
+set(TRAILMATE_ESP_IDF_ENERGY_SWEEP_UI_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/energy_sweep/energy_sweep_page_runtime.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/energy_sweep/energy_sweep_page_shell.cpp")
+
 # Chat-screen LVGL renderers from the ux-pack common layer (modal + picker the
 # chat controller wires).
 set(TRAILMATE_ESP_IDF_CHAT_UX_PACK_SOURCES
@@ -387,6 +412,7 @@ set(TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/startup_support.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/screen_sleep.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/sx126x_radio.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_lora_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_common.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_dispatcher.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_wireless_companion_runtime.cpp"
