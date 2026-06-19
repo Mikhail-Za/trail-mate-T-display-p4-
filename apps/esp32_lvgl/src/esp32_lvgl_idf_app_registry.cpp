@@ -11,6 +11,7 @@
 #include "ui/screens/extensions/extensions_page_shell.h"
 #include "ui/screens/gnss/gnss_skyplot_page_shell.h"
 #include "ui/screens/settings/settings_page_shell.h"
+#include "ui/screens/tracker/tracker_page_shell.h"
 #include "ui/ui_theme.h"
 
 #include <cstdio>
@@ -240,11 +241,36 @@ ui::CallbackAppScreen s_extensions_app("extensions",
                                        extensions::ui::shell::exit,
                                        &s_extensions_menu_host);
 
+// Tracker (record/list/delete GPS tracks + KML route files). stable_id =
+// 'tracker'. Mirrors the chat/contacts/settings binding: the tracker page shell's
+// enter/exit take a ui::page::Host* (tracker::ui::shell::Host is an alias of
+// ::ui::page::Host) as user_data and route the back request through
+// ui_request_exit_to_menu() via the menu host. The shell wraps the runtime in the
+// header-only page_shell_fallback template: when neither platform::ui::tracker nor
+// platform::ui::route_storage is supported it shows the shared placeholder_page;
+// on this board both read the SD via bsp_runtime, so the live runtime is entered.
+// It degrades gracefully when no SD card is present (refresh_record_list /
+// refresh_route_list short-circuit to "No SD Card" when device::sd_ready() is
+// false), so the boot self-test enters+exits cleanly whatever the SD state. Backing
+// producers platform::ui::tracker (platform_ui_tracker_runtime.cpp) and
+// platform::ui::route_storage (platform_ui_route_storage.cpp) are compiled in the
+// PLATFORM block; teardown is synchronous (cleanup_page deletes modals/group/root
+// via lv_obj_del, no queued lv_async_call), so no async-cancel is required.
+ui::page::Host s_tracker_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_tracker_app("tracker",
+                                    "Tracker",
+                                    &Setting,
+                                    tracker::ui::shell::enter,
+                                    tracker::ui::shell::exit,
+                                    &s_tracker_menu_host);
+
 AppScreen* s_apps[] = {&s_chat_app,
                        &s_contacts_app,
                        &s_settings_app,
                        &s_skyplot_app,
                        &s_extensions_app,
+                       &s_tracker_app,
                        &s_companion_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);

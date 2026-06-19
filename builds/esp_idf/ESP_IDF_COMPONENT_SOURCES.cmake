@@ -272,6 +272,31 @@ set(TRAILMATE_ESP_IDF_EXTENSIONS_UI_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/extensions/extensions_page_shell.cpp"
     "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/runtime/pack_repository.cpp")
 
+# ---------------------------------------------------------------------------
+# Tracker app (record/list/delete GPS tracks + KML route files). stable_id =
+# 'tracker'. The screen reads/writes tracks via platform::ui::tracker::* and
+# routes via platform::ui::route_storage::* (both SD-backed via bsp_runtime), and
+# reads route config through app::appFacade().getConfig() (provided by
+# IdfChatFacade). platform_ui_tracker_runtime.cpp is already compiled in the
+# PLATFORM block; platform_ui_route_storage.cpp is added there too. The page shell
+# wraps the runtime with the header-only page_shell_fallback template, whose
+# placeholder_page::show/hide (non-inline) translation unit is ALREADY linked via
+# TRAILMATE_ESP_IDF_GNSS_UI_SOURCES, so it is intentionally NOT repeated here (a
+# second copy would be a duplicate-symbol link error). All other UI deps -- the
+# TopBar widget, two_pane_nav controller, page_profile, font_utils, app_runtime
+# group helpers, ui_common battery, localization/theme -- are already in the
+# chat/contacts/settings/ui_shared sets. Self-test note: refresh_record_list /
+# refresh_route_list short-circuit to a "No SD Card" empty state when
+# device::sd_ready() is false, and cleanup_page tears down synchronously (no queued
+# lv_async_call), so the boot self-test enters+exits cleanly regardless of SD state.
+set(TRAILMATE_ESP_IDF_TRACKER_UI_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/tracker/tracker_page_components.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/tracker/tracker_page_input.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/tracker/tracker_page_layout.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/tracker/tracker_page_runtime.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/tracker/tracker_page_shell.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/tracker/tracker_state.cpp")
+
 # Chat-screen LVGL renderers from the ux-pack common layer (modal + picker the
 # chat controller wires).
 set(TRAILMATE_ESP_IDF_CHAT_UX_PACK_SOURCES
@@ -357,6 +382,7 @@ set(TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_settings_store.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_time_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_tracker_runtime.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_route_storage.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_wifi_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/startup_support.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/screen_sleep.cpp"
