@@ -4956,6 +4956,17 @@ void MeshCoreAdapter::handleRawPacketInternal(const uint8_t* data, size_t size, 
                      name,
                      advert.has_location ? 1U : 0U,
                      static_cast<unsigned>(app_data_len));
+#if !defined(ARDUINO)
+        // GENUINE on-wire proof of reception: this branch runs ONLY after a MeshCore
+        // advert fully parses AND its Ed25519 signature verifies, and a node never
+        // receives its own transmit (node != self guarded below). The rx check counts
+        // THIS marker, not the pre-parse 'idf-mc: rx len=' read, so a half-alive chip
+        // emitting RxDone noise can never be mistaken for real reception.
+        if (node != node_id_)
+        {
+            printf("idf-mc: rx advert verified from=%08lX\n", static_cast<unsigned long>(node));
+        }
+#endif
     }
     else if (is_legacy_text_payload)
     {
