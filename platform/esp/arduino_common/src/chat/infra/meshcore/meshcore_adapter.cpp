@@ -5085,7 +5085,12 @@ void MeshCoreAdapter::processSendQueue()
     if (board_.isRadioOnline())
     {
         const uint32_t irq = board_.getRadioIrqFlags();
-        if (irq != 0)
+        // A radio that has gone dead on the SPI bus returns all-ones (0xFFFF) on
+        // every register read; treating that as RxDone makes the poll read a
+        // 255-byte garbage frame and flood handleRawPacket until the stack faults
+        // (the observed boot loop). Skip the dead-chip signature here (the TX path
+        // detects and revives the chip).
+        if (irq != 0 && irq != 0xFFFFu)
         {
             const bool rx_done = (irq & 0x0002u) != 0;                       // RxDone
             const bool rx_err = (irq & (0x0020u | 0x0040u | 0x0200u)) != 0;  // Hdr/Crc/Timeout
@@ -5101,9 +5106,16 @@ void MeshCoreAdapter::processSendQueue()
                         if (board_.readRadioData(rx_buf, static_cast<size_t>(rx_len)) == RADIOLIB_ERR_NONE)
                         {
                             setLastRxStats(board_.getRadioRSSI(), board_.getRadioSNR());
-                            printf("idf-mc: rx len=%d rssi=%.0f\n", rx_len,
-                                   static_cast<double>(last_rx_rssi_));
-                            handleRawPacket(rx_buf, static_cast<size_t>(rx_len));
+                            // A dead/unconfigured radio reports a max-length frame at
+                            // the RSSI floor; that is not a real packet, so drop it
+                            // instead of flooding the parser with garbage.
+                            if (!(rx_len >= static_cast<int>(kMeshcoreMaxFrameSize) &&
+                                  last_rx_rssi_ <= -128.0f))
+                            {
+                                printf("idf-mc: rx len=%d rssi=%.0f\n", rx_len,
+                                       static_cast<double>(last_rx_rssi_));
+                                handleRawPacket(rx_buf, static_cast<size_t>(rx_len));
+                            }
                         }
                     }
                 }
