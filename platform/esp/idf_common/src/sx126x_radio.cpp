@@ -12,6 +12,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_rom_sys.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -102,6 +103,11 @@ constexpr uint8_t kTcxoVoltage1V6 = 0x00;
 constexpr uint32_t kTcxoStartupTimeUs = 5000;
 constexpr float kFrequencyStepHz = 0.9536743164f;
 constexpr uint32_t kCrystalFreqHz = 32000000UL;
+// Upper bound for waiting on the SX1262 TxDone IRQ inside startTransmit. The
+// largest MeshCore frame at the slowest supported advert rate (SF7/BW62.5) takes
+// roughly 0.7s to complete on this board; 1.5s leaves generous headroom while
+// still guaranteeing the call returns if a transmit ever wedges.
+constexpr int64_t kTxCompleteTimeoutUs = 1500000;
 // SetDIO3AsTCXOCtrl / SetRx timeouts are expressed in 15.625us RTC steps.
 uint32_t microseconds_to_rtc_step(uint32_t time_us)
 {
@@ -1105,6 +1111,20 @@ bool Sx126xRadio::configureLoRaReceive(float freq_mhz,
                     clear_irq_locked(kIrqAll) &&
                     set_buffer_base_locked(0x00, 0x00) &&
                     set_rx_locked(kRxTimeoutInf);
+    if (ok)
+    {
+        // Remember the exact LoRa parameters so the TX path can rebuild the radio
+        // configuration if the chip has dropped its state while parked in RX.
+        freq_mhz_ = freq_mhz;
+        lora_bw_khz_ = bw_khz;
+        lora_sf_ = sf;
+        lora_cr_ = cr;
+        lora_tx_power_ = tx_power;
+        lora_preamble_ = preamble_len;
+        lora_sync_word_ = sync_word;
+        lora_crc_len_ = crc_len;
+        lora_cfg_valid_ = true;
+    }
     give_mutex(mutex_);
     return ok;
 }
@@ -1204,6 +1224,81 @@ float Sx126xRadio::readRssi()
     return ok ? (static_cast<float>(raw) / -2.0f) : NAN;
 }
 
+bool Sx126xRadio::chip_responsive_locked()
+{
+    // The SX1262 version string register reads "SX1261"/"SX1262" when the chip is
+    // alive and configured. After the T-Display-P4 radio drops its state in
+    // sustained RX it reads all-0x00 (and all SPI status reads return 0x00 too).
+    // Use the version register as the liveness probe (same data the boot probe
+    // validates), so we only pay a reset+reconfigure when the chip is truly dead.
+    uint8_t version[6] = {0};
+    if (!read_register_locked(kRegVersionString, version, sizeof(version)))
+    {
+        return false;
+    }
+    for (uint8_t value : version)
+    {
+        if (value != 0x00 && value != 0xFF)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Sx126xRadio::reset_chip_locked()
+{
+#if defined(TRAIL_MATE_ESP_BOARD_TAB5) || defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+    // The NRESET-via-expander pulse alone does NOT revive the T-Display-P4 SX1262
+    // once it has gone dark in RX (verified: the expander write succeeds but the
+    // version register still reads 0x00). Fully tear the SPI device + bus down and
+    // re-run init_locked(), i.e. the exact power-on sequence that brought the chip
+    // up cleanly at boot, so a re-established chip is byte-for-byte like a freshly
+    // booted one. The SPI bus is owned solely by this radio, so freeing it here is
+    // safe.
+    const auto host = static_cast<spi_host_device_t>(lora_pins().spi.host);
+    if (device_)
+    {
+        (void)spi_bus_remove_device(device_handle(device_));
+        device_ = nullptr;
+    }
+    (void)spi_bus_free(host);
+    initialized_ = false;
+    online_ = false;
+    return init_locked();
+#else
+    return false;
+#endif
+}
+
+bool Sx126xRadio::reestablish_lora_locked()
+{
+    if (!lora_cfg_valid_)
+    {
+        set_error_locked("re-establish: no cached LoRa config");
+        return false;
+    }
+    if (!reset_chip_locked())
+    {
+        return false;
+    }
+    // Re-apply the exact modulation/packet/sync configuration the radio was last
+    // told to use; leave the chip in STDBY_RC (configure_lora_locked ends in
+    // standby) ready for the TX setup that follows.
+    if (!configure_lora_locked(freq_mhz_, lora_bw_khz_, lora_sf_, lora_cr_, lora_tx_power_,
+                               lora_preamble_, lora_sync_word_, lora_crc_len_))
+    {
+        set_error_locked("re-establish: LoRa reconfigure failed");
+        return false;
+    }
+    ESP_LOGW(kTag,
+             "SX1262 was unresponsive before TX; reset + reconfigured (freq=%.3f sf=%u bw=%.1f)",
+             static_cast<double>(freq_mhz_),
+             static_cast<unsigned>(lora_sf_),
+             static_cast<double>(lora_bw_khz_));
+    return true;
+}
+
 int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
 {
     if (!take_mutex(mutex_))
@@ -1211,8 +1306,34 @@ int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
         return -1;
     }
 
+    // ROOT CAUSE: on the T-Display-P4 the SX1262 loses its entire state while
+    // parked in continuous RX -- by the time the first advert is sent the chip is
+    // fully unresponsive on SPI (its version register and every status read return
+    // 0x00), so SetTx is issued into a dead chip and TxDone never fires. If the
+    // chip is dark, hardware-reset it and re-apply the cached LoRa configuration
+    // so there is a live, configured radio to transmit with.
+    if (!chip_responsive_locked())
+    {
+        if (!reestablish_lora_locked())
+        {
+            give_mutex(mutex_);
+            return -1;
+        }
+    }
+
+    // The adapter parks the SX1262 in CONTINUOUS RX (startReceive ->
+    // set_rx_locked(kRxTimeoutInf)) after configuring the radio, and the inline
+    // RX poll keeps re-arming it. Out of continuous RX the chip will not reliably
+    // accept buffer/packet-param writes nor transition RX->TX, so the SetTx that
+    // follows issues but TxDone never fires. Command SetStandby (STDBY_RC) FIRST,
+    // before any TX setup, so the chip is in a known state for the buffer/packet
+    // writes and the RX->STDBY->TX transition (the exact pattern used after init
+    // at ~L547 and in configure_lora_locked at ~L971).
+    const uint8_t standby_mode = kStandbyRc;
+    bool ok = write_command_locked(kCmdSetStandby, &standby_mode, 1, true);
+
     uint8_t packet[9] = {0};
-    bool ok = set_buffer_base_locked(0x00, 0x00);
+    ok = ok && set_buffer_base_locked(0x00, 0x00);
     board_prepare_lora_direction(true);
     if (packet_type_ == kPacketTypeLoRa)
     {
@@ -1257,9 +1378,58 @@ int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
             }
         }
     }
-
     ok = ok && set_dio_irq_params_locked(kIrqTxDone | kIrqTimeout, kIrqTxDone) && clear_irq_locked(kIrqAll) &&
          set_tx_locked(0x000000);
+
+    if (ok)
+    {
+        // Block until the SX1262's own TxDone IRQ latches (the real chip-level
+        // transmit-complete signal), then return WITHOUT clearing it so the
+        // caller's TxDone poll reads the genuine flag. DIO1 is not wired to the
+        // ESP32-P4 on this board (irq=-1), so TxDone is only observable by reading
+        // GetIrqStatus over SPI; and the measured completion latency for a
+        // SF7/BW62.5 advert is ~720 ms -- longer than the caller's airtime-based
+        // wait window -- so the radio driver owns the wait here. The mutex is held
+        // for the duration: a transmit is a single-owner critical section (RX
+        // cannot be re-armed until TX completes anyway), and the poll yields each
+        // iteration so the rest of the system keeps running.
+        const int64_t t0 = esp_timer_get_time();
+        bool tx_done = false;
+        uint16_t irq = 0;
+        while ((esp_timer_get_time() - t0) < kTxCompleteTimeoutUs)
+        {
+            uint8_t irqb[2] = {0};
+            if (read_command_locked(kCmdGetIrqStatus, nullptr, 0, irqb, sizeof(irqb), true))
+            {
+                irq = (static_cast<uint16_t>(irqb[0]) << 8) | irqb[1];
+                if ((irq & kIrqTxDone) != 0)
+                {
+                    tx_done = true;
+                    break;
+                }
+                if ((irq & kIrqTimeout) != 0)
+                {
+                    set_error_locked("tx hardware timeout");
+                    break;
+                }
+            }
+            vTaskDelay(pdMS_TO_TICKS(2));
+        }
+        if (tx_diag_count_ < 3)
+        {
+            const int64_t took_us = esp_timer_get_time() - t0;
+            ESP_LOGI(kTag,
+                     "SX1262 TX diag[%lu]: txdone=%d took_ms=%lld irq=0x%04X len=%u",
+                     static_cast<unsigned long>(tx_diag_count_),
+                     tx_done ? 1 : 0,
+                     took_us / 1000,
+                     static_cast<unsigned>(irq),
+                     static_cast<unsigned>(size));
+            ++tx_diag_count_;
+        }
+        // The TxDone bit is intentionally left latched for the caller to observe.
+        ok = tx_done;
+    }
 
     give_mutex(mutex_);
     return ok ? 0 : -1;

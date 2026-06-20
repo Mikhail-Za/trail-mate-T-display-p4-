@@ -91,6 +91,9 @@ class Sx126xRadio
                               size_t sync_word_len,
                               uint8_t crc_len);
     void set_error_locked(const char* error);
+    bool chip_responsive_locked();
+    bool reset_chip_locked();
+    bool reestablish_lora_locked();
 
     void* mutex_ = nullptr;
     void* device_ = nullptr;
@@ -101,6 +104,19 @@ class Sx126xRadio
     uint8_t last_rx_offset_ = 0;
     uint32_t users_ = 0;
     uint32_t rx_diag_count_ = 0;
+    uint32_t tx_diag_count_ = 0;
+    // Cached LoRa configuration from the last configureLoRaReceive(), so the TX
+    // path can re-establish the radio if the chip has lost its state (the
+    // T-Display-P4 SX1262 goes fully dark -- version register reads 0x00 -- after
+    // sustained continuous RX, so a transmit must reconfigure it first).
+    bool lora_cfg_valid_ = false;
+    float lora_bw_khz_ = 0.0f;
+    uint8_t lora_sf_ = 0;
+    uint8_t lora_cr_ = 0;
+    int8_t lora_tx_power_ = 0;
+    uint16_t lora_preamble_ = 0;
+    uint8_t lora_sync_word_ = 0;
+    uint8_t lora_crc_len_ = 0;
     char last_error_[96] = {0};
 };
 
