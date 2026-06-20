@@ -669,12 +669,15 @@ bool Sx126xRadio::write_command_locked(uint8_t cmd, const uint8_t* data, size_t 
     wait_ready_locked();
 
     const size_t total = 1 + size;
-    uint8_t tx[260] = {0};
-    if (total > sizeof(tx))
+    // Use the shared member SPI scratch (held under mutex_) instead of a stack
+    // buffer to keep the inline dead-chip revive within the app-loop stack.
+    uint8_t* tx = spi_tx_scratch_;
+    if (total > kSpiScratchSize)
     {
         set_error_locked("command too large");
         return false;
     }
+    std::memset(tx, 0, total);
     tx[0] = cmd;
     if (data && size > 0)
     {
@@ -718,13 +721,19 @@ bool Sx126xRadio::read_command_locked(uint8_t cmd,
     wait_ready_locked();
 
     const size_t total = 1 + prefix_size + 1 + size;
-    uint8_t tx[260] = {0};
-    uint8_t rx[260] = {0};
-    if (total > sizeof(tx))
+    // Use the shared member SPI scratch (held under mutex_) instead of two
+    // 260-byte stack buffers. This is the single largest stack frame on the
+    // inline dead-chip revive path (init_locked reads device errors through
+    // here), so hoisting it off the stack is the biggest peak-stack saving.
+    uint8_t* tx = spi_tx_scratch_;
+    uint8_t* rx = spi_rx_scratch_;
+    if (total > kSpiScratchSize)
     {
         set_error_locked("command too large");
         return false;
     }
+    std::memset(tx, 0, total);
+    std::memset(rx, 0, total);
 
     tx[0] = cmd;
     if (prefix && prefix_size > 0)
@@ -763,13 +772,16 @@ bool Sx126xRadio::write_register_locked(uint16_t addr, const uint8_t* data, size
         static_cast<uint8_t>(addr & 0xFF),
     };
 
-    uint8_t tx[260] = {0};
+    // Shared member SPI scratch (held under mutex_) rather than a stack buffer,
+    // to keep the inline dead-chip revive within the app-loop stack.
+    uint8_t* tx = spi_tx_scratch_;
     const size_t total = 1 + sizeof(prefix) + size;
-    if (total > sizeof(tx))
+    if (total > kSpiScratchSize)
     {
         set_error_locked("register write too large");
         return false;
     }
+    std::memset(tx, 0, total);
     tx[0] = kCmdWriteRegister;
     std::memcpy(tx + 1, prefix, sizeof(prefix));
     if (data && size > 0)
@@ -1356,8 +1368,11 @@ int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
 
     if (ok)
     {
-        uint8_t tx[260] = {0};
-        if (size + 2 > sizeof(tx))
+        // Shared member SPI scratch (held under mutex_); the fill+transmit below
+        // is atomic with no nested *_locked() scratch use, so reuse is safe and
+        // keeps this 260-byte frame off the (small) app-loop task stack.
+        uint8_t* tx = spi_tx_scratch_;
+        if (size + 2 > kSpiScratchSize)
         {
             ok = false;
             set_error_locked("payload too large");

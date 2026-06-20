@@ -5102,7 +5102,14 @@ void MeshCoreAdapter::processSendQueue()
                     const int rx_len = board_.getRadioPacketLength(true);
                     if (rx_len > 0 && static_cast<size_t>(rx_len) <= kMeshcoreMaxFrameSize)
                     {
-                        uint8_t rx_buf[kMeshcoreMaxFrameSize];
+                        // Keep this 255-byte RX scratch OFF the task stack.
+                        // processSendQueue() runs on the LVGL app-loop task, the
+                        // same task whose stack the TX-path dead-chip revive nests
+                        // deep into; a 255-byte stack buffer here adds directly to
+                        // that peak. The pump is single-threaded (only ever called
+                        // from the one app-loop task tick), so a function-local
+                        // static is safe and costs no stack.
+                        static uint8_t rx_buf[kMeshcoreMaxFrameSize];
                         if (board_.readRadioData(rx_buf, static_cast<size_t>(rx_len)) == RADIOLIB_ERR_NONE)
                         {
                             setLastRxStats(board_.getRadioRSSI(), board_.getRadioSNR());

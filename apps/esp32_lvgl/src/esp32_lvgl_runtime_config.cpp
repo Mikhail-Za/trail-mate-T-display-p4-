@@ -39,7 +39,20 @@ const Esp32LvglRuntimeConfig& esp32LvglRuntimeConfig()
         "T-Display-P4 TFT",
         "t_display_p4_tft_app_loop",
         10,
-        4096,
+        // The MeshCore facade pump (IdfChatFacade::pumpMeshAndDrainEvents ->
+        // MeshCoreAdapter::processSendQueue) runs on THIS app-loop task. When the
+        // SX1262 has gone dark in continuous RX, the first self-advert's TX path
+        // runs the full dead-chip revive (Sx126xRadio::startTransmit ->
+        // reestablish_lora_locked -> reset_chip_locked -> init_locked +
+        // configure_lora_locked) INLINE on this stack. That re-init sequence was
+        // designed to run from main_task (a large stack); at the default 4096
+        // bytes it overflows the app-loop stack and trips the canary
+        // ('Stack protection fault' in task 't_display_p4_tf'), reboot-looping.
+        // Give the task enough headroom to absorb the inline revive on top of the
+        // LVGL/loop-shell/facade frames already resident. Measured worst-case via
+        // uxTaskGetStackHighWaterMark during the advert revive fits well inside
+        // this; 16 KB leaves a comfortable margin.
+        16384,
         5,
     };
 #endif

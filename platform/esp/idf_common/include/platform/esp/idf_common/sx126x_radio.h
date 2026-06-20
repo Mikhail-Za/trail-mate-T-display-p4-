@@ -118,6 +118,20 @@ class Sx126xRadio
     uint8_t lora_sync_word_ = 0;
     uint8_t lora_crc_len_ = 0;
     char last_error_[96] = {0};
+
+    // SPI scratch buffers kept OFF the call stack. The dead-chip revive
+    // (startTransmit -> reestablish_lora_locked -> reset_chip_locked ->
+    // init_locked + configure_lora_locked) runs INLINE on the small LVGL
+    // app-loop task stack and nests through write_command_locked /
+    // read_command_locked / write_register_locked, each of which otherwise
+    // puts a 260-byte (read: two 260-byte) SPI frame on the stack. Hoisting
+    // those frames into members shrinks the revive's peak stack footprint
+    // substantially. Every *_locked() user of these holds mutex_, and none of
+    // them nest a second SPI transfer while a buffer is live, so a single
+    // shared tx/rx pair is safe.
+    static constexpr size_t kSpiScratchSize = 260;
+    uint8_t spi_tx_scratch_[kSpiScratchSize] = {0};
+    uint8_t spi_rx_scratch_[kSpiScratchSize] = {0};
 };
 
 } // namespace platform::esp::idf_common
