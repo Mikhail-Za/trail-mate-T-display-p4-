@@ -97,6 +97,7 @@ constexpr uint16_t kRegRxGainRetention0 = 0x029F;
 // SX1262 datasheet §15.1 RX-sensitivity / TxModulation register. Bit 2 must be
 // SET for every LoRa bandwidth except 500 kHz (RadioLib fixSensitivity()).
 constexpr uint16_t kRegSensitivityConfig = 0x0889;
+constexpr uint16_t kRegIqConfig = 0x0736;
 constexpr uint8_t kRxGainBoosted = 0x96;
 constexpr uint8_t kRxGainPowerSaving = 0x94;
 // DIO3 TCXO control voltage code 0x00 = 1.6V (datasheet SetDIO3AsTCXOCtrl table).
@@ -1054,6 +1055,27 @@ bool Sx126xRadio::configure_lora_locked(float freq_mhz,
     if (!write_command_locked(kCmdSetPacketParams, packet, sizeof(packet), true))
     {
         return false;
+    }
+
+    // SX1262 datasheet §15.4 "Optimizing the Inverted IQ Operation" workaround.
+    // RadioLib applies this (fixInvertedIQ) on every SetPacketParams: for STANDARD
+    // IQ (our case, packet[5]=kLoRaIqStandard), bit 2 of REG_IQ (0x0736) must be
+    // SET, otherwise the demodulator mis-handles standard-IQ packets -- the receiver
+    // senses RF (RSSI bumps) but never correlates the preamble, and the rare frame
+    // that gets through decodes a corrupted length. Our driver never touched 0x0736,
+    // leaving it at the inverted-IQ default. Read-modify-write bit 2 to match the
+    // proven RadioLib receive path that demodulates on this exact board.
+    {
+        uint8_t iq_cfg = 0;
+        if (!read_register_locked(kRegIqConfig, &iq_cfg, 1))
+        {
+            return false;
+        }
+        iq_cfg = static_cast<uint8_t>(iq_cfg | 0x04);
+        if (!write_register_locked(kRegIqConfig, &iq_cfg, 1))
+        {
+            return false;
+        }
     }
 
     const uint8_t sync[2] = {
