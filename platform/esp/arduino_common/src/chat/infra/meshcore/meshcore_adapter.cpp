@@ -5140,6 +5140,58 @@ void MeshCoreAdapter::processSendQueue()
                 board_.startRadioReceive(); // re-arm continuous RX
             }
         }
+
+        // DEAD-CHIP RECOVERY (the fix that makes sustained RX actually work).
+        // The radio is parked in INFINITE continuous RX -- the exact mode under
+        // which a real packet was previously received and decoded -- and is only
+        // re-armed by the poll above AFTER a terminal IRQ, never mid-reception, so
+        // an in-flight packet is never truncated. The remaining failure is that
+        // this board's SX1262 DIES after a few seconds of sustained continuous RX
+        // (goes dark on SPI), and once dead it just sits there deaf. So, when the
+        // receiver is IDLE (no reception in progress) and the chip is detected
+        // dead, run the same heavy revive the TX path uses (reset + reconfigure)
+        // and re-arm RX. CRITICAL: only probe/revive when idle -- the liveness
+        // probe is an SPI register read, and doing it (or the heavy revive) while
+        // a packet is arriving would abort the reception. 'irq == 0' means the
+        // chip is idle-listening with nothing detected yet; a dead chip reads
+        // 0x0000 or 0xFFFF, so the version-register probe disambiguates. Throttle
+        // so the hot pump stays cheap and the SPI-teardown revive is rare.
+        {
+            static uint32_t s_last_check_ms = 0;
+            static uint32_t s_last_revive_ms = 0;
+            constexpr uint32_t kCheckIntervalMs = 1000;
+            constexpr uint32_t kReviveIntervalMs = 2500;  // heavy revive at most ~once/2.5s
+            // Only when idle (irq==0 = listening, nothing in flight; or 0xFFFF =
+            // classic dead read) do we touch the radio -- doing so while a packet
+            // is arriving would abort the reception.
+            if (irq == 0 || irq == 0xFFFFu)
+            {
+                if (static_cast<int32_t>(now_ms - s_last_check_ms) >=
+                    static_cast<int32_t>(kCheckIntervalMs))
+                {
+                    s_last_check_ms = now_ms;
+                    if (!board_.isRadioChipAlive())
+                    {
+                        if (static_cast<int32_t>(now_ms - s_last_revive_ms) >=
+                            static_cast<int32_t>(kReviveIntervalMs))
+                        {
+                            s_last_revive_ms = now_ms;
+                            printf("idf-mc: rx chip dead; reviving radio\n");
+                            board_.reviveRadioReceive();
+                        }
+                    }
+                    // ROOT-CAUSE FIX (RX demodulation): do NOT periodically re-issue
+                    // SetRx on an ALIVE, idle-listening chip. The chip is already in
+                    // INFINITE continuous RX; re-issuing SetRx (the old "refresh"
+                    // branch) RESTARTS the receiver and discards any preamble
+                    // correlation already in progress -- a peer advert whose preamble
+                    // landed in the same window was silently aborted, which is exactly
+                    // why the demodulator "sensed RF but never correlated the
+                    // preamble". A correctly-configured continuous RX does not need
+                    // refreshing; leave it listening untouched until a terminal IRQ.
+                }
+            }
+        }
     }
 
     // IDF: controlled self-advert burst for on-air interop testing. Fires a small,

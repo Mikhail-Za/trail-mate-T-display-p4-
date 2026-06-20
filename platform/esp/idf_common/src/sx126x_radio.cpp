@@ -94,6 +94,9 @@ constexpr uint16_t kRegCrcPolynomialMsb = 0x06BE;
 constexpr uint16_t kRegVersionString = 0x0320;
 constexpr uint16_t kRegRxGain = 0x08AC;
 constexpr uint16_t kRegRxGainRetention0 = 0x029F;
+// SX1262 datasheet §15.1 RX-sensitivity / TxModulation register. Bit 2 must be
+// SET for every LoRa bandwidth except 500 kHz (RadioLib fixSensitivity()).
+constexpr uint16_t kRegSensitivityConfig = 0x0889;
 constexpr uint8_t kRxGainBoosted = 0x96;
 constexpr uint8_t kRxGainPowerSaving = 0x94;
 // DIO3 TCXO control voltage code 0x00 = 1.6V (datasheet SetDIO3AsTCXOCtrl table).
@@ -327,10 +330,21 @@ bool board_uses_internal_dio2_rf_switch()
 #if defined(TRAIL_MATE_ESP_BOARD_TAB5)
     return true;
 #elif defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
-    // On the T-Display-P4 the SX1262 selects its own TX/RX antenna path through
-    // DIO2 (the proven RadioLib driver always enables this). The XL9535
-    // lora_rf_switch line only powers the shared front-end and stays asserted.
-    return true;
+    // ROOT CAUSE of the deaf receiver: DIO2 is NOT broken out on the T-Display-P4,
+    // and its SKY13453 antenna switch is driven STATICALLY by XL9535 IO1 (held
+    // high = RF1). The proven-on-this-exact-board Meshtastic variant therefore does
+    // NOT define SX126X_DIO2_AS_RF_SWITCH, i.e. it calls setDio2AsRfSwitch(FALSE)
+    // (only the sibling crowpanel-advanced-p4 board, which DOES wire DIO2 to its
+    // switch, enables it). When DIO2-as-RF-switch is ENABLED on a board with no
+    // DIO2-driven switch, the SX1262 internally gates its RX/TX front end off a
+    // DIO2 line that drives nothing, leaving the LNA/receive path mis-routed: the
+    // chip couples enough stray energy to bump RSSI (it even hears a strong peer
+    // burst at ~-47 dBm) but the demodulator never sees a clean preamble, so
+    // GetStats stays rx=0/crc=0/hdr=0 and PreambleDetected/RxDone never fire. With
+    // DIO2-as-RF-switch DISABLED the SX1262 keeps its default internal front-end
+    // routing through the statically-asserted SKY13453, which is the configuration
+    // the vendor RadioLib/Meshtastic receiver uses on this board.
+    return false;
 #else
     return false;
 #endif
@@ -525,7 +539,14 @@ bool Sx126xRadio::init_locked()
         busy_cfg.pin_bit_mask = (1ULL << lora_pins().busy);
         busy_cfg.mode = GPIO_MODE_INPUT;
         busy_cfg.pull_up_en = GPIO_PULLUP_DISABLE;
-        busy_cfg.pull_down_en = GPIO_PULLDOWN_DISABLE;
+        // The proven on-this-board receivers (LilyGo cpp_bus_driver RadioLib
+        // example -> SetGpioMode(SX1262_BUSY, kPulldown); Meshtastic t-display-p4
+        // variant -> pinMode(6, INPUT_PULLDOWN)) configure BUSY with a PULLDOWN.
+        // With no pull the BUSY line can read stuck-high in the gap when the SX1262
+        // releases it, which wedges wait_ready_locked()'s BUSY handshake: commands
+        // then issue into a chip that ignores them (the receiver reports mode=RX but
+        // its modem never runs). Match the vendor and pull BUSY down.
+        busy_cfg.pull_down_en = GPIO_PULLDOWN_ENABLE;
         gpio_config(&busy_cfg);
     }
 
@@ -578,14 +599,16 @@ bool Sx126xRadio::init_locked()
         write_command_locked(kCmdClearDeviceErrors, no_data, sizeof(no_data), true);
     }
 
-    // DIO2 is not broken out on this board; the SX1262 must steer its own
-    // internal TX/RX RF path through DIO2-as-RF-switch (RadioLib always enables
-    // it). Without it the receiver front-end is never connected, so RxDone
-    // cannot fire even though a TX burst still leaves the chip.
-    if (board_uses_internal_dio2_rf_switch())
-    {
-        set_dio2_as_rf_switch_locked(true);
-    }
+    // RF-switch control. On boards where DIO2 is wired to an external antenna
+    // switch (e.g. Tab5, crowpanel-advanced-p4) the SX1262 must drive it via
+    // DIO2-as-RF-switch. On the T-Display-P4 DIO2 is NOT broken out and the
+    // SKY13453 is driven statically by XL9535 IO1, so DIO2-as-RF-switch must be
+    // DISABLED (matching the proven Meshtastic t-display-p4 variant, which omits
+    // SX126X_DIO2_AS_RF_SWITCH). Enabling it on this board mis-routes the receive
+    // front-end and is why the demodulator senses RF energy but never correlates a
+    // preamble. Set it EXPLICITLY either way so a stale value left by a previously
+    // booted firmware (e.g. MeshOS) cannot leak in.
+    set_dio2_as_rf_switch_locked(board_uses_internal_dio2_rf_switch());
     const uint8_t fallback = kFallbackStandbyRc;
     write_command_locked(kCmdSetRxTxFallbackMode, &fallback, 1, true);
     clear_irq_locked(kIrqAll);
@@ -828,7 +851,16 @@ bool Sx126xRadio::set_packet_type_locked(uint8_t packet_type)
 
 bool Sx126xRadio::set_rf_frequency_locked(float freq_mhz)
 {
-    if (std::fabs(freq_mhz_ - freq_mhz) >= 20.0f)
+    // Image-reject calibration is band-specific and is NOT covered by the general
+    // Calibrate(0x7F) run in init_locked(). It must be (re)done after a chip reset
+    // for the active band, otherwise RX image rejection is wrong and the receiver
+    // -- though it senses RF energy -- cannot correlate the LoRa preamble (GetStats
+    // stays rx=0/crc_err=0/hdr_err=0). The dead-chip revive fully resets the chip
+    // but keeps the cached freq, so the >=20MHz delta guard alone would SKIP image
+    // cal on the revived chip and leave it deaf. force_image_cal_ (set by
+    // reset_chip_locked) makes the first frequency set after a reset always
+    // recalibrate the image, regardless of the delta.
+    if (force_image_cal_ || std::fabs(freq_mhz_ - freq_mhz) >= 20.0f)
     {
         uint8_t cal[2] = {0xE1, 0xE9};
         if (freq_mhz < 779.0f)
@@ -842,6 +874,7 @@ bool Sx126xRadio::set_rf_frequency_locked(float freq_mhz)
             cal[1] = 0xDB;
         }
         write_command_locked(kCmdCalibrateImage, cal, sizeof(cal), true);
+        force_image_cal_ = false;
     }
 
     const uint32_t raw = rf_frequency_raw(freq_mhz);
@@ -991,11 +1024,19 @@ bool Sx126xRadio::configure_lora_locked(float freq_mhz,
     {
         return false;
     }
-    if (!set_rf_frequency_locked(freq_mhz) || !set_tx_power_locked(tx_power))
-    {
-        return false;
-    }
 
+    // ROOT-CAUSE ORDERING FIX (RX demodulation). The proven on-this-board drivers
+    // (LilyGo cpp_bus_driver ConfigLoraParams + RadioLib begin) BOTH program the
+    // LoRa modulation parameters BEFORE the RF frequency / image calibration, and
+    // RadioLib then applies the §15.1 RX-sensitivity register workaround that
+    // depends on the active modem+bandwidth. The previous order here was inverted
+    // (frequency + CalibrateImage first, modulation second). With image
+    // calibration run before SetModulationParams the receiver's band/optimisation
+    // state did not match the SF7/BW62.5 modem, so the demodulator sensed RF
+    // energy (RSSI bumped) yet never correlated the preamble (GetStats stayed
+    // rx=0/crc_err=0/hdr_err=0, no PreambleDetected/RxDone). Program modulation
+    // first, then frequency/image-cal, then the sensitivity fix -- the exact order
+    // the two reference receivers use on this hardware.
     const uint8_t mod[4] = {sf, map_lora_bw(bw_khz), map_lora_cr(cr), calc_ldro(sf, bw_khz)};
     if (!write_command_locked(kCmdSetModulationParams, mod, sizeof(mod), true))
     {
@@ -1024,7 +1065,40 @@ bool Sx126xRadio::configure_lora_locked(float freq_mhz,
         return false;
     }
 
+    if (!set_rf_frequency_locked(freq_mhz) || !set_tx_power_locked(tx_power))
+    {
+        return false;
+    }
+
+    // SX1262 datasheet §15.1 "Modulation Quality" RX-sensitivity workaround. For
+    // every LoRa bandwidth other than 500 kHz, bit 2 of REG_SENSITIVITY_CONFIG
+    // (0x0889) must be SET; RadioLib applies this on every config (fixSensitivity).
+    // The previous firmware never touched 0x0889, leaving the receive path at the
+    // wrong sensitivity for the 62.5 kHz modem.
+    if (!fix_rx_sensitivity_locked(bw_khz))
+    {
+        return false;
+    }
+
     return true;
+}
+
+bool Sx126xRadio::fix_rx_sensitivity_locked(float bw_khz)
+{
+    uint8_t sensitivity = 0;
+    if (!read_register_locked(kRegSensitivityConfig, &sensitivity, 1))
+    {
+        return false;
+    }
+    if (std::fabs(bw_khz - 500.0f) <= 0.001f)
+    {
+        sensitivity &= 0xFB;
+    }
+    else
+    {
+        sensitivity |= 0x04;
+    }
+    return write_register_locked(kRegSensitivityConfig, &sensitivity, 1);
 }
 
 bool Sx126xRadio::configure_fsk_locked(float freq_mhz,
@@ -1169,20 +1243,36 @@ bool Sx126xRadio::configureFsk(float freq_mhz,
     return ok;
 }
 
+bool Sx126xRadio::start_receive_locked()
+{
+    board_prepare_lora_direction(false);
+    // Boosted-gain RX (reg 0x08AC = 0x96) maximizes sensitivity, matching the
+    // reference driver before it parks the chip in continuous RX.
+    set_rx_boosted_gain_locked(true);
+    // Arm INFINITE continuous RX -- the exact mode under which a genuine foreign
+    // packet was previously received and fully decoded on this board. A finite
+    // timeout aborts any reception whose airtime straddles the timeout boundary
+    // and (worse) requires blind periodic re-arming that itself truncates packets
+    // mid-flight, which empirically left the radio deaf. Instead the chip is left
+    // in infinite RX and is only ever re-armed by the adapter AFTER a terminal
+    // IRQ (RxDone / error) -- never mid-reception -- with a dead-chip revive as
+    // the safety net for the sustained-RX death. The DIO mask only drives the
+    // (unused) DIO1 pin; GetIrqStatus reports every event regardless, so the
+    // poll still sees the non-terminal progress flags and leaves them alone.
+    return set_dio_irq_params_locked(kIrqRxDone | kIrqTimeout | kIrqCrcErr | kIrqHeaderErr,
+                                     kIrqRxDone) &&
+           clear_irq_locked(kIrqAll) &&
+           set_buffer_base_locked(0x00, 0x00) &&
+           set_rx_locked(kRxTimeoutInf);
+}
+
 bool Sx126xRadio::startReceive()
 {
     if (!take_mutex(mutex_))
     {
         return false;
     }
-    board_prepare_lora_direction(false);
-    // Boosted-gain RX (reg 0x08AC = 0x96) maximizes sensitivity, matching the
-    // reference driver before it parks the chip in continuous RX.
-    set_rx_boosted_gain_locked(true);
-    const bool ok = set_dio_irq_params_locked(kIrqRxDone | kIrqTimeout | kIrqCrcErr, kIrqRxDone) &&
-                    clear_irq_locked(kIrqAll) &&
-                    set_buffer_base_locked(0x00, 0x00) &&
-                    set_rx_locked(kRxTimeoutInf);
+    const bool ok = start_receive_locked();
 
     if (ok && rx_diag_count_ < 2)
     {
@@ -1208,6 +1298,44 @@ bool Sx126xRadio::startReceive()
                  static_cast<unsigned>(crc_err),
                  static_cast<unsigned>(hdr_err));
         ++rx_diag_count_;
+    }
+    give_mutex(mutex_);
+    return ok;
+}
+
+bool Sx126xRadio::isChipResponsive()
+{
+    if (!take_mutex(mutex_))
+    {
+        return false;
+    }
+    const bool alive = chip_responsive_locked();
+    give_mutex(mutex_);
+    return alive;
+}
+
+bool Sx126xRadio::reviveReceive()
+{
+    if (!take_mutex(mutex_))
+    {
+        return false;
+    }
+    // Heavy recovery used by the RX pump when the chip is detected dead (version
+    // register reads neither a valid ASCII nor 0xFF): fully reset + reconfigure
+    // the LoRa stack (the exact sequence the TX path uses), then re-arm RX. This
+    // is the same revive that brings the chip back before a transmit, applied
+    // here so a chip that died in an RX gap (no transmit to trigger it) is
+    // resurrected and put back to listening. Runs INLINE on the app-loop task;
+    // the boot-stability stack bump (16384) and off-stack SPI scratch keep it
+    // within budget. Throttled by the caller so it runs at most once a few sec.
+    bool ok = reestablish_lora_locked();
+    if (ok)
+    {
+        ok = start_receive_locked();
+    }
+    if (ok)
+    {
+        ESP_LOGW(kTag, "SX1262 was dead in RX; reset + reconfigured + re-armed receive");
     }
     give_mutex(mutex_);
     return ok;
@@ -1277,6 +1405,12 @@ bool Sx126xRadio::reset_chip_locked()
     (void)spi_bus_free(host);
     initialized_ = false;
     online_ = false;
+    // The chip is about to be re-initialized from scratch; its band image
+    // calibration is back at default. Force the next set_rf_frequency_locked()
+    // to recalibrate the image for the active band even though the cached freq is
+    // unchanged, or the revived receiver stays deaf (senses RF but never
+    // correlates a preamble).
+    force_image_cal_ = true;
     return init_locked();
 #else
     return false;
@@ -1349,7 +1483,23 @@ int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
     board_prepare_lora_direction(true);
     if (packet_type_ == kPacketTypeLoRa)
     {
-        const uint8_t lo[6] = {0x00, 0x08, kLoRaHeaderExplicit, static_cast<uint8_t>(size), kLoRaCrcOn, kLoRaIqStandard};
+        // Transmit with the SAME LoRa preamble length the receiver is configured
+        // for (cached from configure_lora_locked). A mismatch here was why two
+        // units never decoded each other: RX was armed for a 16-symbol preamble
+        // (the adapter configures preamble=16) while TX hardcoded 8, so the
+        // receiver sensed the RF energy (RSSI bumped) but its preamble detector
+        // never validated -- GetStats stayed rx=0/crc_err=0/hdr_err=0 and RxDone
+        // never fired. Use the cached preamble (fallback to 16 if unset) so the
+        // on-air preamble matches what the peer is listening for.
+        const uint16_t tx_preamble = lora_cfg_valid_ && lora_preamble_ > 0 ? lora_preamble_ : 16;
+        const uint8_t lo[6] = {
+            static_cast<uint8_t>((tx_preamble >> 8) & 0xFF),
+            static_cast<uint8_t>(tx_preamble & 0xFF),
+            kLoRaHeaderExplicit,
+            static_cast<uint8_t>(size),
+            kLoRaCrcOn,
+            kLoRaIqStandard,
+        };
         ok = ok && write_command_locked(kCmdSetPacketParams, lo, sizeof(lo), true);
     }
     else

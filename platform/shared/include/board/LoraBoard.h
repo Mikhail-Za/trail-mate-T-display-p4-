@@ -13,6 +13,22 @@ class LoraBoard
 
     virtual int transmitRadio(const uint8_t* data, size_t len) = 0;
     virtual int startRadioReceive() = 0;
+
+    // Liveness probe for boards whose radio can silently die on the SPI bus
+    // (the T-Display-P4 SX1262 goes dark in sustained continuous RX). Default:
+    // alive whenever the radio reports online. Boards with the dead-in-RX quirk
+    // override this with a real chip probe.
+    virtual bool isRadioChipAlive()
+    {
+        return isRadioOnline();
+    }
+    // Heavy recovery when isRadioChipAlive() reports the radio dead: reset +
+    // reconfigure + re-arm receive. Default: just re-arm (no quirk to recover).
+    // Returns 0 on success (same convention as startRadioReceive()).
+    virtual int reviveRadioReceive()
+    {
+        return startRadioReceive();
+    }
     virtual uint32_t getRadioIrqFlags() = 0;
     virtual int getRadioPacketLength(bool update) = 0;
     virtual int readRadioData(uint8_t* buf, size_t len) = 0;

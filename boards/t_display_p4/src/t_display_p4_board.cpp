@@ -830,8 +830,10 @@ bool TDisplayP4Board::setLoraRfSwitchTransmit(bool transmit)
         return false;
     }
 
-    // Keep the SX1262 routed to the verified default RF path until we have a
-    // stronger board-level contract for alternative switch states.
+    // Hold the SKY13453 VCTL (XL9535 IO1) HIGH for both directions -- the
+    // vendor-reference shared RF path. (Driving it LOW for RX was tested and
+    // disconnected the receiver entirely, so HIGH is the correct shared antenna
+    // route; the SX1262 manages the actual TX/RX front-end internally.)
     return expanderWrite(ioExpanderPins().lora_rf_switch, true);
 }
 
@@ -856,6 +858,29 @@ int TDisplayP4Board::startRadioReceive()
         return -1;
     }
     return radio().startReceive() ? 0 : -1;
+}
+
+bool TDisplayP4Board::isRadioChipAlive()
+{
+    if (!ensureRadioReady())
+    {
+        return false;
+    }
+    // Real on-SPI liveness probe: the SX1262 on this board goes dark in
+    // sustained continuous RX (version register reads all-0x00) even though the
+    // higher-level "online" flag is still set. isChipResponsive() reads the
+    // version register under the radio mutex, so the RX pump can tell a truly
+    // dead chip from a merely idle one.
+    return radio().isChipResponsive();
+}
+
+int TDisplayP4Board::reviveRadioReceive()
+{
+    if (!ensureRadioReady())
+    {
+        return -1;
+    }
+    return radio().reviveReceive() ? 0 : -1;
 }
 
 uint32_t TDisplayP4Board::getRadioIrqFlags()

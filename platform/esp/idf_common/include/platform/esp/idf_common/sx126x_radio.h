@@ -35,6 +35,12 @@ class Sx126xRadio
                       uint8_t crc_len);
 
     bool startReceive();
+    // Liveness probe (mutexed wrapper over chip_responsive_locked): false when
+    // the SX1262 has gone dark on SPI (version register reads all-0x00/0xFF).
+    bool isChipResponsive();
+    // Heavy recovery for a chip that died while parked in RX: reset +
+    // reconfigure the LoRa stack, then re-arm receive. Returns true on success.
+    bool reviveReceive();
     void standby();
     float readRssi();
 
@@ -68,11 +74,17 @@ class Sx126xRadio
     bool set_dio3_as_tcxo_ctrl_locked(uint8_t voltage_code, uint32_t startup_time_us);
     bool set_dio2_as_rf_switch_locked(bool enable);
     bool set_rx_boosted_gain_locked(bool enable);
+    // SX1262 datasheet §15.1 RX-sensitivity workaround (REG 0x0889 bit 2): SET for
+    // every LoRa bandwidth except 500 kHz. Mirrors RadioLib fixSensitivity().
+    bool fix_rx_sensitivity_locked(float bw_khz);
     uint8_t read_chip_status_locked();
     bool clear_irq_locked(uint16_t flags);
     bool set_buffer_base_locked(uint8_t tx_base, uint8_t rx_base);
     bool set_rx_locked(uint32_t timeout_raw);
     bool set_tx_locked(uint32_t timeout_raw);
+    // Arm the radio for LoRa receive (boosted gain + RX IRQs + finite-timeout
+    // SetRx). Assumes mutex_ is held. Shared by startReceive() and reviveReceive().
+    bool start_receive_locked();
     bool configure_lora_locked(float freq_mhz,
                                float bw_khz,
                                uint8_t sf,
@@ -101,6 +113,11 @@ class Sx126xRadio
     bool online_ = false;
     uint8_t packet_type_ = 0xFF;
     float freq_mhz_ = 0.0f;
+    // Set by reset_chip_locked() so the next set_rf_frequency_locked() re-runs the
+    // band image calibration after a full chip reset (the cached freq is unchanged
+    // across the reset, so the >=20MHz delta guard would otherwise skip it and
+    // leave the revived receiver unable to correlate preambles).
+    bool force_image_cal_ = false;
     uint8_t last_rx_offset_ = 0;
     uint32_t users_ = 0;
     uint32_t rx_diag_count_ = 0;

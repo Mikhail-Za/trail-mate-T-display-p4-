@@ -179,6 +179,8 @@ class TDisplayP4Board final : public BoardBase, public LoraBoard
     bool isRadioOnline() const override;
     int transmitRadio(const uint8_t* data, size_t len) override;
     int startRadioReceive() override;
+    bool isRadioChipAlive() override;
+    int reviveRadioReceive() override;
     uint32_t getRadioIrqFlags() override;
     int getRadioPacketLength(bool update) override;
     int readRadioData(uint8_t* buf, size_t len) override;
