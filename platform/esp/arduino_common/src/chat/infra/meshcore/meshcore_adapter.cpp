@@ -15,6 +15,8 @@
 #include "esp_mac.h"
 #include "esp_random.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "mbedtls/sha256.h"
 #include <algorithm>
 #include <array>
@@ -1750,6 +1752,9 @@ MeshActionResult MeshCoreAdapter::transmitFrameNowDetailed(const uint8_t* data, 
     const TxGateReason tx_gate = checkTxGate(now_ms);
     if (tx_gate != TxGateReason::Ok)
     {
+#if !defined(ARDUINO)
+        printf("idf-mc: phy tx GATED reason=%s\n", txGateReasonName(tx_gate));
+#endif
         return MeshActionResult::fail(txGateFailure(tx_gate));
     }
 
@@ -1764,8 +1769,39 @@ MeshActionResult MeshCoreAdapter::transmitFrameNowDetailed(const uint8_t* data, 
     int state = RADIOLIB_ERR_UNSUPPORTED;
     app::AppTasks::requestRadioReceiveRestart();
     state = board_.transmitRadio(data, len);
+#if !defined(ARDUINO)
+    printf("idf-mc: phy tx len=%u state=%d air_ms=%lu\n", static_cast<unsigned>(len),
+           state, static_cast<unsigned long>(air_ms));
+#endif
     if (state == RADIOLIB_ERR_NONE)
     {
+#if !defined(ARDUINO)
+        // IDF: board_.transmitRadio() maps to the SX126x startTransmit(), which is
+        // NON-blocking (issues SetTx and returns immediately). There is no background
+        // radio task to service TxDone, so wait for the frame to finish on-air HERE;
+        // otherwise the startRadioReceive() below pulls the radio out of TX and
+        // aborts the packet after only a fraction of the preamble. That is exactly
+        // why a clean state=0 produced total silence over the air. Poll the TxDone
+        // IRQ (0x0001) up to the estimated airtime plus margin, yielding so the rest
+        // of the system keeps running during the send.
+        {
+            const uint32_t tx_deadline_ms = millis() + air_ms + 100U;
+            bool tx_done = false;
+            while (static_cast<int32_t>(millis() - tx_deadline_ms) < 0)
+            {
+                const uint32_t tx_irq = board_.getRadioIrqFlags();
+                if ((tx_irq & 0x0001u) != 0)
+                {
+                    board_.clearRadioIrqFlags(tx_irq);
+                    tx_done = true;
+                    break;
+                }
+                vTaskDelay(1);
+            }
+            printf("idf-mc: phy tx complete done=%d air_ms=%lu\n", tx_done ? 1 : 0,
+                   static_cast<unsigned long>(air_ms));
+        }
+#endif
         ParsedPacket parsed;
         if (parsePacket(data, len, &parsed) && parsed.payload_ver == kPayloadVer1)
         {
@@ -3412,6 +3448,15 @@ void MeshCoreAdapter::applyConfig(const MeshConfig& config)
                                   16,
                                   kLoraSyncWordPrivate,
                                   2);
+#if !defined(ARDUINO)
+        // IDF: start continuous RX now so the inline poll in processSendQueue has
+        // the radio listening (the Arduino build's radio task does this otherwise).
+        board_.startRadioReceive();
+        printf("idf-mc: rx started freq=%.3f sf=%u bw=%.1f\n",
+               static_cast<double>(config_.meshcore_freq_mhz),
+               static_cast<unsigned>(config_.meshcore_sf),
+               static_cast<double>(config_.meshcore_bw_khz));
+#endif
     }
     initialized_ = true;
 }
@@ -5032,6 +5077,62 @@ void MeshCoreAdapter::handleRawPacketInternal(const uint8_t* data, size_t size, 
 void MeshCoreAdapter::processSendQueue()
 {
     uint32_t now_ms = millis();
+#if !defined(ARDUINO)
+    // IDF has no background radio task (the Arduino build pumps RX from one), so
+    // poll the SX126x for a received frame inline and feed handleRawPacket here,
+    // mirroring the IDF Meshtastic adapter's pollRadio. Must run before the
+    // scheduled_tx_.empty() early-return below or RX would only pump while TX is queued.
+    if (board_.isRadioOnline())
+    {
+        const uint32_t irq = board_.getRadioIrqFlags();
+        if (irq != 0)
+        {
+            const bool rx_done = (irq & 0x0002u) != 0;                       // RxDone
+            const bool rx_err = (irq & (0x0020u | 0x0040u | 0x0200u)) != 0;  // Hdr/Crc/Timeout
+            if (rx_done || rx_err)
+            {
+                board_.clearRadioIrqFlags(irq);
+                if (rx_done)
+                {
+                    const int rx_len = board_.getRadioPacketLength(true);
+                    if (rx_len > 0 && static_cast<size_t>(rx_len) <= kMeshcoreMaxFrameSize)
+                    {
+                        uint8_t rx_buf[kMeshcoreMaxFrameSize];
+                        if (board_.readRadioData(rx_buf, static_cast<size_t>(rx_len)) == RADIOLIB_ERR_NONE)
+                        {
+                            setLastRxStats(board_.getRadioRSSI(), board_.getRadioSNR());
+                            printf("idf-mc: rx len=%d rssi=%.0f\n", rx_len,
+                                   static_cast<double>(last_rx_rssi_));
+                            handleRawPacket(rx_buf, static_cast<size_t>(rx_len));
+                        }
+                    }
+                }
+                board_.startRadioReceive(); // re-arm continuous RX
+            }
+        }
+    }
+
+    // IDF: controlled self-advert burst for on-air interop testing. Fires a small,
+    // bounded number of broadcast adverts (~15s apart, first ~10s after boot) then
+    // STOPS, so the node announces itself a few times without continuously
+    // occupying the shared channel. Reset the device to run another burst.
+    {
+        static uint32_t s_advert_count = 0;
+        static uint32_t s_next_advert_ms = 10000;
+        constexpr uint32_t kAdvertBurstMax = 3;
+        if (s_advert_count < kAdvertBurstMax && initialized_ && board_.isRadioOnline() &&
+            static_cast<int32_t>(now_ms - s_next_advert_ms) >= 0)
+        {
+            ++s_advert_count;
+            s_next_advert_ms = now_ms + 15000;
+            const bool ok = sendSelfAdvert(true);
+            printf("idf-mc: advert tx %lu/%lu ok=%d node=%08lX\n",
+                   static_cast<unsigned long>(s_advert_count),
+                   static_cast<unsigned long>(kAdvertBurstMax), ok ? 1 : 0,
+                   static_cast<unsigned long>(node_id_));
+        }
+    }
+#endif
     prunePendingAppAcks(now_ms);
     prunePeerRoutes(now_ms);
 

@@ -193,6 +193,22 @@ void runEsp32LvglStartupRuntime(const Esp32LvglRuntimeConfig& config)
         // US (1) before initialize() applies the radio config. The facade ctor explicitly
         // permits overwriting getConfig() before initialize(); region is a uint8 Meshtastic code.
         s_chat_facade.getConfig().meshtastic_config.region = 1; // US, 902-928 MHz ISM
+        // MeshCore channel: the factory default seeds the EU/UK Long Range preset
+        // (869.525 MHz / SF11 / BW250). This is a US board and the interop peer
+        // (Unit B / MeshOS) is on the standard USA/Canada MeshCore channel, so pin
+        // the explicit radio fields the adapter's configureLoraRadio() actually
+        // reads to region preset #15 "USA/Canada (Recommended)"
+        // (910.525 MHz / BW62.5 / SF7 / CR5). Without this the two units are on
+        // different frequencies and modem params and cannot hear each other.
+        {
+            auto& mc = s_chat_facade.getConfig().meshcore_config;
+            mc.meshcore_region_preset = 15;
+            mc.meshcore_freq_mhz = 910.525f;
+            mc.meshcore_bw_khz = 62.5f;
+            mc.meshcore_sf = 7;
+            mc.meshcore_cr = 5;
+            mc.tx_power = 20;
+        }
         if (!s_chat_facade.initialize())
         {
             ESP_LOGW(config.log_tag, "LoRa-chat app facade failed to initialize for %s",
