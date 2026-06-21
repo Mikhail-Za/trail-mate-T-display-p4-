@@ -149,6 +149,33 @@ set(TRAILMATE_ESP_IDF_PLATFORM_MESHCORE_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_blob_store_io.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_app_tasks_radio_compat.cpp")
 
+# ---------------------------------------------------------------------------
+# RadioLib (jgromes, MIT) -- vendored SX1262 driver, built as a NON-Arduino /
+# custom-HAL build (ARDUINO is undefined in this pure-IDF build, so RadioLib's
+# BuildOpt.h auto-selects the generic path: no <SPI.h>/Arduino.h, ArduinoHal.cpp
+# compiles out). The hand-rolled Sx126xRadio demod corrupts the LoRa payload on
+# this board (TX 11 00 E2.. decodes to RX 8B 12 E6..), while RadioLib decodes
+# cleanly on the SAME hardware under MeshOS -- so the proven RadioLib SX126x
+# driver replaces our demod via a small ESP-IDF RadioLibHal. Scope = SX1262 +
+# SX126x base + Module + HAL + the PhysicalLayer/CRC/FEC/Cryptography/Utils core
+# only; every other module/protocol family is omitted from the file list and
+# disabled via RADIOLIB_EXCLUDE_* (set in main/CMakeLists.txt).
+set(TRAILMATE_RADIOLIB_SRC
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/third_party/RadioLib/src")
+set(TRAILMATE_ESP_IDF_RADIOLIB_SOURCES
+    "${TRAILMATE_RADIOLIB_SRC}/Module.cpp"
+    "${TRAILMATE_RADIOLIB_SRC}/Hal.cpp"
+    "${TRAILMATE_RADIOLIB_SRC}/utils/Utils.cpp"
+    "${TRAILMATE_RADIOLIB_SRC}/utils/CRC.cpp"
+    "${TRAILMATE_RADIOLIB_SRC}/utils/FEC.cpp"
+    "${TRAILMATE_RADIOLIB_SRC}/utils/Cryptography.cpp"
+    "${TRAILMATE_RADIOLIB_SRC}/protocols/PhysicalLayer/PhysicalLayer.cpp"
+    "${TRAILMATE_RADIOLIB_SRC}/modules/SX126x/SX126x.cpp"
+    "${TRAILMATE_RADIOLIB_SRC}/modules/SX126x/SX126x_commands.cpp"
+    "${TRAILMATE_RADIOLIB_SRC}/modules/SX126x/SX126x_config.cpp"
+    "${TRAILMATE_RADIOLIB_SRC}/modules/SX126x/SX126x_LR_FHSS.cpp"
+    "${TRAILMATE_RADIOLIB_SRC}/modules/SX126x/SX1262.cpp")
+
 # Arduino-common chat infra the factory instantiates directly: only the
 # ChatEventBusBridge observer (pure: EventBus::publish + chat_service.h).
 #
@@ -565,6 +592,7 @@ set(TRAILMATE_ESP_IDF_FINAL_INCLUDE_DIRS
     "${TRAILMATE_ROOT}/platform/esp/boards/include"
     "${TRAILMATE_ROOT}/platform/esp/common/include"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/include"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/third_party/RadioLib/src"
     "${TRAILMATE_ROOT}/platform/shared/include"
     "${TRAILMATE_ROOT}/boards/tab5/include"
     "${TRAILMATE_ROOT}/boards/t_display_p4/include"
