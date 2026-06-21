@@ -86,6 +86,14 @@ constexpr uint16_t kIrqHeaderErr = 0x0020;
 constexpr uint16_t kIrqCrcErr = 0x0040;
 constexpr uint16_t kIrqTimeout = 0x0200;
 constexpr uint16_t kIrqAll = 0x43FF;
+// RX DIO IRQ mask. The terminal flags (RxDone/Timeout/CrcErr/HeaderErr) drive the
+// adapter's RX poll; PreambleDetected and HeaderValid are added purely so they
+// LATCH in GetIrqStatus for the rxladder instrumentation (they map to no terminal
+// action). Widening the IRQ mask does not change the demodulator behaviour -- it
+// only makes the progress flags observable so the RX chain can be localized.
+constexpr uint16_t kIrqRxLadderMask = kIrqRxDone | kIrqTimeout | kIrqCrcErr |
+                                      kIrqHeaderErr | kIrqPreambleDetected |
+                                      kIrqHeaderValid;
 constexpr uint16_t kRegOcpConfiguration = 0x08E7;
 constexpr uint16_t kRegSyncWord0 = 0x06C0;
 constexpr uint16_t kRegLoraSyncWordMsb = 0x0740;
@@ -1039,6 +1047,13 @@ bool Sx126xRadio::configure_lora_locked(float freq_mhz,
     // first, then frequency/image-cal, then the sensitivity fix -- the exact order
     // the two reference receivers use on this hardware.
     const uint8_t mod[4] = {sf, map_lora_bw(bw_khz), map_lora_cr(cr), calc_ldro(sf, bw_khz)};
+    if (rx_diag_count_ < 2)
+    {
+        printf("idf-mc: loramod sf=%u bwcode=0x%02X crcode=0x%02X ldro=%u (bw=%.1f cr=%u)\n",
+               static_cast<unsigned>(mod[0]), static_cast<unsigned>(mod[1]),
+               static_cast<unsigned>(mod[2]), static_cast<unsigned>(mod[3]),
+               static_cast<double>(bw_khz), static_cast<unsigned>(cr));
+    }
     if (!write_command_locked(kCmdSetModulationParams, mod, sizeof(mod), true))
     {
         return false;
@@ -1215,7 +1230,7 @@ bool Sx126xRadio::configureLoRaReceive(float freq_mhz,
     }
     const bool ok = init_locked() &&
                     configure_lora_locked(freq_mhz, bw_khz, sf, cr, tx_power, preamble_len, sync_word, crc_len) &&
-                    set_dio_irq_params_locked(kIrqRxDone | kIrqTimeout | kIrqCrcErr | kIrqHeaderErr, kIrqRxDone) &&
+                    set_dio_irq_params_locked(kIrqRxLadderMask, kIrqRxLadderMask) &&
                     clear_irq_locked(kIrqAll) &&
                     set_buffer_base_locked(0x00, 0x00) &&
                     set_rx_locked(kRxTimeoutInf);
@@ -1265,26 +1280,78 @@ bool Sx126xRadio::configureFsk(float freq_mhz,
     return ok;
 }
 
+bool Sx126xRadio::set_rx_packet_params_locked()
+{
+    // Re-issue the LoRa RX packet parameters exactly as configure_lora_locked()
+    // programs them for receive: the cached preamble length (fallback 16, the
+    // value the adapter configures and the TX path sends), explicit header,
+    // max length 0xFF, CRC on, standard IQ. RadioLib's startReceiveCommon ALWAYS
+    // re-issues SetPacketParams immediately before SetRx on every arm, and our
+    // previous re-arm path skipped it -- so after the first transmit (which
+    // reprograms SetPacketParams with the TX payload length) the receiver was
+    // left armed with a stale/TX-shaped packet config. The demodulator then
+    // sensed RF but never correlated the preamble.
+    // SX1262 datasheet §15.4 standard-IQ workaround, applied BEFORE SetPacketParams
+    // exactly as RadioLib's setPacketParams -> fixInvertedIQ does (read-modify-write
+    // REG_IQ 0x0736 bit 2 SET for standard IQ). Re-asserting it on every arm
+    // guarantees the demod is in the correct IQ state when SetRx follows, even if a
+    // prior TX/standby cycle perturbed the register.
+    uint8_t iq_cfg = 0;
+    if (!read_register_locked(kRegIqConfig, &iq_cfg, 1))
+    {
+        return false;
+    }
+    iq_cfg = static_cast<uint8_t>(iq_cfg | 0x04);
+    if (!write_register_locked(kRegIqConfig, &iq_cfg, 1))
+    {
+        return false;
+    }
+
+    const uint16_t preamble = (lora_cfg_valid_ && lora_preamble_ > 0) ? lora_preamble_ : 16;
+    const uint8_t packet[6] = {
+        static_cast<uint8_t>((preamble >> 8) & 0xFF),
+        static_cast<uint8_t>(preamble & 0xFF),
+        kLoRaHeaderExplicit,
+        0xFF,
+        kLoRaCrcOn,
+        kLoRaIqStandard,
+    };
+    return write_command_locked(kCmdSetPacketParams, packet, sizeof(packet), true);
+}
+
 bool Sx126xRadio::start_receive_locked()
 {
     board_prepare_lora_direction(false);
     // Boosted-gain RX (reg 0x08AC = 0x96) maximizes sensitivity, matching the
     // reference driver before it parks the chip in continuous RX.
     set_rx_boosted_gain_locked(true);
+
+    // ROOT-CAUSE ARM ORDER (RX demodulation). Mirror RadioLib's startReceiveCommon
+    // EXACTLY on every arm: standby(STDBY_RC) -> SetDioIrqParams -> SetBufferBase ->
+    // ClearIrqStatus -> SetPacketParams(+IQ fix) -> SetRx. Our previous re-arm path
+    // jumped straight to SetRx without first returning to standby and re-issuing
+    // SetPacketParams. After the first transmit reprograms SetPacketParams with the
+    // outbound payload length, the receiver was re-armed on top of that stale
+    // (TX-shaped) packet configuration while still in RX state, so the demodulator
+    // sensed the peer's RF energy (RSSI bumped) but never correlated the preamble
+    // and PreambleDetected/RxDone never fired. Returning to standby and re-issuing
+    // the RX packet params before SetRx is the proven-on-this-board sequence.
+    //
     // Arm INFINITE continuous RX -- the exact mode under which a genuine foreign
-    // packet was previously received and fully decoded on this board. A finite
-    // timeout aborts any reception whose airtime straddles the timeout boundary
-    // and (worse) requires blind periodic re-arming that itself truncates packets
-    // mid-flight, which empirically left the radio deaf. Instead the chip is left
-    // in infinite RX and is only ever re-armed by the adapter AFTER a terminal
-    // IRQ (RxDone / error) -- never mid-reception -- with a dead-chip revive as
-    // the safety net for the sustained-RX death. The DIO mask only drives the
-    // (unused) DIO1 pin; GetIrqStatus reports every event regardless, so the
-    // poll still sees the non-terminal progress flags and leaves them alone.
-    return set_dio_irq_params_locked(kIrqRxDone | kIrqTimeout | kIrqCrcErr | kIrqHeaderErr,
-                                     kIrqRxDone) &&
-           clear_irq_locked(kIrqAll) &&
+    // packet was previously received and decoded on this board -- and only re-arm
+    // AFTER a terminal IRQ (never mid-reception), with the dead-chip revive as the
+    // safety net. Pass the widened kIrqRxLadderMask as BOTH the IRQ mask and the
+    // DIO1 mask: on this SX1262 the PreambleDetected/HeaderValid bits did not latch
+    // in GetIrqStatus when they were only in the IRQ mask (param 1) -- only the
+    // bits also routed to a DIO line surfaced -- so routing the ladder bits to DIO1
+    // as well makes them latch for the rxladder probe. DIO1 is not wired to the
+    // P4 (irq=-1) so this only affects which bits the chip exposes, not any pin.
+    const uint8_t standby_mode = kStandbyRc;
+    return write_command_locked(kCmdSetStandby, &standby_mode, 1, true) &&
+           set_dio_irq_params_locked(kIrqRxLadderMask, kIrqRxLadderMask) &&
            set_buffer_base_locked(0x00, 0x00) &&
+           clear_irq_locked(kIrqAll) &&
+           set_rx_packet_params_locked() &&
            set_rx_locked(kRxTimeoutInf);
 }
 
@@ -1310,15 +1377,39 @@ bool Sx126xRadio::startReceive()
         const uint16_t pkt_rx = (static_cast<uint16_t>(stats[0]) << 8) | stats[1];
         const uint16_t crc_err = (static_cast<uint16_t>(stats[2]) << 8) | stats[3];
         const uint16_t hdr_err = (static_cast<uint16_t>(stats[4]) << 8) | stats[5];
+        // STEP B(2): read the demod-critical config back over SPI to confirm the
+        // writes actually landed (a write dropped under BUSY would leave the modem
+        // misconfigured while the values still look right in code). sync MSB/LSB
+        // must read 0x14/0x24 for sync 0x12; IQ (0x0736) bit 2 must be SET for
+        // standard IQ; sensitivity (0x0889) bit 2 must be SET for BW != 500k.
+        uint8_t sync_rb[2] = {0};
+        (void)read_register_locked(kRegLoraSyncWordMsb, sync_rb, sizeof(sync_rb));
+        uint8_t iq_rb = 0;
+        (void)read_register_locked(kRegIqConfig, &iq_rb, 1);
+        uint8_t sens_rb = 0;
+        (void)read_register_locked(kRegSensitivityConfig, &sens_rb, 1);
+        uint8_t gain_rb = 0;
+        (void)read_register_locked(kRegRxGain, &gain_rb, 1);
         ESP_LOGI(kTag,
-                 "SX1262 RX diag[%lu]: status=0x%02X mode=%u(0x5=RX) rssi=%.1fdBm stats(rx=%u crc_err=%u hdr_err=%u)",
+                 "SX1262 RX diag[%lu]: status=0x%02X mode=%u(0x5=RX) rssi=%.1fdBm stats(rx=%u crc_err=%u hdr_err=%u) sync=%02X%02X iq=0x%02X sens=0x%02X gain=0x%02X preamble=%u",
                  static_cast<unsigned long>(rx_diag_count_),
                  status,
                  mode,
                  static_cast<double>(rssi_raw) / -2.0,
                  static_cast<unsigned>(pkt_rx),
                  static_cast<unsigned>(crc_err),
-                 static_cast<unsigned>(hdr_err));
+                 static_cast<unsigned>(hdr_err),
+                 sync_rb[0], sync_rb[1],
+                 static_cast<unsigned>(iq_rb),
+                 static_cast<unsigned>(sens_rb),
+                 static_cast<unsigned>(gain_rb),
+                 static_cast<unsigned>((lora_cfg_valid_ && lora_preamble_ > 0) ? lora_preamble_ : 16));
+        // Mirror the same readback to stdout so it shows in the check capture
+        // (which greps the USB-serial console, not the ESP_LOG UART).
+        printf("idf-mc: rxcfg sync=%02X%02X iq=0x%02X sens=0x%02X gain=0x%02X mode=%u rssi=%.0f\n",
+               sync_rb[0], sync_rb[1], static_cast<unsigned>(iq_rb),
+               static_cast<unsigned>(sens_rb), static_cast<unsigned>(gain_rb),
+               mode, static_cast<double>(rssi_raw) / -2.0);
         ++rx_diag_count_;
     }
     give_mutex(mutex_);
@@ -1513,6 +1604,20 @@ int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
         // never validated -- GetStats stayed rx=0/crc_err=0/hdr_err=0 and RxDone
         // never fired. Use the cached preamble (fallback to 16 if unset) so the
         // on-air preamble matches what the peer is listening for.
+        // Re-issue the LoRa MODULATION params (SF/BW/CR/LDRO) from the cached
+        // configuration immediately before transmit. The chip persists modulation
+        // across standby, but re-asserting it here makes the TX modem provably
+        // identical to what the RX demod was configured for -- closing the only
+        // demod parameter that is not register-verifiable (SetModulationParams has
+        // no read-back command). If TX and RX ever drifted on SF/BW/CR/LDRO the
+        // peer would hear RF energy (RSSI bumps) but never correlate the LoRa
+        // preamble, which is exactly the observed failure.
+        if (lora_cfg_valid_)
+        {
+            const uint8_t mod[4] = {lora_sf_, map_lora_bw(lora_bw_khz_), map_lora_cr(lora_cr_),
+                                    calc_ldro(lora_sf_, lora_bw_khz_)};
+            ok = ok && write_command_locked(kCmdSetModulationParams, mod, sizeof(mod), true);
+        }
         const uint16_t tx_preamble = lora_cfg_valid_ && lora_preamble_ > 0 ? lora_preamble_ : 16;
         const uint8_t lo[6] = {
             static_cast<uint8_t>((tx_preamble >> 8) & 0xFF),
@@ -1646,6 +1751,123 @@ void Sx126xRadio::clearIrqFlags(uint32_t flags)
     }
     clear_irq_locked(static_cast<uint16_t>(flags));
     give_mutex(mutex_);
+}
+
+bool Sx126xRadio::pollRxLadder(uint16_t irq, RxLadderCounts* out)
+{
+    if (!take_mutex(mutex_))
+    {
+        return false;
+    }
+
+    // RACE-FREE COUNTING. The IRQ word is read ONCE by the caller (the adapter's RX
+    // poll) and passed in here, so the ladder accounting and the adapter's terminal-
+    // flag handling/clear operate on the SAME snapshot. We do NOT issue our own
+    // GetIrqStatus and do NOT clear any IRQ bits here (the adapter clears the
+    // terminal bits, and the preamble/header bits naturally clear when it clears on
+    // RxDone) -- this is why a previous design under-counted: its separate read +
+    // mid-packet clear raced the adapter's clear. We never issue SetRx/SetStandby,
+    // so this cannot disturb an in-flight reception.
+    const bool dead = (irq == 0x0000u) || (irq == 0xFFFFu);
+    if (!dead)
+    {
+        // Cumulative OR of every non-dead IRQ word, so the throttled line shows
+        // which IRQ bits actually appear in GetIrqStatus during reception (decisive
+        // for whether PreambleDetected/HeaderValid latch at all on this chip).
+        rxladder_irq_seen_ |= irq;
+    }
+
+    const uint8_t status = read_chip_status_locked();
+    const unsigned mode = (status >> 4) & 0x07;
+
+    // Count, at full poll rate, how many polls observed the chip NOT in RX
+    // (mode != 0x5). If the chip silently falls out of continuous RX between the
+    // 1 Hz snapshots, notrx climbs even while the throttled line catches mode=5.
+    ++rxladder_polls_;
+    if (mode != 0x5)
+    {
+        ++rxladder_notrx_polls_;
+    }
+
+    // Device-error register (GetDeviceErrors): a chip in mode=RX that cannot
+    // demodulate usually has a latched PLL/XOSC/IMG error -- the decisive "in RX but
+    // deaf" signal. OR into the cumulative value so a transient latch is not missed.
+    {
+        uint8_t dev_err[2] = {0};
+        if (read_command_locked(kCmdGetDeviceErrors, nullptr, 0, dev_err, sizeof(dev_err), true))
+        {
+            const uint16_t errs = (static_cast<uint16_t>(dev_err[0]) << 8) | dev_err[1];
+            if (errs != 0xFFFFu)
+            {
+                rxladder_dev_errors_ |= errs;
+            }
+        }
+    }
+
+    // Peak VALID instantaneous RSSI (mode-5 only, ignoring raw==0 glitch reads).
+    // A peer transmit lifts this well above the noise floor; if it never rises, RF
+    // is not reaching the demod -- if it rises but preamble/rxdone stay flat, the
+    // demod hears energy it cannot correlate.
+    if (mode == 0x5)
+    {
+        uint8_t rssi_raw = 0;
+        if (read_command_locked(kCmdGetRssiInst, nullptr, 0, &rssi_raw, 1, true) && rssi_raw != 0)
+        {
+            const float rssi_dbm = static_cast<float>(rssi_raw) / -2.0f;
+            if (rssi_dbm > rxladder_peak_rssi_)
+            {
+                rxladder_peak_rssi_ = rssi_dbm;
+            }
+        }
+    }
+
+    if (!dead)
+    {
+        // Rising-edge count each ladder bit from the caller's single IRQ snapshot.
+        // The adapter clears the terminal bits (RxDone/CrcErr/HeaderErr/Timeout) on
+        // each reception, which also clears PreambleDetected/HeaderValid, so every
+        // bit re-latches per packet and is counted exactly once per reception.
+        const bool pre = (irq & kIrqPreambleDetected) != 0;
+        const bool hdr = (irq & kIrqHeaderValid) != 0;
+        const bool rxd = (irq & kIrqRxDone) != 0;
+        const bool crc = (irq & kIrqCrcErr) != 0;
+        if (pre && !rxladder_prev_preamble_)
+        {
+            ++rxladder_preamble_;
+        }
+        if (hdr && !rxladder_prev_header_)
+        {
+            ++rxladder_header_;
+        }
+        if (rxd && !rxladder_prev_rxdone_)
+        {
+            ++rxladder_rxdone_;
+        }
+        if (crc && !rxladder_prev_crcerr_)
+        {
+            ++rxladder_crcerr_;
+        }
+        rxladder_prev_preamble_ = pre;
+        rxladder_prev_header_ = hdr;
+        rxladder_prev_rxdone_ = rxd;
+        rxladder_prev_crcerr_ = crc;
+    }
+
+    if (out)
+    {
+        out->preamble = rxladder_preamble_;
+        out->header = rxladder_header_;
+        out->rxdone = rxladder_rxdone_;
+        out->crcerr = rxladder_crcerr_;
+        out->mode = mode;
+        out->peak_rssi_dbm = rxladder_peak_rssi_;
+        out->dev_errors = rxladder_dev_errors_;
+        out->polls = rxladder_polls_;
+        out->notrx_polls = rxladder_notrx_polls_;
+        out->irq_seen = rxladder_irq_seen_;
+    }
+    give_mutex(mutex_);
+    return true;
 }
 
 int Sx126xRadio::getPacketLength(bool update)

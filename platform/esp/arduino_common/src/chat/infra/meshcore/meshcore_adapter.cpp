@@ -5093,9 +5093,68 @@ void MeshCoreAdapter::processSendQueue()
     // poll the SX126x for a received frame inline and feed handleRawPacket here,
     // mirroring the IDF Meshtastic adapter's pollRadio. Must run before the
     // scheduled_tx_.empty() early-return below or RX would only pump while TX is queued.
-    if (board_.isRadioOnline())
+    // Throttle the RX-path SPI work to ~30 ms. processSendQueue() runs on the LVGL
+    // app-loop tick, which spins far faster than the radio needs to be serviced.
+    // Hammering the SX1262 with GetIrqStatus/GetStatus/GetRssiInst/GetDeviceErrors
+    // every tick floods the chip's digital interface DURING preamble correlation,
+    // which on this board prevented the demodulator from cleanly locking the peer
+    // preamble (PreambleDetected/HeaderValid never latched, only a garbage RxDone).
+    // RadioLib services the radio off a sparse interrupt; mirror that cadence with
+    // a light periodic poll. The RX IRQ bits LATCH until cleared, so a 30 ms poll
+    // never misses a completed reception. The dead-chip revive runs from this same
+    // gated section, so it stays rare too.
+    static uint32_t s_last_rx_poll_ms = 0;
+    const bool do_rx_poll =
+        static_cast<int32_t>(now_ms - s_last_rx_poll_ms) >= 30;
+    if (board_.isRadioOnline() && do_rx_poll)
     {
+        s_last_rx_poll_ms = now_ms;
+        // RX IRQ LADDER (diagnostic, runs BEFORE the terminal-flag read below).
+        // Reads the raw IRQ register + chip mode and accumulates cumulative counts
+        // of PreambleDetected/HeaderValid/RxDone/CrcErr (the driver owns the count
+        // and clears only the non-terminal progress bits, leaving the terminal
+        // bits for the poll below). Emit throttled to ~1 Hz. This both drives the
+        // rxladder check and localizes exactly where the RX chain stops: preamble
+        // alone = demod locks but header/payload fail; preamble+header+rxdone =
+        // full PHY reception.
+        //
+        // Read the IRQ word ONCE and share it with both the ladder accounting and
+        // the terminal-flag handling below, so the ladder edge-counts cannot race a
+        // separate read/clear (a prior design did its own GetIrqStatus and cleared
+        // mid-packet, which under-counted RxDone and dropped PreambleDetected
+        // edges). The ladder counts from this snapshot; the handling below clears
+        // the terminal bits (which also clears preamble/header so they re-latch).
         const uint32_t irq = board_.getRadioIrqFlags();
+        {
+            LoraBoard::RadioRxLadder ladder;
+            if (board_.pollRadioRxLadder(irq, &ladder))
+            {
+                static uint32_t s_last_ladder_ms = 0;
+                if (static_cast<int32_t>(now_ms - s_last_ladder_ms) >= 1000)
+                {
+                    s_last_ladder_ms = now_ms;
+                    printf("idf-mc: rxladder preamble=%u header=%u rxdone=%u crcerr=%u mode=%u\n",
+                           static_cast<unsigned>(ladder.preamble),
+                           static_cast<unsigned>(ladder.header),
+                           static_cast<unsigned>(ladder.rxdone),
+                           static_cast<unsigned>(ladder.crcerr),
+                           static_cast<unsigned>(ladder.mode));
+                    // Separate localization line (keeps the rxladder line in the
+                    // exact contract format the check parses): peak instantaneous
+                    // RSSI seen so far, the cumulative device-error OR, the fraction
+                    // of polls not in RX, and the OR of all IRQ bits ever seen
+                    // (irqseen shows whether PreambleDetected/HeaderValid ever latch
+                    // on this chip at all).
+                    printf("idf-mc: rxrssi peak=%.0f deverr=0x%04X notrx=%u/%u irqseen=0x%04X\n",
+                           static_cast<double>(ladder.peak_rssi_dbm),
+                           static_cast<unsigned>(ladder.dev_errors),
+                           static_cast<unsigned>(ladder.notrx_polls),
+                           static_cast<unsigned>(ladder.polls),
+                           static_cast<unsigned>(ladder.irq_seen));
+                }
+            }
+        }
+
         // A radio that has gone dead on the SPI bus returns all-ones (0xFFFF) on
         // every register read; treating that as RxDone makes the poll read a
         // 255-byte garbage frame and flood handleRawPacket until the stack faults
@@ -5195,18 +5254,34 @@ void MeshCoreAdapter::processSendQueue()
     }
 
     // IDF: controlled self-advert burst for on-air interop testing. Fires a small,
-    // bounded number of broadcast adverts (~15s apart, first ~10s after boot) then
-    // STOPS, so the node announces itself a few times without continuously
-    // occupying the shared channel. Reset the device to run another burst.
+    // bounded number of broadcast adverts then STOPS, so the node announces itself
+    // a few times without continuously occupying the shared channel. Reset the
+    // device to run another burst.
+    //
+    // RANDOM JITTER (collision avoidance). Both units run the SAME fixed cadence,
+    // so once their boots are a fixed offset apart their transmit windows stay
+    // locked together and their adverts repeatedly COLLIDE on-air -- the listener
+    // then locks two overlapping LoRa signals and decodes a corrupted, wrong-length
+    // frame that fails CRC (the observed 190-vs-103 garbage with no clean header).
+    // Real MeshCore/Meshtastic adverts use a randomized backoff for exactly this
+    // reason. Jitter both the first advert and each interval (hardware RNG) so the
+    // two units decorrelate and most adverts land in clear air, letting the peer
+    // demodulate a clean frame. A half-duplex node also cannot hear an advert that
+    // overlaps its OWN transmit, so spreading the windows is what lets each side
+    // receive the other.
     {
         static uint32_t s_advert_count = 0;
-        static uint32_t s_next_advert_ms = 10000;
+        // First advert 8-16s after boot (randomized so two units do not align).
+        static uint32_t s_next_advert_ms = 8000 + static_cast<uint32_t>(randomRange(0, 8000));
         constexpr uint32_t kAdvertBurstMax = 3;
         if (s_advert_count < kAdvertBurstMax && initialized_ && board_.isRadioOnline() &&
             static_cast<int32_t>(now_ms - s_next_advert_ms) >= 0)
         {
             ++s_advert_count;
-            s_next_advert_ms = now_ms + 15000;
+            // Next advert 9-17s out: a base spacing plus a large random jitter so
+            // the inter-unit phase keeps drifting and repeated collisions cannot
+            // persist across the burst.
+            s_next_advert_ms = now_ms + 9000 + static_cast<uint32_t>(randomRange(0, 8000));
             const bool ok = sendSelfAdvert(true);
             printf("idf-mc: advert tx %lu/%lu ok=%d node=%08lX\n",
                    static_cast<unsigned long>(s_advert_count),

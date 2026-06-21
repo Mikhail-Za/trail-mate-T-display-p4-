@@ -50,6 +50,35 @@ class Sx126xRadio
     int getPacketLength(bool update);
     int readPacket(uint8_t* buffer, size_t size);
 
+    // RX IRQ ladder instrumentation. Reads the raw IRQ status + the SX126x chip
+    // mode (GetStatus bits 6:4) once, then maintains CUMULATIVE counts of how many
+    // times the PreambleDetected/HeaderValid/RxDone/CrcErr IRQ bits have latched
+    // since boot (rising-edge counted, so a bit that stays set across polls is
+    // counted once). It clears ONLY the non-terminal progress bits it owns
+    // (PreambleDetected, HeaderValid) so they re-latch for the next packet; the
+    // terminal bits (RxDone/CrcErr/HeaderErr/Timeout) are left intact for the
+    // adapter's RX poll to consume and clear. Never issues SetRx/SetStandby, so it
+    // cannot disturb an in-flight reception. Returns false only if the SPI read
+    // failed (e.g. chip dead).
+    struct RxLadderCounts
+    {
+        uint32_t preamble = 0;
+        uint32_t header = 0;
+        uint32_t rxdone = 0;
+        uint32_t crcerr = 0;
+        unsigned mode = 0;             // SX126x chip mode (GetStatus bits 6:4); 0x5 = RX
+        float peak_rssi_dbm = -128.0f; // peak instantaneous RSSI seen since boot
+        uint16_t dev_errors = 0;       // cumulative OR of GetDeviceErrors since boot
+        uint32_t polls = 0;            // total ladder polls since boot
+        uint32_t notrx_polls = 0;      // polls that observed mode != RX
+        uint16_t irq_seen = 0;         // cumulative OR of all IRQ words observed
+    };
+    // Accumulate the RX IRQ ladder from a caller-provided IRQ snapshot (read once
+    // by the adapter's RX poll, shared with its terminal-flag handling so the
+    // counting never races a separate read/clear). Reads chip mode/RSSI/device
+    // errors; never reads or clears IRQ bits itself.
+    bool pollRxLadder(uint16_t irq, RxLadderCounts* out);
+
     const char* lastError() const;
 
   private:
@@ -85,6 +114,10 @@ class Sx126xRadio
     // Arm the radio for LoRa receive (boosted gain + RX IRQs + finite-timeout
     // SetRx). Assumes mutex_ is held. Shared by startReceive() and reviveReceive().
     bool start_receive_locked();
+    // Re-issue the LoRa RX packet params (+ the 0x0736 standard-IQ workaround)
+    // immediately before SetRx, mirroring RadioLib's startReceiveCommon. Assumes
+    // mutex_ is held.
+    bool set_rx_packet_params_locked();
     bool configure_lora_locked(float freq_mhz,
                                float bw_khz,
                                uint8_t sf,
@@ -122,6 +155,22 @@ class Sx126xRadio
     uint32_t users_ = 0;
     uint32_t rx_diag_count_ = 0;
     uint32_t tx_diag_count_ = 0;
+    // Cumulative RX IRQ-ladder counters (see pollRxLadder). rxladder_prev_* hold
+    // the previous-poll bit state so a latched bit is counted on its rising edge
+    // only, never re-counted while it stays set between polls.
+    uint32_t rxladder_preamble_ = 0;
+    uint32_t rxladder_header_ = 0;
+    uint32_t rxladder_rxdone_ = 0;
+    uint32_t rxladder_crcerr_ = 0;
+    bool rxladder_prev_preamble_ = false;
+    bool rxladder_prev_header_ = false;
+    bool rxladder_prev_rxdone_ = false;
+    bool rxladder_prev_crcerr_ = false;
+    float rxladder_peak_rssi_ = -128.0f;
+    uint16_t rxladder_dev_errors_ = 0;
+    uint32_t rxladder_polls_ = 0;
+    uint32_t rxladder_notrx_polls_ = 0;
+    uint16_t rxladder_irq_seen_ = 0;
     // Cached LoRa configuration from the last configureLoRaReceive(), so the TX
     // path can re-establish the radio if the chip has lost its state (the
     // T-Display-P4 SX1262 goes fully dark -- version register reads 0x00 -- after

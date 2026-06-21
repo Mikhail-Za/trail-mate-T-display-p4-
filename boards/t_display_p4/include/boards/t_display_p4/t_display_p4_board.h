@@ -182,6 +182,7 @@ class TDisplayP4Board final : public BoardBase, public LoraBoard
     bool isRadioChipAlive() override;
     int reviveRadioReceive() override;
     uint32_t getRadioIrqFlags() override;
+    bool pollRadioRxLadder(uint32_t irq, RadioRxLadder* out) override;
     int getRadioPacketLength(bool update) override;
     int readRadioData(uint8_t* buf, size_t len) override;
     void clearRadioIrqFlags(uint32_t flags) override;

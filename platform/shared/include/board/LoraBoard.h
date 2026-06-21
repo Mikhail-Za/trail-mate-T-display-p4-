@@ -30,6 +30,32 @@ class LoraBoard
         return startRadioReceive();
     }
     virtual uint32_t getRadioIrqFlags() = 0;
+
+    // RX IRQ-ladder probe (diagnostic). Cumulative counts of how many times the
+    // PreambleDetected/HeaderValid/RxDone/CrcErr IRQ bits have latched since boot,
+    // plus the current radio chip mode (SX126x GetStatus bits 6:4; 0x5 = RX).
+    // Default: report nothing observed and mode 0 (boards without the instrumented
+    // SX1262 driver). Returns true if the counts were read from a live radio.
+    struct RadioRxLadder
+    {
+        uint32_t preamble = 0;
+        uint32_t header = 0;
+        uint32_t rxdone = 0;
+        uint32_t crcerr = 0;
+        unsigned mode = 0;
+        float peak_rssi_dbm = -128.0f;
+        uint16_t dev_errors = 0;
+        uint32_t polls = 0;
+        uint32_t notrx_polls = 0;
+        uint16_t irq_seen = 0;
+    };
+    virtual bool pollRadioRxLadder(uint32_t irq, RadioRxLadder* out)
+    {
+        (void)irq;
+        (void)out;
+        return false;
+    }
+
     virtual int getRadioPacketLength(bool update) = 0;
     virtual int readRadioData(uint8_t* buf, size_t len) = 0;
     virtual void clearRadioIrqFlags(uint32_t flags) = 0;
