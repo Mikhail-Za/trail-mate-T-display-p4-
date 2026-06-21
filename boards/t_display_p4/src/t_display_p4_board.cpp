@@ -872,11 +872,11 @@ bool TDisplayP4Board::isRadioChipAlive()
     {
         return false;
     }
-    // Real on-SPI liveness probe: the SX1262 on this board goes dark in
-    // sustained continuous RX (version register reads all-0x00) even though the
-    // higher-level "online" flag is still set. isChipResponsive() reads the
-    // version register under the radio mutex, so the RX pump can tell a truly
-    // dead chip from a merely idle one.
+    // RadioLib owns a healthy chip: the hand-rolled "dies in sustained RX" quirk
+    // was an artifact of the old command layer and does NOT occur with RadioLib, so
+    // isChipResponsive() reports the online flag WITHOUT an SPI probe (it never
+    // disturbs an in-flight reception). The adapter's idle revive path keyed on this
+    // is consequently dormant, which is correct here (no revive is needed).
     return radio().isChipResponsive();
 }
 
@@ -1006,7 +1006,13 @@ float TDisplayP4Board::getRadioRSSI()
 
 float TDisplayP4Board::getRadioSNR()
 {
-    return 0.0f;
+    if (!ensureRadioReady())
+    {
+        return 0.0f;
+    }
+    // Real last-packet SNR from RadioLib (was hardwired 0.0f). The adapter feeds
+    // this into path-quality scoring / reported node-info SNR.
+    return radio().readSnr();
 }
 
 void TDisplayP4Board::configureLoraRadio(float freq_mhz,

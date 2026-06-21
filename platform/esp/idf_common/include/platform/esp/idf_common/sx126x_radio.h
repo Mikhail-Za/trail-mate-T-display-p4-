@@ -53,6 +53,7 @@ class Sx126xRadio
     bool reviveReceive();
     void standby();
     float readRssi();
+    float readSnr();
 
     // Transmit via RadioLib (RF switch -> TX), block until TxDone, then return to
     // RX. Leaves the TxDone IRQ latched so the adapter's TxDone poll observes it.

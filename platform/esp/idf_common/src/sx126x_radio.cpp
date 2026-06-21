@@ -455,6 +455,23 @@ float Sx126xRadio::readRssi()
     return rssi;
 }
 
+float Sx126xRadio::readSnr()
+{
+    if (!take_mutex(mutex_))
+    {
+        return 0.0f;
+    }
+    float snr = 0.0f;
+    if (g_radio != nullptr)
+    {
+        // Last-packet SNR from RadioLib (mirrors readRssi); the adapter feeds this
+        // into path-quality scoring and the reported node-info/event SNR.
+        snr = g_radio->getSNR();
+    }
+    give_mutex(mutex_);
+    return snr;
+}
+
 int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
 {
     if (!take_mutex(mutex_))
