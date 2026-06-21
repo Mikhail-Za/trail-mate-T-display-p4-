@@ -1281,6 +1281,11 @@ bool Sx126xRadio::configure_lora_locked(float freq_mhz,
                                         uint8_t sync_word,
                                         uint8_t crc_len)
 {
+    // (Re)configuring the LoRa modem ZEROES the GetStats packet counters. Drop the
+    // clean-reception baseline so pollCleanRxPacket() re-baselines from the fresh
+    // counters rather than seeing a spurious delta after a reconfigure.
+    rxstats_have_baseline_ = false;
+    rxstats_clean_pending_ = 0;
     if (!set_packet_type_locked(kPacketTypeLoRa))
     {
         return false;
@@ -1823,6 +1828,14 @@ bool Sx126xRadio::chip_responsive_locked()
 
 bool Sx126xRadio::reset_chip_locked()
 {
+    // A full chip reset/reconfigure ZEROES the modem's GetStats packet counters
+    // (NbPktReceived/NbPktCrcError). Invalidate the clean-reception baseline so the
+    // next pollCleanRxPacket() re-baselines from the post-reset counters instead of
+    // computing a huge spurious delta (which would otherwise inject phantom clean
+    // packets and read stale FIFO garbage). Any not-yet-drained clean credit is also
+    // discarded -- the FIFO it referred to is gone after the reset.
+    rxstats_have_baseline_ = false;
+    rxstats_clean_pending_ = 0;
 #if defined(TRAIL_MATE_ESP_BOARD_TAB5) || defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
     // The NRESET-via-expander pulse alone does NOT revive the T-Display-P4 SX1262
     // once it has gone dark in RX (verified: the expander write succeeds but the
@@ -2222,54 +2235,31 @@ bool Sx126xRadio::pollRxLadder(uint16_t irq, RxLadderCounts* out, bool deep)
             }
         }
 
-        // AUTHORITATIVE RECEPTION COUNT via GetStats (0x10). DECISIVE on-hardware
-        // finding: on this board the SX1262 receives the peer's adverts CLEANLY -- the
-        // modem's NbPktReceived counter advances with NbPktCrcError == 0 -- yet the
-        // RxDone IRQ never surfaces in GetIrqStatus (irqseen stays 0x0000) and DIO1
-        // never latches it for the pump. So the IRQ/DIO path is unreliable for clean
-        // LoRa RX here, but the GetStats packet counters are not: they are the modem's
-        // own ground truth. Fold the NbPktReceived / NbPktCrcError deltas into the
-        // ladder's rxdone / crcerr counters so crcok = rxdone - crcerr reflects the
-        // chip's real clean-reception count instead of an IRQ that this silicon does not
-        // raise. (The IRQ rising-edge counting below still runs and still catches the
-        // post-TX phantom / any IRQ that does fire; the GetStats fold is additive and
-        // only ever increases rxdone/crcerr by genuine modem receptions.)
+        // GetStats (0x10) DIAGNOSTIC READ ONLY. DECISIVE on-hardware finding: on this
+        // board the SX1262 receives the peer's adverts CLEANLY -- the modem's
+        // NbPktReceived counter advances with NbPktCrcError == 0 -- yet the RxDone IRQ
+        // never surfaces in GetIrqStatus (irqseen stays 0x0000) and DIO1 never latches
+        // it for the pump. The AUTHORITATIVE fold of the NbPktReceived / NbPktCrcError
+        // deltas into the ladder rxdone / crcerr counters now lives in
+        // pollCleanRxPacket(), which is the SOLE GetStats consumer: it advances the
+        // shared baseline AND delivers each clean frame to the parser from one read, so
+        // the ladder crcok and the verified-advert decode can never double-consume or
+        // race a delta. Here we only echo the raw counters for the diagnostic line; we
+        // do NOT touch the baseline or fold anything (that would steal the delta from
+        // the reader). The IRQ rising-edge counting below still runs and still catches
+        // the post-TX phantom / any IRQ that does fire.
         {
             uint8_t stats[6] = {0};
-            if (read_command_locked(kCmdGetStats, nullptr, 0, stats, sizeof(stats), true))
+            if (rxstats_diag_count_ < 40 &&
+                read_command_locked(kCmdGetStats, nullptr, 0, stats, sizeof(stats), true))
             {
                 const uint16_t pkt_rx = (static_cast<uint16_t>(stats[0]) << 8) | stats[1];
                 const uint16_t crc_err = (static_cast<uint16_t>(stats[2]) << 8) | stats[3];
                 const uint16_t hdr_err = (static_cast<uint16_t>(stats[4]) << 8) | stats[5];
-                // GetStats counters are free-running 16-bit modem counters reset only by
-                // a reconfigure. Track them as a baseline and add only forward deltas.
-                if (!rxstats_have_baseline_)
-                {
-                    rxstats_have_baseline_ = true;
-                }
-                else
-                {
-                    if (pkt_rx != rxstats_last_pkt_rx_)
-                    {
-                        const uint16_t d = static_cast<uint16_t>(pkt_rx - rxstats_last_pkt_rx_);
-                        // A clean reception = total received minus those that CRC-failed.
-                        rxladder_rxdone_ += d;
-                    }
-                    if (crc_err != rxstats_last_crc_err_)
-                    {
-                        const uint16_t d = static_cast<uint16_t>(crc_err - rxstats_last_crc_err_);
-                        rxladder_crcerr_ += d;
-                    }
-                }
-                rxstats_last_pkt_rx_ = pkt_rx;
-                rxstats_last_crc_err_ = crc_err;
-                if (rxstats_diag_count_ < 40)
-                {
-                    printf("idf-mc: rxstats rx=%u crcerr=%u hdrerr=%u\n",
-                           static_cast<unsigned>(pkt_rx), static_cast<unsigned>(crc_err),
-                           static_cast<unsigned>(hdr_err));
-                    ++rxstats_diag_count_;
-                }
+                printf("idf-mc: rxstats rx=%u crcerr=%u hdrerr=%u\n",
+                       static_cast<unsigned>(pkt_rx), static_cast<unsigned>(crc_err),
+                       static_cast<unsigned>(hdr_err));
+                ++rxstats_diag_count_;
             }
         }
     }
@@ -2319,6 +2309,163 @@ bool Sx126xRadio::pollRxLadder(uint16_t irq, RxLadderCounts* out, bool deep)
         out->notrx_polls = rxladder_notrx_polls_;
         out->irq_seen = rxladder_irq_seen_;
     }
+    give_mutex(mutex_);
+    return true;
+}
+
+bool Sx126xRadio::pollCleanRxPacket(uint8_t* out_buf, size_t cap, size_t* out_len)
+{
+    if (out_len)
+    {
+        *out_len = 0;
+    }
+    if (!out_buf || cap == 0 || !out_len)
+    {
+        return false;
+    }
+    if (!take_mutex(mutex_))
+    {
+        return false;
+    }
+
+    // AUTHORITATIVE RECEPTION COUNT via GetStats (0x10). This is the SOLE consumer of
+    // the GetStats deltas (pollRxLadder no longer folds them), so the modem's own
+    // NbPktReceived / NbPktCrcError counters drive BOTH the ladder crcok and this
+    // clean-frame delivery from one read -- no double-count race. GetStats returns a
+    // status byte then NbPktReceived(2), NbPktCrcError(2), NbPktHeaderErr(2), MSB
+    // first.
+    uint8_t stats[6] = {0};
+    if (!read_command_locked(kCmdGetStats, nullptr, 0, stats, sizeof(stats), true))
+    {
+        give_mutex(mutex_);
+        return false;
+    }
+    const uint16_t pkt_rx = (static_cast<uint16_t>(stats[0]) << 8) | stats[1];
+    const uint16_t crc_err = (static_cast<uint16_t>(stats[2]) << 8) | stats[3];
+    const uint16_t hdr_err = (static_cast<uint16_t>(stats[4]) << 8) | stats[5];
+
+    if (!rxstats_have_baseline_)
+    {
+        // First observation establishes the baseline; do not treat the chip's
+        // power-on counter value as a flood of receptions.
+        rxstats_have_baseline_ = true;
+        rxstats_last_pkt_rx_ = pkt_rx;
+        rxstats_last_crc_err_ = crc_err;
+        give_mutex(mutex_);
+        return true;
+    }
+
+    if (pkt_rx != rxstats_last_pkt_rx_)
+    {
+        const uint16_t d_rx = static_cast<uint16_t>(pkt_rx - rxstats_last_pkt_rx_);
+        rxladder_rxdone_ += d_rx;
+        uint16_t d_crc = 0;
+        if (crc_err != rxstats_last_crc_err_)
+        {
+            d_crc = static_cast<uint16_t>(crc_err - rxstats_last_crc_err_);
+            rxladder_crcerr_ += d_crc;
+        }
+        // CRC-clean receptions in this window = total received minus those that
+        // CRC-failed. Each owes one FIFO read.
+        const uint16_t d_clean = (d_rx > d_crc) ? static_cast<uint16_t>(d_rx - d_crc) : 0u;
+        uint32_t pend = static_cast<uint32_t>(rxstats_clean_pending_) + d_clean;
+        if (pend > 8u)
+        {
+            pend = 8u; // bound the backlog so a counter run-up cannot wedge the reader
+        }
+        rxstats_clean_pending_ = static_cast<uint16_t>(pend);
+    }
+    else if (crc_err != rxstats_last_crc_err_)
+    {
+        // CRC errors advanced without a clean reception (e.g. the post-TX phantom);
+        // fold them so crcok stays accurate, but nothing to deliver.
+        const uint16_t d_crc = static_cast<uint16_t>(crc_err - rxstats_last_crc_err_);
+        rxladder_crcerr_ += d_crc;
+    }
+    rxstats_last_pkt_rx_ = pkt_rx;
+    rxstats_last_crc_err_ = crc_err;
+
+    if (rxstats_clean_pending_ == 0)
+    {
+        give_mutex(mutex_);
+        return true; // no new clean packet pending
+    }
+
+    // A CRC-clean packet is waiting in the FIFO. Read its true length + start offset
+    // from GetRxBufferStatus (status[0]=PayloadLengthRx, status[1]=RxStartBufferPointer)
+    // and pull exactly those bytes from that offset via ReadBuffer -- the canonical
+    // SX1262 receive sequence, identical to readPacket() but triggered by the modem's
+    // clean-packet counter instead of the dead RxDone IRQ. The packet has already
+    // completed on-air (its counter advanced), so this FIFO read is post-reception and
+    // cannot corrupt a live symbol stream.
+    uint8_t bufstat[2] = {0};
+    if (!read_command_locked(kCmdGetRxBufferStatus, nullptr, 0, bufstat, sizeof(bufstat), true))
+    {
+        give_mutex(mutex_);
+        return false;
+    }
+    const uint8_t rx_len = bufstat[0];
+    const uint8_t rx_off = bufstat[1];
+    last_rx_offset_ = rx_off;
+    if (rx_len == 0)
+    {
+        // Counter advanced but the buffer reports empty -- nothing real to hand up.
+        // Consume the pending credit so we do not spin on it.
+        --rxstats_clean_pending_;
+        give_mutex(mutex_);
+        return true;
+    }
+    const size_t copy_len = std::min<size_t>(rx_len, cap);
+    if (!read_command_locked(kCmdReadBuffer, &rx_off, 1, out_buf, copy_len, true))
+    {
+        give_mutex(mutex_);
+        return false;
+    }
+    --rxstats_clean_pending_;
+
+    // PHANTOM REJECTION. The SX1262 on this board increments GetStats NbPktReceived
+    // (with NbPktCrcError == 0, so GetStats counts it CLEAN) for the post-TX
+    // self-reception artifact that fires right after every transmit, but it writes NO
+    // real frame -- the FIFO HEAD at the reported offset is the all-zeros drained
+    // before arming (the reported length is itself garbage, so reading that many bytes
+    // can pull in non-zero stale FIFO tail past the drained region; the genuine signal
+    // is that the FRAME HEAD is zero). A genuine MeshCore frame begins with a non-zero
+    // header byte (route/payload-type/ver) followed by a payload-type nibble. So the
+    // discriminator is the leading frame bytes, not the whole buffer.
+    bool head_zero = true;
+    const size_t head_scan = std::min<size_t>(copy_len, 8u);
+    for (size_t i = 0; i < head_scan; ++i)
+    {
+        if (out_buf[i] != 0x00)
+        {
+            head_zero = false;
+            break;
+        }
+    }
+    if (rxclean_diag_count_ < 16)
+    {
+        ++rxclean_diag_count_;
+        printf("idf-mc: rxclean %s len=%u off=%u stats(rx=%u crc=%u) head=%02X %02X %02X %02X %02X %02X %02X %02X\n",
+               head_zero ? "PHANTOM" : "DELIVER",
+               static_cast<unsigned>(rx_len), static_cast<unsigned>(rx_off),
+               static_cast<unsigned>(pkt_rx), static_cast<unsigned>(crc_err),
+               static_cast<unsigned>(copy_len > 0 ? out_buf[0] : 0),
+               static_cast<unsigned>(copy_len > 1 ? out_buf[1] : 0),
+               static_cast<unsigned>(copy_len > 2 ? out_buf[2] : 0),
+               static_cast<unsigned>(copy_len > 3 ? out_buf[3] : 0),
+               static_cast<unsigned>(copy_len > 4 ? out_buf[4] : 0),
+               static_cast<unsigned>(copy_len > 5 ? out_buf[5] : 0),
+               static_cast<unsigned>(copy_len > 6 ? out_buf[6] : 0),
+               static_cast<unsigned>(copy_len > 7 ? out_buf[7] : 0));
+    }
+    if (head_zero)
+    {
+        *out_len = 0;
+        give_mutex(mutex_);
+        return true; // phantom: counted by GetStats, but no real frame to deliver
+    }
+
+    *out_len = copy_len;
     give_mutex(mutex_);
     return true;
 }

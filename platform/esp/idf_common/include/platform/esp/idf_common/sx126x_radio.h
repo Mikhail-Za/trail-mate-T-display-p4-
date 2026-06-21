@@ -99,6 +99,28 @@ class Sx126xRadio
     // for the diagnostic line; that read cadence is rare enough not to break demod.
     bool pollRxLadder(uint16_t irq, RxLadderCounts* out, bool deep);
 
+    // GetStats-driven clean-reception reader -- the LAST-MILE fix for RX on this
+    // board. DECISIVE on-hardware finding: the SX1262 here receives the peer's
+    // adverts CLEANLY (the modem's NbPktReceived counter advances with
+    // NbPktCrcError == 0) but NEVER raises the RxDone IRQ in GetIrqStatus and never
+    // latches DIO1, so the IRQ-gated FIFO read in the adapter's RX poll never fires
+    // and a clean frame is never delivered to the parser. This method makes the
+    // modem's own packet counters the trigger instead of the dead IRQ: it reads
+    // GetStats, advances the shared baseline, folds the forward NbPktReceived /
+    // NbPktCrcError deltas into the ladder rxdone / crcerr counters (so this is the
+    // SOLE GetStats consumer and the ladder still reports a correct crcok), and when
+    // a NEW CRC-CLEAN packet has arrived (clean delta = received delta minus
+    // crc-error delta > 0) it reads that packet out of the FIFO via GetRxBufferStatus
+    // + ReadBuffer (from RxStartBufferPointer) into the caller's buffer and reports
+    // its length. Returns true and sets *out_len > 0 ONLY when a genuine clean packet
+    // payload was read this call; returns true with *out_len == 0 when no new clean
+    // packet is pending; returns false only on SPI failure. The caller MUST invoke
+    // this only when the receiver is idle (no reception in flight) and on a throttled
+    // cadence -- the GetStats + FIFO read is a short post-reception SPI burst (the
+    // packet has already completed before its counter advances), never mid-symbol, so
+    // it cannot disturb the demod. mutexed.
+    bool pollCleanRxPacket(uint8_t* out_buf, size_t cap, size_t* out_len);
+
     // Post-RxDone localization: read back, over SPI, what the chip ACTUALLY decoded
     // for this just-received LoRa frame -- the header coding rate (REG 0x0749 bits
     // 6:4) and the header CRC-present bit (REG 0x076B bit 4), plus the RxBufferStatus
@@ -241,6 +263,13 @@ class Sx126xRadio
     bool rxstats_have_baseline_ = false;
     uint16_t rxstats_last_pkt_rx_ = 0;
     uint16_t rxstats_last_crc_err_ = 0;
+    // Number of CRC-clean receptions confirmed via GetStats that still owe a FIFO
+    // read (pollCleanRxPacket delivers one per call). Lets a clean reception that
+    // arrives between two reader calls still be drained on the next call instead of
+    // being lost. Bounded so a counter run-up can never wedge the reader.
+    uint16_t rxstats_clean_pending_ = 0;
+    // Diagnostic emission budget for the GetStats clean-reception reader.
+    uint32_t rxclean_diag_count_ = 0;
     // Cumulative RX IRQ-ladder counters (see pollRxLadder). rxladder_prev_* hold
     // the previous-poll bit state so a latched bit is counted on its rising edge
     // only, never re-counted while it stays set between polls.

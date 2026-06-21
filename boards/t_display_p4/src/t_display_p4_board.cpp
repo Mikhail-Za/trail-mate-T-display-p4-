@@ -989,6 +989,19 @@ bool TDisplayP4Board::isRadioRxPayloadEmpty()
     return radio().isRxPayloadEmpty();
 }
 
+bool TDisplayP4Board::pollRadioCleanRxPacket(uint8_t* out_buf, size_t cap, size_t* out_len)
+{
+    if (out_len)
+    {
+        *out_len = 0;
+    }
+    if (!ensureRadioReady())
+    {
+        return false;
+    }
+    return radio().pollCleanRxPacket(out_buf, cap, out_len);
+}
+
 void TDisplayP4Board::clearRadioIrqFlags(uint32_t flags)
 {
     if (!ensureRadioReady())

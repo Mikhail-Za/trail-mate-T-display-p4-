@@ -5226,6 +5226,53 @@ void MeshCoreAdapter::processSendQueue()
             }
         }
 
+        // LAST-MILE RX DELIVERY (the fix that makes 'rx advert verified' fire). On this
+        // board the SX1262 receives the peer's adverts CRC-CLEAN -- the modem's
+        // NbPktReceived counter advances with NbPktCrcError == 0 -- but NEVER raises the
+        // RxDone IRQ and never latches DIO1, so the IRQ-gated FIFO read below (keyed on
+        // irq & RxDone) never runs and a clean frame is never handed to the parser
+        // (verified stayed 0 even though rxladder showed crcok>=1). Drive the read from
+        // the modem's own packet counters instead: poll GetStats, and when a NEW clean
+        // packet has arrived read it out of the FIFO (from RxStartBufferPointer) and feed
+        // it to handleRawPacket -- the SAME parse + Ed25519-verify path the IRQ read
+        // uses. This is the SOLE GetStats consumer (it also folds the rxdone/crcerr
+        // deltas the ladder reports), so the two cannot double-consume a delta.
+        //
+        // Run it ONLY when idle (no reception in flight) and throttled to ~1 Hz: the
+        // GetStats + FIFO read is a short post-reception SPI burst (the packet has
+        // already completed before its counter advances), never mid-symbol, so it cannot
+        // corrupt the demod -- the exact same safety contract the deep ladder poll honors.
+        // Adverts are 9-17 s apart, far longer than the poll period and the time the FIFO
+        // holds a frame before the next overwrites it, so a clean reception is always read.
+        {
+            // Run on EVERY RX poll (the poll is already ~30 ms gated): a genuine peer
+            // frame bumps NbPktReceived when it completes and must be read out of the
+            // FIFO before the next own-TX re-arm drains it (own transmits are seconds
+            // apart, so 30 ms is ample). Gate only on "no reception currently in flight"
+            // per the IRQ bits so the GetStats + FIFO read is post-reception, never
+            // mid-symbol. pollCleanRxPacket itself rejects the all-zero post-TX phantom,
+            // so calling it freely never injects a spurious frame.
+            const bool rx_active_now = (irq != 0 && irq != 0xFFFFu) && (irq & 0x027Eu) != 0;
+            if (!rx_active_now)
+            {
+                static uint8_t clean_buf[kMeshcoreMaxFrameSize];
+                size_t clean_len = 0;
+                if (board_.pollRadioCleanRxPacket(clean_buf, sizeof(clean_buf), &clean_len) &&
+                    clean_len > 0 && clean_len <= kMeshcoreMaxFrameSize)
+                {
+                    setLastRxStats(board_.getRadioRSSI(), board_.getRadioSNR());
+                    // The dead-chip garbage signature is a max-length frame at the RSSI
+                    // floor; a real clean reception (RSSI ~-50 dBm here) never matches it.
+                    if (!(clean_len >= kMeshcoreMaxFrameSize && last_rx_rssi_ <= -128.0f))
+                    {
+                        printf("idf-mc: rx len=%d rssi=%.0f\n", static_cast<int>(clean_len),
+                               static_cast<double>(last_rx_rssi_));
+                        handleRawPacket(clean_buf, clean_len);
+                    }
+                }
+            }
+        }
+
         // A radio that has gone dead on the SPI bus returns all-ones (0xFFFF) on
         // every register read; treating that as RxDone makes the poll read a
         // 255-byte garbage frame and flood handleRawPacket until the stack faults

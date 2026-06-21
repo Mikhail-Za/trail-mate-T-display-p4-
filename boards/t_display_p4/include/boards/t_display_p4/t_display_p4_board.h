@@ -188,6 +188,7 @@ class TDisplayP4Board final : public BoardBase, public LoraBoard
     int getRadioPacketLength(bool update) override;
     int readRadioData(uint8_t* buf, size_t len) override;
     bool isRadioRxPayloadEmpty() override;
+    bool pollRadioCleanRxPacket(uint8_t* out_buf, size_t cap, size_t* out_len) override;
     void clearRadioIrqFlags(uint32_t flags) override;
     float getRadioRSSI() override;
     float getRadioSNR() override;

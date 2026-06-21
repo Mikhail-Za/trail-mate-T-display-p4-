@@ -97,6 +97,28 @@ class LoraBoard
     {
         return false;
     }
+
+    // GetStats-driven clean-reception reader. On boards (e.g. T-Display-P4 SX1262)
+    // where the modem receives CRC-clean LoRa frames -- its NbPktReceived counter
+    // advances with NbPktCrcError == 0 -- yet never raises the RxDone IRQ, the
+    // IRQ-gated read path never fires. This hook lets the RX pump deliver such a
+    // frame using the modem's own packet counters instead of the dead IRQ: it reads
+    // GetStats, and when a NEW clean packet has arrived it reads that packet out of
+    // the FIFO (from RxStartBufferPointer) into out_buf and sets *out_len to its
+    // length. Returns true and *out_len>0 only when a clean packet was delivered this
+    // call, true with *out_len==0 when none is pending, false on read failure. Must be
+    // called only when the receiver is idle (no reception in flight) on a throttled
+    // cadence. Default: not available (boards without the instrumented driver).
+    virtual bool pollRadioCleanRxPacket(uint8_t* out_buf, size_t cap, size_t* out_len)
+    {
+        (void)out_buf;
+        (void)cap;
+        if (out_len)
+        {
+            *out_len = 0;
+        }
+        return false;
+    }
     virtual void clearRadioIrqFlags(uint32_t flags) = 0;
     virtual float getRadioRSSI() = 0;
     virtual float getRadioInstantRSSI()
