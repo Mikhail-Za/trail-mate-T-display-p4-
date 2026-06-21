@@ -135,6 +135,21 @@ class Sx126xRadio
     bool set_buffer_base_locked(uint8_t tx_base, uint8_t rx_base);
     bool set_rx_locked(uint32_t timeout_raw);
     bool set_tx_locked(uint32_t timeout_raw);
+    // Zero-fill the SX1262 data buffer at the RX base so a spurious post-TX RxDone
+    // cannot read this unit's own stale TX payload out of the shared FIFO (TX and RX
+    // share one 256-byte buffer at base 0x00 on this board). Assumes mutex_ is held.
+    bool drain_rx_fifo_locked();
+    // Immediately after arming continuous RX, the SX1262 on this board can fire one
+    // SPURIOUS RxDone+CrcErr that reads the residual TX FIFO (the proven post-TX
+    // self-reception artifact: rxbytes byte-identical to this unit's own txbytes,
+    // rxoff=0). Settle briefly, then if a terminal RX IRQ has latched AND the buffer
+    // it points at is byte-identical to the just-transmitted frame (candidate (c):
+    // reject an RxDone whose content equals the transmit), CLEAR that phantom's
+    // terminal bits so the RX poll/ladder never counts it -- leaving genuine later
+    // peer receptions (which re-latch RxDone WITHOUT CrcErr) to be counted as the
+    // CRC-clean receptions the milestone requires. Assumes mutex_ is held; leaves the
+    // chip in continuous RX. Returns true on success.
+    bool suppress_post_tx_self_reception_locked();
     // Arm the radio for LoRa receive (boosted gain + RX IRQs + finite-timeout
     // SetRx). Assumes mutex_ is held. Shared by startReceive() and reviveReceive().
     bool start_receive_locked();
@@ -188,6 +203,20 @@ class Sx126xRadio
     uint8_t last_pkt_bytes_[6] = {0};
     bool have_last_mod_ = false;
     bool have_last_pkt_ = false;
+    // Exact payload of the most recent LoRa transmit, cached so the post-TX RX arm
+    // can detect the self-reception artifact (a spurious RxDone whose FIFO content is
+    // byte-identical to this) and clear it before it pollutes the RX path. Sized to
+    // the full SX1262 data buffer.
+    uint8_t last_tx_frame_[256] = {0};
+    size_t last_tx_frame_len_ = 0;
+    // Set true right after a transmit, cleared the first time the post-TX RX arm runs
+    // its self-reception suppressor. Ensures the settle+check only pays its cost on
+    // the ONE arm that follows a transmit (where the phantom can occur), not on every
+    // continuous-RX re-arm.
+    bool post_tx_pending_ = false;
+    // Cumulative count of phantom post-TX self-receptions detected and suppressed by
+    // suppress_post_tx_self_reception_locked(); logged for the diagnostic.
+    uint32_t self_rx_suppressed_ = 0;
     // One-shot readback emitters (RX arm + TX), gated like the *_diag counters.
     uint32_t rx_rdbk_count_ = 0;
     uint32_t tx_rdbk_count_ = 0;

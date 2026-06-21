@@ -1111,6 +1111,126 @@ bool Sx126xRadio::set_tx_locked(uint32_t timeout_raw)
     return write_command_locked(kCmdSetTx, data, sizeof(data), true);
 }
 
+bool Sx126xRadio::drain_rx_fifo_locked()
+{
+    // TX and RX share one 256-byte SX1262 data buffer; the TX path writes the
+    // outbound frame at base 0x00 and the RX is armed at base 0x00 too, so after a
+    // transmit the FIFO still holds this unit's own TX payload. A spurious post-TX
+    // RxDone (rxoff=0) then reads that stale TX frame back -- the proven
+    // 'rxbytes == own txbytes' self-reception artifact. Zero the buffer at the RX
+    // base before each arm so that, even if a phantom RxDone slips through, the bytes
+    // it returns are zeros (rxbytes can never equal txbytes) and the all-zero frame
+    // fails the parser instead of polluting it. Drain the leading 128 bytes (covers
+    // the ~103-byte advert and every realistic short control frame); a WriteBuffer is
+    // a single SPI burst issued only on (re)arm, never in the hot poll.
+    uint8_t* tx = spi_tx_scratch_;
+    constexpr size_t kDrainBytes = 128;
+    const size_t total = 2 + kDrainBytes;
+    if (total > kSpiScratchSize)
+    {
+        return false;
+    }
+    std::memset(tx, 0, total);
+    tx[0] = kCmdWriteBuffer;
+    tx[1] = 0x00; // RX base offset (set_buffer_base_locked uses rx_base 0x00)
+    wait_ready_locked();
+    spi_transaction_t trans{};
+    trans.length = total * 8;
+    trans.tx_buffer = tx;
+    const esp_err_t err = spi_device_transmit(device_handle(device_), &trans);
+    if (err != ESP_OK)
+    {
+        set_error_locked("rx fifo drain failed");
+        return false;
+    }
+    wait_ready_locked();
+    return true;
+}
+
+bool Sx126xRadio::suppress_post_tx_self_reception_locked()
+{
+    // Called immediately after SetRx (continuous RX) is issued. On this board the
+    // SX1262 can complete ONE bogus reception on the residual of the just-finished
+    // transmit, latching RxDone+CrcErr that reads the stale own-TX FIFO. Let that
+    // residual self-trigger settle (a few LoRa symbols: SF7/BW62.5 symbol ~2.05ms),
+    // then inspect the IRQ. If a terminal RX bit latched and the buffer it points at
+    // is byte-identical to the just-transmitted frame, it is the self-reception
+    // phantom -- clear its terminal bits so the RX poll/ladder never observes or
+    // counts it (the phantom's RxDone+CrcErr otherwise pins crcok = rxdone - crcerr
+    // at zero forever). Clearing IRQ does NOT drop continuous RX, so genuine later
+    // peer frames still re-latch a clean RxDone and are counted. A genuine frame is
+    // never lost here: right after our own jittered transmit the decorrelated peer is
+    // not mid-flight, and we only clear when the content equals our own TX.
+    if (last_tx_frame_len_ == 0 || !post_tx_pending_)
+    {
+        return true; // not a post-TX arm: no residual self-reception possible
+    }
+    // Consume the post-TX flag: the phantom can only occur on this first arm after a
+    // transmit, so subsequent continuous-RX re-arms skip the settle+check entirely.
+    post_tx_pending_ = false;
+
+    // Settle ~6 ms (~3 symbols at SF7/BW62.5) for the residual false-trigger to
+    // surface, so a single deterministic check catches it.
+    vTaskDelay(pdMS_TO_TICKS(6));
+
+    uint8_t irqb[2] = {0};
+    if (!read_command_locked(kCmdGetIrqStatus, nullptr, 0, irqb, sizeof(irqb), true))
+    {
+        return false;
+    }
+    const uint16_t irq = (static_cast<uint16_t>(irqb[0]) << 8) | irqb[1];
+    if (irq == 0x0000u || irq == 0xFFFFu)
+    {
+        return true; // idle (no phantom) or dead chip (handled elsewhere)
+    }
+    if ((irq & kIrqRxDone) == 0)
+    {
+        return true; // no completed reception latched -> nothing to suppress
+    }
+
+    // A reception latched. Read its length/offset and content and compare to the
+    // cached TX frame.
+    uint8_t bufstat[2] = {0};
+    if (!read_command_locked(kCmdGetRxBufferStatus, nullptr, 0, bufstat, sizeof(bufstat), true))
+    {
+        return false;
+    }
+    const uint8_t rx_len = bufstat[0];
+    const uint8_t rx_off = bufstat[1];
+
+    bool is_self = false;
+    // The proven signature is the FIFO still holding this unit's own TX payload. Read
+    // the leading bytes from the reported offset and compare byte-for-byte against the
+    // cached transmit. A match is unambiguous self-reception (the peer's distinct
+    // frame can never be byte-identical to our own); a genuine peer frame therefore
+    // never trips this and is left for the RX poll to decode.
+    const size_t cmp_len = std::min<size_t>(last_tx_frame_len_, 64);
+    uint8_t buf[64] = {0};
+    if (read_command_locked(kCmdReadBuffer, &rx_off, 1, buf, cmp_len, true))
+    {
+        if (std::memcmp(buf, last_tx_frame_, cmp_len) == 0)
+        {
+            is_self = true;
+        }
+    }
+
+    if (is_self)
+    {
+        // Wipe the phantom's terminal bits (RxDone/CrcErr/HeaderErr/Timeout). RX stays
+        // armed. Drain the FIFO again so a re-fired phantom reads zeros, not the TX.
+        clear_irq_locked(kIrqRxDone | kIrqCrcErr | kIrqHeaderErr | kIrqTimeout);
+        (void)drain_rx_fifo_locked();
+        ++self_rx_suppressed_;
+        if (self_rx_suppressed_ <= 4)
+        {
+            printf("idf-mc: rxself suppressed=%lu rxlen=%u rxoff=%u (== own tx)\n",
+                   static_cast<unsigned long>(self_rx_suppressed_),
+                   static_cast<unsigned>(rx_len), static_cast<unsigned>(rx_off));
+        }
+    }
+    return true;
+}
+
 bool Sx126xRadio::configure_lora_locked(float freq_mhz,
                                         float bw_khz,
                                         uint8_t sf,
@@ -1477,12 +1597,27 @@ bool Sx126xRadio::start_receive_locked()
     // as well makes them latch for the rxladder probe. DIO1 is not wired to the
     // P4 (irq=-1) so this only affects which bits the chip exposes, not any pin.
     const uint8_t standby_mode = kStandbyRc;
-    return write_command_locked(kCmdSetStandby, &standby_mode, 1, true) &&
-           set_dio_irq_params_locked(kIrqRxLadderMask, kIrqRxLadderMask) &&
-           set_buffer_base_locked(0x00, 0x00) &&
-           clear_irq_locked(kIrqAll) &&
-           set_rx_packet_params_locked() &&
-           set_rx_locked(kRxTimeoutInf);
+    const bool armed = write_command_locked(kCmdSetStandby, &standby_mode, 1, true) &&
+                       set_dio_irq_params_locked(kIrqRxLadderMask, kIrqRxLadderMask) &&
+                       set_buffer_base_locked(0x00, 0x00) &&
+                       // POST-TX SELF-RECEPTION FIX (candidate (d)): zero the shared
+                       // FIFO at the RX base BEFORE arming, so the residual own-TX
+                       // payload is gone -- a spurious post-TX RxDone can no longer
+                       // read 'rxbytes == own txbytes'.
+                       drain_rx_fifo_locked() &&
+                       clear_irq_locked(kIrqAll) &&
+                       set_rx_packet_params_locked() &&
+                       set_rx_locked(kRxTimeoutInf);
+    if (!armed)
+    {
+        return false;
+    }
+    // POST-TX SELF-RECEPTION FIX (candidate (c)): now that RX is armed, catch and
+    // discard the one spurious RxDone the SX1262 fires on the just-transmitted
+    // residual (its buffer is byte-identical to our own TX), so it never reaches the
+    // RX poll/ladder and never pins crcok at zero. Genuine peer frames are untouched.
+    (void)suppress_post_tx_self_reception_locked();
+    return true;
 }
 
 bool Sx126xRadio::startReceive()
@@ -1709,6 +1844,17 @@ int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
     if (!take_mutex(mutex_))
     {
         return -1;
+    }
+
+    // Cache the exact outbound payload so the post-TX RX arm can recognise (and
+    // discard) the SX1262's spurious self-reception of this very frame off the shared
+    // FIFO. Stored before any early return below so it always reflects the last real
+    // transmit attempt's bytes.
+    if (data && size > 0 && size <= sizeof(last_tx_frame_))
+    {
+        std::memcpy(last_tx_frame_, data, size);
+        last_tx_frame_len_ = size;
+        post_tx_pending_ = true;
     }
 
     // ROOT CAUSE: on the T-Display-P4 the SX1262 loses its entire state while
