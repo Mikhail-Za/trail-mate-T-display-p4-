@@ -1198,20 +1198,60 @@ bool Sx126xRadio::suppress_post_tx_self_reception_locked()
     const uint8_t rx_len = bufstat[0];
     const uint8_t rx_off = bufstat[1];
 
+    // PHANTOM-DETECTION (root cause of crcok=0). The post-TX spurious reception is the
+    // SX1262 completing a bogus RxDone on the residual of its just-finished transmit
+    // right after SetRx re-arms. The hardware evidence (idf-mc: rxdec) is unambiguous:
+    // it fires once per OWN advert (never an extra reception while merely listening to
+    // the peer), with a FIXED garbage header length per unit (A=190, B=123; a function
+    // of that unit's own modulation residual, hence constant) and -- decisively -- it
+    // writes NO payload: the FIFO at the reported offset is the all-zeros we drained
+    // before arming. A GENUINE reception always writes payload bytes, so a post-TX
+    // RxDone whose payload is still all-zeros decoded no frame and is, by definition,
+    // the phantom. (The previous content-match against last_tx_frame_ could never fire
+    // because drain_rx_fifo_locked() had already zeroed the FIFO, so the buffer read
+    // back zeros instead of the cached TX bytes -- the drain defeated the match and the
+    // phantom slipped through as RxDone+CrcErr, pinning crcok = rxdone - crcerr at 0.)
+    //
+    // This is content-independent of last_tx_frame_ and so survives the drain. It is
+    // safe -- it never eats a real peer frame -- because (a) it only runs on the ONE arm
+    // after a transmit (post_tx_pending_), (b) only ~6 ms after that arm, far less than
+    // the ~349 ms a real advert needs on air, and (c) the peer is jitter-decorrelated,
+    // so it cannot have a fully-received frame sitting in our FIFO 6 ms after our own
+    // TxDone; and any real frame would have written non-zero payload anyway.
     bool is_self = false;
-    // The proven signature is the FIFO still holding this unit's own TX payload. Read
-    // the leading bytes from the reported offset and compare byte-for-byte against the
-    // cached transmit. A match is unambiguous self-reception (the peer's distinct
-    // frame can never be byte-identical to our own); a genuine peer frame therefore
-    // never trips this and is left for the RX poll to decode.
-    const size_t cmp_len = std::min<size_t>(last_tx_frame_len_, 64);
-    uint8_t buf[64] = {0};
-    if (read_command_locked(kCmdReadBuffer, &rx_off, 1, buf, cmp_len, true))
+    bool payload_all_zero = true;
     {
-        if (std::memcmp(buf, last_tx_frame_, cmp_len) == 0)
+        // Read the leading payload bytes from the reported offset. A real frame writes
+        // payload here; the phantom leaves the drained zeros.
+        const size_t scan_len = std::min<size_t>(rx_len == 0 ? 16u : rx_len, 64u);
+        uint8_t buf[64] = {0};
+        if (read_command_locked(kCmdReadBuffer, &rx_off, 1, buf, scan_len, true))
         {
-            is_self = true;
+            for (size_t i = 0; i < scan_len; ++i)
+            {
+                if (buf[i] != 0x00)
+                {
+                    payload_all_zero = false;
+                    break;
+                }
+            }
+            // Belt-and-suspenders: also catch the classic content==own-TX signature in
+            // case a future change arms without draining first.
+            if (last_tx_frame_len_ > 0)
+            {
+                const size_t cmp_len = std::min<size_t>(last_tx_frame_len_, scan_len);
+                if (std::memcmp(buf, last_tx_frame_, cmp_len) == 0)
+                {
+                    is_self = true;
+                }
+            }
         }
+    }
+    // The phantom decoded no payload (drained-zero FIFO) -> not a real frame. Treat any
+    // post-TX RxDone with an all-zero payload as the self-reception phantom.
+    if (payload_all_zero)
+    {
+        is_self = true;
     }
 
     if (is_self)
@@ -1223,9 +1263,10 @@ bool Sx126xRadio::suppress_post_tx_self_reception_locked()
         ++self_rx_suppressed_;
         if (self_rx_suppressed_ <= 4)
         {
-            printf("idf-mc: rxself suppressed=%lu rxlen=%u rxoff=%u (== own tx)\n",
+            printf("idf-mc: rxself suppressed=%lu rxlen=%u rxoff=%u zero=%d (post-tx phantom)\n",
                    static_cast<unsigned long>(self_rx_suppressed_),
-                   static_cast<unsigned>(rx_len), static_cast<unsigned>(rx_off));
+                   static_cast<unsigned>(rx_len), static_cast<unsigned>(rx_off),
+                   payload_all_zero ? 1 : 0);
         }
     }
     return true;
@@ -2180,6 +2221,57 @@ bool Sx126xRadio::pollRxLadder(uint16_t irq, RxLadderCounts* out, bool deep)
                 }
             }
         }
+
+        // AUTHORITATIVE RECEPTION COUNT via GetStats (0x10). DECISIVE on-hardware
+        // finding: on this board the SX1262 receives the peer's adverts CLEANLY -- the
+        // modem's NbPktReceived counter advances with NbPktCrcError == 0 -- yet the
+        // RxDone IRQ never surfaces in GetIrqStatus (irqseen stays 0x0000) and DIO1
+        // never latches it for the pump. So the IRQ/DIO path is unreliable for clean
+        // LoRa RX here, but the GetStats packet counters are not: they are the modem's
+        // own ground truth. Fold the NbPktReceived / NbPktCrcError deltas into the
+        // ladder's rxdone / crcerr counters so crcok = rxdone - crcerr reflects the
+        // chip's real clean-reception count instead of an IRQ that this silicon does not
+        // raise. (The IRQ rising-edge counting below still runs and still catches the
+        // post-TX phantom / any IRQ that does fire; the GetStats fold is additive and
+        // only ever increases rxdone/crcerr by genuine modem receptions.)
+        {
+            uint8_t stats[6] = {0};
+            if (read_command_locked(kCmdGetStats, nullptr, 0, stats, sizeof(stats), true))
+            {
+                const uint16_t pkt_rx = (static_cast<uint16_t>(stats[0]) << 8) | stats[1];
+                const uint16_t crc_err = (static_cast<uint16_t>(stats[2]) << 8) | stats[3];
+                const uint16_t hdr_err = (static_cast<uint16_t>(stats[4]) << 8) | stats[5];
+                // GetStats counters are free-running 16-bit modem counters reset only by
+                // a reconfigure. Track them as a baseline and add only forward deltas.
+                if (!rxstats_have_baseline_)
+                {
+                    rxstats_have_baseline_ = true;
+                }
+                else
+                {
+                    if (pkt_rx != rxstats_last_pkt_rx_)
+                    {
+                        const uint16_t d = static_cast<uint16_t>(pkt_rx - rxstats_last_pkt_rx_);
+                        // A clean reception = total received minus those that CRC-failed.
+                        rxladder_rxdone_ += d;
+                    }
+                    if (crc_err != rxstats_last_crc_err_)
+                    {
+                        const uint16_t d = static_cast<uint16_t>(crc_err - rxstats_last_crc_err_);
+                        rxladder_crcerr_ += d;
+                    }
+                }
+                rxstats_last_pkt_rx_ = pkt_rx;
+                rxstats_last_crc_err_ = crc_err;
+                if (rxstats_diag_count_ < 40)
+                {
+                    printf("idf-mc: rxstats rx=%u crcerr=%u hdrerr=%u\n",
+                           static_cast<unsigned>(pkt_rx), static_cast<unsigned>(crc_err),
+                           static_cast<unsigned>(hdr_err));
+                    ++rxstats_diag_count_;
+                }
+            }
+        }
     }
 
     if (!dead)
@@ -2342,6 +2434,45 @@ int Sx126xRadio::readPacket(uint8_t* buffer, size_t size)
     ok = read_command_locked(kCmdReadBuffer, &last_rx_offset_, 1, buffer, packet_length, true);
     give_mutex(mutex_);
     return ok ? 0 : -1;
+}
+
+bool Sx126xRadio::isRxPayloadEmpty()
+{
+    if (!take_mutex(mutex_))
+    {
+        return false;
+    }
+    uint8_t status[2] = {0};
+    if (!read_command_locked(kCmdGetRxBufferStatus, nullptr, 0, status, sizeof(status), true))
+    {
+        give_mutex(mutex_);
+        return false; // could not read -> treat as a real frame (do not suppress)
+    }
+    const uint8_t rx_len = status[0];
+    const uint8_t rx_off = status[1];
+    // Scan the leading payload bytes. A genuine reception writes payload here; the
+    // post-TX phantom leaves the drained zeros. Bound the scan so it stays a single
+    // short SPI burst.
+    const size_t scan_len = std::min<size_t>(rx_len == 0 ? 16u : rx_len, 64u);
+    uint8_t buf[64] = {0};
+    bool all_zero = true;
+    if (read_command_locked(kCmdReadBuffer, &rx_off, 1, buf, scan_len, true))
+    {
+        for (size_t i = 0; i < scan_len; ++i)
+        {
+            if (buf[i] != 0x00)
+            {
+                all_zero = false;
+                break;
+            }
+        }
+    }
+    else
+    {
+        all_zero = false; // read failed -> do not suppress
+    }
+    give_mutex(mutex_);
+    return all_zero;
 }
 
 const char* Sx126xRadio::lastError() const

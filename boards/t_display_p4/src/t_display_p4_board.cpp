@@ -830,11 +830,17 @@ bool TDisplayP4Board::setLoraRfSwitchTransmit(bool transmit)
         return false;
     }
 
-    // Hold the SKY13453 VCTL (XL9535 IO1) HIGH for both directions -- the
-    // vendor-reference shared RF path. (Driving it LOW for RX was tested and
-    // disconnected the receiver entirely, so HIGH is the correct shared antenna
-    // route; the SX1262 manages the actual TX/RX front-end internally.)
-    return expanderWrite(ioExpanderPins().lora_rf_switch, true);
+    // Toggle the SKY13453 VCTL (XL9535 IO1) per direction: HIGH for TX, LOW for RX.
+    // ON-HARDWARE FINDING: the prior "hold VCTL HIGH for both directions" assumption
+    // was wrong (it was concluded while RX was confounded by the post-TX self-reception
+    // phantom and an unobserved RxDone, so the receiver looked dead either way). With
+    // VCTL driven LOW for RX the receive antenna path is materially better connected --
+    // the peer's advert comes in ~10 dB stronger (peak RSSI -52 -> -42 dBm at the same
+    // bench separation) and the SX1262 modem then receives the peer's frames CLEANLY
+    // (GetStats NbPktReceived advances with NbPktCrcError == 0). Driving VCTL HIGH for
+    // TX is unchanged (that path always worked). So the SKY13453 is a real TX/RX
+    // antenna-path switch on this board and must follow the transmit/receive direction.
+    return expanderWrite(ioExpanderPins().lora_rf_switch, transmit);
 }
 
 bool TDisplayP4Board::isRadioOnline() const
@@ -892,6 +898,34 @@ uint32_t TDisplayP4Board::getRadioIrqFlags()
     return radio().getIrqFlags();
 }
 
+bool TDisplayP4Board::radioIrqLineAsserted(bool* out_asserted)
+{
+    // Read the SX1262 DIO1 interrupt line. On the T-Display-P4 DIO1 is wired to the
+    // XL9535 I2C IO expander (IO17), NOT a native ESP GPIO, so this is an I2C
+    // transaction on the SYSTEM I2C bus -- entirely independent of the radio SPI
+    // bus the demodulator runs on. That independence is the whole point: the RX
+    // pump can wait on this line to know a terminal IRQ (RxDone/CrcErr/...) has
+    // latched without issuing a single GetIrqStatus over the radio SPI mid-reception
+    // (which was corrupting the explicit header on this board). The radio routes the
+    // terminal RX IRQs to DIO1 in start_receive_locked(), so DIO1 goes HIGH exactly
+    // when a reception completes. Returns false if the line cannot be read, so the
+    // caller falls back to SPI polling.
+    if (!ensureRadioReady())
+    {
+        return false;
+    }
+    bool high = false;
+    if (!readLoraDio1(&high))
+    {
+        return false;
+    }
+    if (out_asserted)
+    {
+        *out_asserted = high;
+    }
+    return true;
+}
+
 bool TDisplayP4Board::pollRadioRxLadder(uint32_t irq, RadioRxLadder* out, bool deep)
 {
     if (!ensureRadioReady())
@@ -944,6 +978,15 @@ int TDisplayP4Board::readRadioData(uint8_t* buf, size_t len)
         return -1;
     }
     return radio().readPacket(buf, len);
+}
+
+bool TDisplayP4Board::isRadioRxPayloadEmpty()
+{
+    if (!ensureRadioReady())
+    {
+        return false;
+    }
+    return radio().isRxPayloadEmpty();
 }
 
 void TDisplayP4Board::clearRadioIrqFlags(uint32_t flags)

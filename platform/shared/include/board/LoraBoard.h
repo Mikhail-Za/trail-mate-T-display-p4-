@@ -31,6 +31,25 @@ class LoraBoard
     }
     virtual uint32_t getRadioIrqFlags() = 0;
 
+    // Hardware RX/TX interrupt-line state (SX126x DIO1), read over a bus that is
+    // INDEPENDENT of the radio's own SPI bus so polling it never injects traffic
+    // into an in-flight LoRa reception. This is what lets the RX pump service the
+    // radio the way RadioLib does -- wait for the DIO1 edge, then read the IRQ over
+    // SPI exactly once -- instead of polling GetIrqStatus over the radio SPI every
+    // tick (which on the T-Display-P4 SX1262 lands deterministically mid-symbol and
+    // corrupts the explicit header: RxDone fires but the length/CR demodulate to
+    // garbage and every frame fails CRC). DIO1 is routed to assert on the terminal
+    // RX IRQs (RxDone/CrcErr/HeaderErr/Timeout) when the receiver is armed.
+    //
+    // Returns true only if the board can actually read the line (sets *out_asserted
+    // to its level); returns false on boards with no separate-bus IRQ line, in which
+    // case the caller MUST fall back to SPI IRQ polling. Default: no line available.
+    virtual bool radioIrqLineAsserted(bool* out_asserted)
+    {
+        (void)out_asserted;
+        return false;
+    }
+
     // RX IRQ-ladder probe (diagnostic). Cumulative counts of how many times the
     // PreambleDetected/HeaderValid/RxDone/CrcErr IRQ bits have latched since boot,
     // plus the current radio chip mode (SX126x GetStatus bits 6:4; 0x5 = RX).
@@ -67,6 +86,17 @@ class LoraBoard
 
     virtual int getRadioPacketLength(bool update) = 0;
     virtual int readRadioData(uint8_t* buf, size_t len) = 0;
+
+    // True if the just-latched RX reception decoded NO payload (the FIFO is all-zeros).
+    // Used to reject the SX126x post-TX self-reception phantom -- a spurious RxDone on
+    // the transmit residual that writes no payload -- before it is counted as a failed
+    // (CRC-error) reception. A non-consuming, post-reception SPI peek; the caller only
+    // invokes it once a terminal IRQ has latched (never mid-symbol). Default: false
+    // (boards without the instrumented driver never report an empty reception).
+    virtual bool isRadioRxPayloadEmpty()
+    {
+        return false;
+    }
     virtual void clearRadioIrqFlags(uint32_t flags) = 0;
     virtual float getRadioRSSI() = 0;
     virtual float getRadioInstantRSSI()

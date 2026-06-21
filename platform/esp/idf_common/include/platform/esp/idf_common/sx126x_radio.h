@@ -50,6 +50,17 @@ class Sx126xRadio
     int getPacketLength(bool update);
     int readPacket(uint8_t* buffer, size_t size);
 
+    // Non-consuming check for the post-TX self-reception phantom. After a transmit the
+    // SX1262 on this board fires one spurious RxDone+CrcErr on its own TX residual right
+    // after RX re-arms; the hardware evidence is decisive -- it writes NO payload (the
+    // FIFO at the reported offset is the all-zeros drained before arming) while a real
+    // reception always writes payload bytes. Reads GetRxBufferStatus + the leading
+    // payload bytes (a quick post-reception SPI read, NOT mid-symbol -- the caller only
+    // invokes this once a terminal IRQ has already latched) and returns true if the
+    // payload is entirely zero, i.e. nothing was actually decoded. Does NOT clear the
+    // IRQ or touch RX state, so a real frame is left intact for the normal read path.
+    bool isRxPayloadEmpty();
+
     // RX IRQ ladder instrumentation. Reads the raw IRQ status + the SX126x chip
     // mode (GetStatus bits 6:4) once, then maintains CUMULATIVE counts of how many
     // times the PreambleDetected/HeaderValid/RxDone/CrcErr IRQ bits have latched
@@ -221,6 +232,15 @@ class Sx126xRadio
     uint32_t rx_rdbk_count_ = 0;
     uint32_t tx_rdbk_count_ = 0;
     uint32_t rxdec_count_ = 0;
+    uint32_t rxstats_diag_count_ = 0;
+    // GetStats-based authoritative reception tracking. On this board the SX1262
+    // receives clean LoRa frames (NbPktReceived advances, NbPktCrcError stays 0) but
+    // never raises the RxDone IRQ, so the modem's own packet counters -- not the IRQ --
+    // are the ground truth for "a reception happened". Baseline + last values let us
+    // fold only forward deltas into the ladder rxdone/crcerr counts.
+    bool rxstats_have_baseline_ = false;
+    uint16_t rxstats_last_pkt_rx_ = 0;
+    uint16_t rxstats_last_crc_err_ = 0;
     // Cumulative RX IRQ-ladder counters (see pollRxLadder). rxladder_prev_* hold
     // the previous-poll bit state so a latched bit is counted on its rising edge
     // only, never re-counted while it stays set between polls.

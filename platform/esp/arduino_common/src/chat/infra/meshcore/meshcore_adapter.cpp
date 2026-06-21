@@ -5124,7 +5124,63 @@ void MeshCoreAdapter::processSendQueue()
         // mid-packet, which under-counted RxDone and dropped PreambleDetected
         // edges). The ladder counts from this snapshot; the handling below clears
         // the terminal bits (which also clears preamble/header so they re-latch).
-        const uint32_t irq = board_.getRadioIrqFlags();
+        //
+        // ROOT-CAUSE FIX (RX demod corruption -> CRC-clean reception): service the
+        // radio the way RadioLib does -- INTERRUPT-DRIVEN off the SX126x DIO1 line --
+        // instead of polling GetIrqStatus over the radio SPI bus every 30 ms. On this
+        // board DIO1 is wired to the XL9535 I2C expander, a bus completely separate
+        // from the radio SPI, and the radio routes the terminal RX IRQs to DIO1 when
+        // it arms (start_receive_locked). When DIO1 is LOW the receiver is either
+        // idle-listening or MID-RECEPTION with no terminal IRQ yet; issuing ANY
+        // GetIrqStatus over the radio SPI in that window lands deterministically
+        // mid-symbol and corrupts the explicit header (the proven failure: RxDone +
+        // CrcErr, fixed wrong length 190/123, rawcr=0x00, drained-zero FIFO, every
+        // frame). So while DIO1 is low we touch the radio SPI for NOTHING -- no IRQ
+        // read, no ladder, no re-arm -- leaving the demod undisturbed through the
+        // entire ~349 ms peer frame. Only when DIO1 RISES (a terminal IRQ latched =
+        // reception complete) do we read the IRQ over SPI exactly once and service it.
+        // A chip that has gone dark in RX cannot drive DIO1, so the throttled idle
+        // dead-chip revive below still runs (it keys on irq==0); it is the only radio
+        // SPI permitted while DIO1 is low, is ~1 Hz, and a dead chip is not receiving,
+        // so it cannot corrupt a live reception.
+        //
+        // Boards without a separate-bus IRQ line (radioIrqLineAsserted returns false)
+        // keep the original behaviour: read the IRQ over SPI every poll.
+        bool dio1_high = false;
+        const bool have_irq_line = board_.radioIrqLineAsserted(&dio1_high);
+        const bool read_irq_over_spi = !have_irq_line || dio1_high;
+        uint32_t irq = read_irq_over_spi ? board_.getRadioIrqFlags() : 0u;
+
+        // POST-TX SELF-RECEPTION PHANTOM FILTER (the actual cause of crcok=0). When a
+        // terminal RxDone has latched we are, by construction (DIO1 just asserted),
+        // POST-reception -- so a single short SPI peek of the FIFO is safe and cannot
+        // disturb a live symbol stream. The SX1262 on this board fires one spurious
+        // RxDone+CrcErr on its own transmit residual right after RX re-arms; the
+        // hardware proof (idf-mc: rxdec/rxbytes) is that it writes NO payload -- the
+        // FIFO is the all-zeros we drained before arming, with a FIXED garbage header
+        // length per unit (A=190/B=123). A genuine reception always writes payload. So
+        // if RxDone is set but the payload is entirely zero, it decoded nothing real:
+        // it is the phantom. Clear it, re-arm, and ZERO the irq word here so it is
+        // never counted as a CRC-error reception (which otherwise pins
+        // crcok = rxdone - crcerr at 0) and the terminal handler below skips it. This
+        // is content-independent (survives the FIFO drain that defeated the old
+        // last_tx_frame_ content-match) and never eats a real frame, because a real
+        // frame is never all-zeros. Boards without the instrumented driver return
+        // false here and keep their existing behaviour.
+        if ((irq & 0x0002u) != 0 && irq != 0xFFFFu && board_.isRadioRxPayloadEmpty())
+        {
+            board_.clearRadioIrqFlags(irq);
+            board_.startRadioReceive(); // re-arm continuous RX, leave the listener live
+            static uint32_t s_phantom_count = 0;
+            ++s_phantom_count;
+            if (s_phantom_count <= 6)
+            {
+                printf("idf-mc: rxphantom dropped=%lu irq=0x%04X (post-tx, empty payload)\n",
+                       static_cast<unsigned long>(s_phantom_count),
+                       static_cast<unsigned>(irq));
+            }
+            irq = 0u; // do not count or re-handle the phantom below
+        }
         {
             // ROOT-CAUSE FIX: do the diagnostic chip-state SPI reads (chip mode / RSSI
             // / device errors) at MOST ~1 Hz, and NEVER while a reception is latched
@@ -5263,13 +5319,12 @@ void MeshCoreAdapter::processSendQueue()
                     }
                     // ROOT-CAUSE FIX (RX demodulation): do NOT periodically re-issue
                     // SetRx on an ALIVE, idle-listening chip. The chip is already in
-                    // INFINITE continuous RX; re-issuing SetRx (the old "refresh"
-                    // branch) RESTARTS the receiver and discards any preamble
-                    // correlation already in progress -- a peer advert whose preamble
-                    // landed in the same window was silently aborted, which is exactly
-                    // why the demodulator "sensed RF but never correlated the
-                    // preamble". A correctly-configured continuous RX does not need
-                    // refreshing; leave it listening untouched until a terminal IRQ.
+                    // INFINITE continuous RX; re-issuing SetRx RESTARTS the receiver and
+                    // discards any preamble correlation already in progress. A correctly
+                    // configured continuous RX does not need refreshing; leave it
+                    // listening untouched until a terminal IRQ. (Empirically a periodic
+                    // re-arm changed nothing here -- the receiver's deafness is not a
+                    // re-arm-cadence problem.)
                 }
             }
         }
