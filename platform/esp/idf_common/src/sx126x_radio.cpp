@@ -1650,7 +1650,13 @@ bool Sx126xRadio::start_receive_locked()
                        // FIFO at the RX base BEFORE arming, so the residual own-TX
                        // payload is gone -- a spurious post-TX RxDone can no longer
                        // read 'rxbytes == own txbytes'.
-                       drain_rx_fifo_locked() &&
+                       // DRAIN ONLY POST-TX: the drain zeros the RX buffer base to
+                       // neutralize the own-TX residue, but on a non-post-TX (re)arm
+                       // there is NO residue and zeroing wipes a genuine received frame.
+                       // Virgin-listener proof: 20 clean peer frames read back all-zero
+                       // at off=0 -> wrongly rejected as phantom (head all-zero). Gate
+                       // the drain on post_tx_pending_ so genuine receptions survive.
+                       (post_tx_pending_ ? drain_rx_fifo_locked() : true) &&
                        clear_irq_locked(kIrqAll) &&
                        set_rx_packet_params_locked() &&
                        set_rx_locked(kRxTimeoutInf);
