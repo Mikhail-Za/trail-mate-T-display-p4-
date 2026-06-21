@@ -900,30 +900,14 @@ uint32_t TDisplayP4Board::getRadioIrqFlags()
 
 bool TDisplayP4Board::radioIrqLineAsserted(bool* out_asserted)
 {
-    // Read the SX1262 DIO1 interrupt line. On the T-Display-P4 DIO1 is wired to the
-    // XL9535 I2C IO expander (IO17), NOT a native ESP GPIO, so this is an I2C
-    // transaction on the SYSTEM I2C bus -- entirely independent of the radio SPI
-    // bus the demodulator runs on. That independence is the whole point: the RX
-    // pump can wait on this line to know a terminal IRQ (RxDone/CrcErr/...) has
-    // latched without issuing a single GetIrqStatus over the radio SPI mid-reception
-    // (which was corrupting the explicit header on this board). The radio routes the
-    // terminal RX IRQs to DIO1 in start_receive_locked(), so DIO1 goes HIGH exactly
-    // when a reception completes. Returns false if the line cannot be read, so the
-    // caller falls back to SPI polling.
-    if (!ensureRadioReady())
-    {
-        return false;
-    }
-    bool high = false;
-    if (!readLoraDio1(&high))
-    {
-        return false;
-    }
-    if (out_asserted)
-    {
-        *out_asserted = high;
-    }
-    return true;
+    // RadioLib now owns the SX1262 and the RX path polls the IRQ over SPI
+    // (radio.getIrqFlags()), per the proven driver's model -- it does NOT wait on a
+    // separate DIO1 edge. DIO1 is on the XL9535 I2C expander and is not used as the
+    // RX-completion trigger anymore. Return false so the MeshCore adapter's RX poll
+    // always reads the IRQ word over SPI every cycle (read_irq_over_spi = true) and a
+    // RadioLib-decoded RxDone is never gated behind an unread expander line.
+    (void)out_asserted;
+    return false;
 }
 
 bool TDisplayP4Board::pollRadioRxLadder(uint32_t irq, RadioRxLadder* out, bool deep)

@@ -6,6 +6,17 @@
 namespace platform::esp::idf_common
 {
 
+// SX1262 radio facade for the ESP-IDF firmware, backed by the vendored RadioLib
+// SX126x driver. RadioLib owns the chip for BOTH transmit and receive; this class
+// is a thin, mutex-guarded adapter that preserves the EXISTING LoraBoard seam so
+// the board layer (TDisplayP4Board) and the MeshCore adapter are unchanged.
+//
+// Why RadioLib: the previous hand-rolled SX126x command/demod layer corrupted the
+// LoRa payload on the LilyGo T-Display-P4 (a virgin listener received a fixed,
+// wrong header for every frame while the chip falsely reported CRC-clean), whereas
+// RadioLib decodes correctly on this exact hardware. See radiolib_idf_hal.{h,cpp}
+// for the ESP-IDF HAL (SPI master + NSS/BUSY GPIO; reset/RF-switch are driven via
+// the board's XL9535 expander; DIO1 is polled over SPI, not via an interrupt).
 class Sx126xRadio
 {
   public:
@@ -34,100 +45,65 @@ class Sx126xRadio
                       size_t sync_word_len,
                       uint8_t crc_len);
 
+    // Arm RadioLib continuous receive (RF switch -> RX). Returns true on success.
     bool startReceive();
-    // Liveness probe (mutexed wrapper over chip_responsive_locked): false when
-    // the SX1262 has gone dark on SPI (version register reads all-0x00/0xFF).
+    // Liveness probe. RadioLib owns a healthy chip; reports online state.
     bool isChipResponsive();
-    // Heavy recovery for a chip that died while parked in RX: reset +
-    // reconfigure the LoRa stack, then re-arm receive. Returns true on success.
+    // Heavy recovery hook (re-arm receive). Kept for the LoraBoard contract.
     bool reviveReceive();
     void standby();
     float readRssi();
 
+    // Transmit via RadioLib (RF switch -> TX), block until TxDone, then return to
+    // RX. Leaves the TxDone IRQ latched so the adapter's TxDone poll observes it.
+    // Returns 0 (RADIOLIB_ERR_NONE) on success, -1 on failure.
     int startTransmit(const uint8_t* data, size_t size);
+
+    // RX poll surface used by the MeshCore adapter. getIrqFlags() returns the raw
+    // SX126x IRQ word (RxDone=0x0002, TxDone=0x0001, CrcErr=0x0040, HeaderErr=0x0020,
+    // Timeout=0x0200) read over SPI via RadioLib.
     uint32_t getIrqFlags();
     void clearIrqFlags(uint32_t flags);
     int getPacketLength(bool update);
+    // Read the decoded packet out of the FIFO via RadioLib. Returns 0
+    // (RADIOLIB_ERR_NONE) on success so the adapter's '== RADIOLIB_ERR_NONE' gate
+    // passes; non-zero on failure.
     int readPacket(uint8_t* buffer, size_t size);
 
-    // Non-consuming check for the post-TX self-reception phantom. After a transmit the
-    // SX1262 on this board fires one spurious RxDone+CrcErr on its own TX residual right
-    // after RX re-arms; the hardware evidence is decisive -- it writes NO payload (the
-    // FIFO at the reported offset is the all-zeros drained before arming) while a real
-    // reception always writes payload bytes. Reads GetRxBufferStatus + the leading
-    // payload bytes (a quick post-reception SPI read, NOT mid-symbol -- the caller only
-    // invokes this once a terminal IRQ has already latched) and returns true if the
-    // payload is entirely zero, i.e. nothing was actually decoded. Does NOT clear the
-    // IRQ or touch RX state, so a real frame is left intact for the normal read path.
+    // --- Diagnostics / legacy hooks kept for the LoraBoard interface. With RadioLib
+    //     driving the chip the hand-rolled demod workarounds (post-TX self-reception
+    //     phantom, GetStats clean-reader, rxladder) are no longer needed; these are
+    //     light, SPI-free shims so the unchanged adapter keeps compiling and the RX
+    //     delivery flows through the IRQ path (getIrqFlags -> readPacket). ---
+
+    // A RadioLib-decoded frame always carries real payload; never report empty (so
+    // the adapter never drops a genuine reception as a post-TX phantom).
     bool isRxPayloadEmpty();
 
-    // RX IRQ ladder instrumentation. Reads the raw IRQ status + the SX126x chip
-    // mode (GetStatus bits 6:4) once, then maintains CUMULATIVE counts of how many
-    // times the PreambleDetected/HeaderValid/RxDone/CrcErr IRQ bits have latched
-    // since boot (rising-edge counted, so a bit that stays set across polls is
-    // counted once). It clears ONLY the non-terminal progress bits it owns
-    // (PreambleDetected, HeaderValid) so they re-latch for the next packet; the
-    // terminal bits (RxDone/CrcErr/HeaderErr/Timeout) are left intact for the
-    // adapter's RX poll to consume and clear. Never issues SetRx/SetStandby, so it
-    // cannot disturb an in-flight reception. Returns false only if the SPI read
-    // failed (e.g. chip dead).
     struct RxLadderCounts
     {
         uint32_t preamble = 0;
         uint32_t header = 0;
         uint32_t rxdone = 0;
         uint32_t crcerr = 0;
-        unsigned mode = 0;             // SX126x chip mode (GetStatus bits 6:4); 0x5 = RX
-        float peak_rssi_dbm = -128.0f; // peak instantaneous RSSI seen since boot
-        uint16_t dev_errors = 0;       // cumulative OR of GetDeviceErrors since boot
-        uint32_t polls = 0;            // total ladder polls since boot
-        uint32_t notrx_polls = 0;      // polls that observed mode != RX
-        uint16_t irq_seen = 0;         // cumulative OR of all IRQ words observed
+        unsigned mode = 0;
+        float peak_rssi_dbm = -128.0f;
+        uint16_t dev_errors = 0;
+        uint32_t polls = 0;
+        uint32_t notrx_polls = 0;
+        uint16_t irq_seen = 0;
     };
-    // Accumulate the RX IRQ ladder from a caller-provided IRQ snapshot (read once
-    // by the adapter's RX poll, shared with its terminal-flag handling so the
-    // counting never races a separate read/clear).
-    //
-    // ROOT-CAUSE-RELEVANT: when deep==false this does NO extra SPI at all -- only the
-    // IRQ-edge accounting on the passed-in word -- so the fast (30 ms) poll never
-    // injects SPI traffic into an in-flight LoRa reception. The SX1262's demod is
-    // disturbed by SPI activity during symbol reception on this board (GetStatus/
-    // GetRssiInst/GetDeviceErrors every 30 ms hit the same relative symbol positions
-    // each frame and corrupt them deterministically -> RxDone fires but the explicit
-    // header demodulates to garbage, CR reads 0, CRC fails every time). Only the
-    // throttled (~1 Hz) caller passes deep==true to read chip mode/RSSI/device errors
-    // for the diagnostic line; that read cadence is rare enough not to break demod.
+    // Edge-count the RxDone/CrcErr/HeaderErr bits from the caller-supplied IRQ word.
+    // Does NO extra SPI (the adapter already read the IRQ), so it never disturbs an
+    // in-flight reception. Returns true when the radio is online.
     bool pollRxLadder(uint16_t irq, RxLadderCounts* out, bool deep);
 
-    // GetStats-driven clean-reception reader -- the LAST-MILE fix for RX on this
-    // board. DECISIVE on-hardware finding: the SX1262 here receives the peer's
-    // adverts CLEANLY (the modem's NbPktReceived counter advances with
-    // NbPktCrcError == 0) but NEVER raises the RxDone IRQ in GetIrqStatus and never
-    // latches DIO1, so the IRQ-gated FIFO read in the adapter's RX poll never fires
-    // and a clean frame is never delivered to the parser. This method makes the
-    // modem's own packet counters the trigger instead of the dead IRQ: it reads
-    // GetStats, advances the shared baseline, folds the forward NbPktReceived /
-    // NbPktCrcError deltas into the ladder rxdone / crcerr counters (so this is the
-    // SOLE GetStats consumer and the ladder still reports a correct crcok), and when
-    // a NEW CRC-CLEAN packet has arrived (clean delta = received delta minus
-    // crc-error delta > 0) it reads that packet out of the FIFO via GetRxBufferStatus
-    // + ReadBuffer (from RxStartBufferPointer) into the caller's buffer and reports
-    // its length. Returns true and sets *out_len > 0 ONLY when a genuine clean packet
-    // payload was read this call; returns true with *out_len == 0 when no new clean
-    // packet is pending; returns false only on SPI failure. The caller MUST invoke
-    // this only when the receiver is idle (no reception in flight) and on a throttled
-    // cadence -- the GetStats + FIFO read is a short post-reception SPI burst (the
-    // packet has already completed before its counter advances), never mid-symbol, so
-    // it cannot disturb the demod. mutexed.
+    // The GetStats-driven clean reader was a workaround for the broken demod's dead
+    // RxDone IRQ; RadioLib delivers via the normal IRQ path, so this reports
+    // "nothing pending" and performs no SPI.
     bool pollCleanRxPacket(uint8_t* out_buf, size_t cap, size_t* out_len);
 
-    // Post-RxDone localization: read back, over SPI, what the chip ACTUALLY decoded
-    // for this just-received LoRa frame -- the header coding rate (REG 0x0749 bits
-    // 6:4) and the header CRC-present bit (REG 0x076B bit 4), plus the RxBufferStatus
-    // length/offset. Logged as 'idf-mc: rxdec ...'. A sane decoded CR (=1 for 4/5)
-    // means the explicit header demodulated correctly and the failure is in the
-    // payload; a garbage CR means the header itself mis-decoded. Bounded to a few
-    // emissions so it never spams. mutexed.
+    // Post-RxDone localization log (no-op with RadioLib).
     void logRxDecodeDiag();
 
     const char* lastError() const;
@@ -136,186 +112,39 @@ class Sx126xRadio
     Sx126xRadio() = default;
 
     bool init_locked();
-    bool probe_locked();
-    void wait_ready_locked() const;
-    bool write_command_locked(uint8_t cmd, const uint8_t* data, size_t size, bool wait = true);
-    bool read_command_locked(uint8_t cmd,
-                             const uint8_t* prefix,
-                             size_t prefix_size,
-                             uint8_t* data,
-                             size_t size,
-                             bool wait = true);
-    bool write_register_locked(uint16_t addr, const uint8_t* data, size_t size);
-    bool read_register_locked(uint16_t addr, uint8_t* data, size_t size);
-    bool set_packet_type_locked(uint8_t packet_type);
-    bool set_rf_frequency_locked(float freq_mhz);
-    bool set_tx_power_locked(int8_t tx_power);
-    // SX1262 §15.2 PA-clamping workaround (REG 0x08D8 |= 0x1E). Mirrors RadioLib
-    // fixPaClamping(); prevents a distorted TX waveform.
-    bool fix_pa_clamping_locked();
-    // SX1262 §15.4 standard-IQ workaround (REG 0x0736 bit 2 SET), guarded against a
-    // garbage read under BUSY so the read-modify-write can never poison the register.
-    bool apply_standard_iq_workaround_locked();
-    bool set_dio_irq_params_locked(uint16_t irq_mask, uint16_t dio1_mask);
-    bool set_dio3_as_tcxo_ctrl_locked(uint8_t voltage_code, uint32_t startup_time_us);
-    bool set_dio2_as_rf_switch_locked(bool enable);
-    bool set_rx_boosted_gain_locked(bool enable);
-    // SX1262 datasheet §15.1 RX-sensitivity workaround (REG 0x0889 bit 2): SET for
-    // every LoRa bandwidth except 500 kHz. Mirrors RadioLib fixSensitivity().
-    bool fix_rx_sensitivity_locked(float bw_khz);
-    uint8_t read_chip_status_locked();
-    bool clear_irq_locked(uint16_t flags);
-    bool set_buffer_base_locked(uint8_t tx_base, uint8_t rx_base);
-    bool set_rx_locked(uint32_t timeout_raw);
-    bool set_tx_locked(uint32_t timeout_raw);
-    // Zero-fill the SX1262 data buffer at the RX base so a spurious post-TX RxDone
-    // cannot read this unit's own stale TX payload out of the shared FIFO (TX and RX
-    // share one 256-byte buffer at base 0x00 on this board). Assumes mutex_ is held.
-    bool drain_rx_fifo_locked();
-    // Immediately after arming continuous RX, the SX1262 on this board can fire one
-    // SPURIOUS RxDone+CrcErr that reads the residual TX FIFO (the proven post-TX
-    // self-reception artifact: rxbytes byte-identical to this unit's own txbytes,
-    // rxoff=0). Settle briefly, then if a terminal RX IRQ has latched AND the buffer
-    // it points at is byte-identical to the just-transmitted frame (candidate (c):
-    // reject an RxDone whose content equals the transmit), CLEAR that phantom's
-    // terminal bits so the RX poll/ladder never counts it -- leaving genuine later
-    // peer receptions (which re-latch RxDone WITHOUT CrcErr) to be counted as the
-    // CRC-clean receptions the milestone requires. Assumes mutex_ is held; leaves the
-    // chip in continuous RX. Returns true on success.
-    bool suppress_post_tx_self_reception_locked();
-    // Arm the radio for LoRa receive (boosted gain + RX IRQs + finite-timeout
-    // SetRx). Assumes mutex_ is held. Shared by startReceive() and reviveReceive().
-    bool start_receive_locked();
-    // Re-issue the LoRa RX packet params (+ the 0x0736 standard-IQ workaround)
-    // immediately before SetRx, mirroring RadioLib's startReceiveCommon. Assumes
-    // mutex_ is held.
-    bool set_rx_packet_params_locked();
-    bool configure_lora_locked(float freq_mhz,
-                               float bw_khz,
-                               uint8_t sf,
-                               uint8_t cr,
-                               int8_t tx_power,
-                               uint16_t preamble_len,
-                               uint8_t sync_word,
-                               uint8_t crc_len);
-    bool configure_fsk_locked(float freq_mhz,
-                              int8_t tx_power,
-                              float bit_rate_kbps,
-                              float freq_dev_khz,
-                              float rx_bw_khz,
-                              uint16_t preamble_len,
-                              const uint8_t* sync_word,
-                              size_t sync_word_len,
-                              uint8_t crc_len);
+    bool begin_lora_locked();
+    bool arm_receive_locked();
     void set_error_locked(const char* error);
-    bool chip_responsive_locked();
-    bool reset_chip_locked();
-    bool reestablish_lora_locked();
 
     void* mutex_ = nullptr;
-    void* device_ = nullptr;
     bool initialized_ = false;
     bool online_ = false;
-    uint8_t packet_type_ = 0xFF;
-    float freq_mhz_ = 0.0f;
-    // Set by reset_chip_locked() so the next set_rf_frequency_locked() re-runs the
-    // band image calibration after a full chip reset (the cached freq is unchanged
-    // across the reset, so the >=20MHz delta guard would otherwise skip it and
-    // leave the revived receiver unable to correlate preambles).
-    bool force_image_cal_ = false;
-    uint8_t last_rx_offset_ = 0;
+    bool lora_configured_ = false;
     uint32_t users_ = 0;
-    uint32_t rx_diag_count_ = 0;
-    uint32_t tx_diag_count_ = 0;
-    // Last LoRa SetModulationParams / SetPacketParams bytes actually written, cached
-    // so the RX-arm and TX paths can log them back ('idf-mc: rdbk ...') for an
-    // RX-vs-TX on-air comparison. SetModulationParams/SetPacketParams are commands
-    // with no read-back, so echoing the exact bytes written is the only way to prove
-    // the TX modem and the RX demod are programmed identically.
-    uint8_t last_mod_bytes_[4] = {0};
-    uint8_t last_pkt_bytes_[6] = {0};
-    bool have_last_mod_ = false;
-    bool have_last_pkt_ = false;
-    // Exact payload of the most recent LoRa transmit, cached so the post-TX RX arm
-    // can detect the self-reception artifact (a spurious RxDone whose FIFO content is
-    // byte-identical to this) and clear it before it pollutes the RX path. Sized to
-    // the full SX1262 data buffer.
-    uint8_t last_tx_frame_[256] = {0};
-    size_t last_tx_frame_len_ = 0;
-    // Set true right after a transmit, cleared the first time the post-TX RX arm runs
-    // its self-reception suppressor. Ensures the settle+check only pays its cost on
-    // the ONE arm that follows a transmit (where the phantom can occur), not on every
-    // continuous-RX re-arm.
-    bool post_tx_pending_ = false;
-    // Cumulative count of phantom post-TX self-receptions detected and suppressed by
-    // suppress_post_tx_self_reception_locked(); logged for the diagnostic.
-    uint32_t self_rx_suppressed_ = 0;
-    // One-shot readback emitters (RX arm + TX), gated like the *_diag counters.
-    uint32_t rx_rdbk_count_ = 0;
-    uint32_t tx_rdbk_count_ = 0;
-    uint32_t rxdec_count_ = 0;
-    uint32_t rxstats_diag_count_ = 0;
-    // GetStats-based authoritative reception tracking. On this board the SX1262
-    // receives clean LoRa frames (NbPktReceived advances, NbPktCrcError stays 0) but
-    // never raises the RxDone IRQ, so the modem's own packet counters -- not the IRQ --
-    // are the ground truth for "a reception happened". Baseline + last values let us
-    // fold only forward deltas into the ladder rxdone/crcerr counts.
-    bool rxstats_have_baseline_ = false;
-    uint16_t rxstats_last_pkt_rx_ = 0;
-    uint16_t rxstats_last_crc_err_ = 0;
-    // Number of CRC-clean receptions confirmed via GetStats that still owe a FIFO
-    // read (pollCleanRxPacket delivers one per call). Lets a clean reception that
-    // arrives between two reader calls still be drained on the next call instead of
-    // being lost. Bounded so a counter run-up can never wedge the reader.
-    uint16_t rxstats_clean_pending_ = 0;
-    // Diagnostic emission budget for the GetStats clean-reception reader.
-    uint32_t rxclean_diag_count_ = 0;
-    // Cumulative RX IRQ-ladder counters (see pollRxLadder). rxladder_prev_* hold
-    // the previous-poll bit state so a latched bit is counted on its rising edge
-    // only, never re-counted while it stays set between polls.
-    uint32_t rxladder_preamble_ = 0;
-    uint32_t rxladder_header_ = 0;
+
+    // Cached LoRa configuration from the last configureLoRaReceive(), used by
+    // begin()/re-arm and the RSSI scale.
+    float freq_mhz_ = 0.0f;
+    float lora_bw_khz_ = 0.0f;
+    uint8_t lora_sf_ = 7;
+    uint8_t lora_cr_ = 5;
+    int8_t lora_tx_power_ = 20;
+    uint16_t lora_preamble_ = 16;
+    uint8_t lora_sync_word_ = 0x12;
+    uint8_t lora_crc_len_ = 2;
+
+    // RX IRQ-ladder edge state (rising-edge counted), kept so the adapter's
+    // diagnostic 'rxladder' line still reports meaningful cumulative counts.
     uint32_t rxladder_rxdone_ = 0;
     uint32_t rxladder_crcerr_ = 0;
-    bool rxladder_prev_preamble_ = false;
-    bool rxladder_prev_header_ = false;
     bool rxladder_prev_rxdone_ = false;
     bool rxladder_prev_crcerr_ = false;
-    float rxladder_peak_rssi_ = -128.0f;
-    uint16_t rxladder_dev_errors_ = 0;
-    uint32_t rxladder_polls_ = 0;
-    uint32_t rxladder_notrx_polls_ = 0;
     uint16_t rxladder_irq_seen_ = 0;
-    // Last chip mode read by a deep poll, reported on the cheap (non-deep) polls so
-    // the ladder line still carries a mode without an SPI read on the fast path.
-    unsigned rxladder_last_mode_ = 0;
-    // Cached LoRa configuration from the last configureLoRaReceive(), so the TX
-    // path can re-establish the radio if the chip has lost its state (the
-    // T-Display-P4 SX1262 goes fully dark -- version register reads 0x00 -- after
-    // sustained continuous RX, so a transmit must reconfigure it first).
-    bool lora_cfg_valid_ = false;
-    float lora_bw_khz_ = 0.0f;
-    uint8_t lora_sf_ = 0;
-    uint8_t lora_cr_ = 0;
-    int8_t lora_tx_power_ = 0;
-    uint16_t lora_preamble_ = 0;
-    uint8_t lora_sync_word_ = 0;
-    uint8_t lora_crc_len_ = 0;
-    char last_error_[96] = {0};
+    uint32_t rxladder_polls_ = 0;
 
-    // SPI scratch buffers kept OFF the call stack. The dead-chip revive
-    // (startTransmit -> reestablish_lora_locked -> reset_chip_locked ->
-    // init_locked + configure_lora_locked) runs INLINE on the small LVGL
-    // app-loop task stack and nests through write_command_locked /
-    // read_command_locked / write_register_locked, each of which otherwise
-    // puts a 260-byte (read: two 260-byte) SPI frame on the stack. Hoisting
-    // those frames into members shrinks the revive's peak stack footprint
-    // substantially. Every *_locked() user of these holds mutex_, and none of
-    // them nest a second SPI transfer while a buffer is live, so a single
-    // shared tx/rx pair is safe.
-    static constexpr size_t kSpiScratchSize = 260;
-    uint8_t spi_tx_scratch_[kSpiScratchSize] = {0};
-    uint8_t spi_rx_scratch_[kSpiScratchSize] = {0};
+    uint32_t tx_diag_count_ = 0;
+
+    char last_error_[96] = {0};
 };
 
 } // namespace platform::esp::idf_common

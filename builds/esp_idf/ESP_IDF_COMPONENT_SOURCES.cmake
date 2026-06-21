@@ -540,6 +540,7 @@ set(TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/startup_support.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/screen_sleep.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/sx126x_radio.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/radiolib_idf_hal.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_lora_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_common.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_dispatcher.cpp"
