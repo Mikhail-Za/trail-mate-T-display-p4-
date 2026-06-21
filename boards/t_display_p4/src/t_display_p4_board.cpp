@@ -892,14 +892,14 @@ uint32_t TDisplayP4Board::getRadioIrqFlags()
     return radio().getIrqFlags();
 }
 
-bool TDisplayP4Board::pollRadioRxLadder(uint32_t irq, RadioRxLadder* out)
+bool TDisplayP4Board::pollRadioRxLadder(uint32_t irq, RadioRxLadder* out, bool deep)
 {
     if (!ensureRadioReady())
     {
         return false;
     }
     platform::esp::idf_common::Sx126xRadio::RxLadderCounts counts;
-    if (!radio().pollRxLadder(static_cast<uint16_t>(irq), &counts))
+    if (!radio().pollRxLadder(static_cast<uint16_t>(irq), &counts, deep))
     {
         return false;
     }
@@ -917,6 +917,15 @@ bool TDisplayP4Board::pollRadioRxLadder(uint32_t irq, RadioRxLadder* out)
         out->irq_seen = counts.irq_seen;
     }
     return true;
+}
+
+void TDisplayP4Board::logRadioRxDecode()
+{
+    if (!ensureRadioReady())
+    {
+        return;
+    }
+    radio().logRxDecodeDiag();
 }
 
 int TDisplayP4Board::getRadioPacketLength(bool update)

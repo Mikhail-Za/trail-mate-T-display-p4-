@@ -75,9 +75,27 @@ class Sx126xRadio
     };
     // Accumulate the RX IRQ ladder from a caller-provided IRQ snapshot (read once
     // by the adapter's RX poll, shared with its terminal-flag handling so the
-    // counting never races a separate read/clear). Reads chip mode/RSSI/device
-    // errors; never reads or clears IRQ bits itself.
-    bool pollRxLadder(uint16_t irq, RxLadderCounts* out);
+    // counting never races a separate read/clear).
+    //
+    // ROOT-CAUSE-RELEVANT: when deep==false this does NO extra SPI at all -- only the
+    // IRQ-edge accounting on the passed-in word -- so the fast (30 ms) poll never
+    // injects SPI traffic into an in-flight LoRa reception. The SX1262's demod is
+    // disturbed by SPI activity during symbol reception on this board (GetStatus/
+    // GetRssiInst/GetDeviceErrors every 30 ms hit the same relative symbol positions
+    // each frame and corrupt them deterministically -> RxDone fires but the explicit
+    // header demodulates to garbage, CR reads 0, CRC fails every time). Only the
+    // throttled (~1 Hz) caller passes deep==true to read chip mode/RSSI/device errors
+    // for the diagnostic line; that read cadence is rare enough not to break demod.
+    bool pollRxLadder(uint16_t irq, RxLadderCounts* out, bool deep);
+
+    // Post-RxDone localization: read back, over SPI, what the chip ACTUALLY decoded
+    // for this just-received LoRa frame -- the header coding rate (REG 0x0749 bits
+    // 6:4) and the header CRC-present bit (REG 0x076B bit 4), plus the RxBufferStatus
+    // length/offset. Logged as 'idf-mc: rxdec ...'. A sane decoded CR (=1 for 4/5)
+    // means the explicit header demodulated correctly and the failure is in the
+    // payload; a garbage CR means the header itself mis-decoded. Bounded to a few
+    // emissions so it never spams. mutexed.
+    void logRxDecodeDiag();
 
     const char* lastError() const;
 
@@ -99,6 +117,12 @@ class Sx126xRadio
     bool set_packet_type_locked(uint8_t packet_type);
     bool set_rf_frequency_locked(float freq_mhz);
     bool set_tx_power_locked(int8_t tx_power);
+    // SX1262 §15.2 PA-clamping workaround (REG 0x08D8 |= 0x1E). Mirrors RadioLib
+    // fixPaClamping(); prevents a distorted TX waveform.
+    bool fix_pa_clamping_locked();
+    // SX1262 §15.4 standard-IQ workaround (REG 0x0736 bit 2 SET), guarded against a
+    // garbage read under BUSY so the read-modify-write can never poison the register.
+    bool apply_standard_iq_workaround_locked();
     bool set_dio_irq_params_locked(uint16_t irq_mask, uint16_t dio1_mask);
     bool set_dio3_as_tcxo_ctrl_locked(uint8_t voltage_code, uint32_t startup_time_us);
     bool set_dio2_as_rf_switch_locked(bool enable);
@@ -155,6 +179,19 @@ class Sx126xRadio
     uint32_t users_ = 0;
     uint32_t rx_diag_count_ = 0;
     uint32_t tx_diag_count_ = 0;
+    // Last LoRa SetModulationParams / SetPacketParams bytes actually written, cached
+    // so the RX-arm and TX paths can log them back ('idf-mc: rdbk ...') for an
+    // RX-vs-TX on-air comparison. SetModulationParams/SetPacketParams are commands
+    // with no read-back, so echoing the exact bytes written is the only way to prove
+    // the TX modem and the RX demod are programmed identically.
+    uint8_t last_mod_bytes_[4] = {0};
+    uint8_t last_pkt_bytes_[6] = {0};
+    bool have_last_mod_ = false;
+    bool have_last_pkt_ = false;
+    // One-shot readback emitters (RX arm + TX), gated like the *_diag counters.
+    uint32_t rx_rdbk_count_ = 0;
+    uint32_t tx_rdbk_count_ = 0;
+    uint32_t rxdec_count_ = 0;
     // Cumulative RX IRQ-ladder counters (see pollRxLadder). rxladder_prev_* hold
     // the previous-poll bit state so a latched bit is counted on its rising edge
     // only, never re-counted while it stays set between polls.
@@ -171,6 +208,9 @@ class Sx126xRadio
     uint32_t rxladder_polls_ = 0;
     uint32_t rxladder_notrx_polls_ = 0;
     uint16_t rxladder_irq_seen_ = 0;
+    // Last chip mode read by a deep poll, reported on the cheap (non-deep) polls so
+    // the ladder line still carries a mode without an SPI read on the fast path.
+    unsigned rxladder_last_mode_ = 0;
     // Cached LoRa configuration from the last configureLoRaReceive(), so the TX
     // path can re-establish the radio if the chip has lost its state (the
     // T-Display-P4 SX1262 goes fully dark -- version register reads 0x00 -- after

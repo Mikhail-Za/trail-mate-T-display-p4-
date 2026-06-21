@@ -5126,11 +5126,26 @@ void MeshCoreAdapter::processSendQueue()
         // the terminal bits (which also clears preamble/header so they re-latch).
         const uint32_t irq = board_.getRadioIrqFlags();
         {
+            // ROOT-CAUSE FIX: do the diagnostic chip-state SPI reads (chip mode / RSSI
+            // / device errors) at MOST ~1 Hz, and NEVER while a reception is latched
+            // or in progress -- SPI traffic during LoRa symbol reception corrupts the
+            // demod on this board (deterministic 30 ms-spaced bursts mangled the
+            // explicit header -> RxDone + garbage length + CRC fail every frame). The
+            // fast 30 ms poll passes deep=false (IRQ-edge accounting only, no chip
+            // SPI). The IRQ word is already in hand and the terminal-bit handling
+            // below still runs every poll, so RxDone is never missed.
+            static uint32_t s_last_ladder_ms = 0;
+            const bool throttle_elapsed =
+                static_cast<int32_t>(now_ms - s_last_ladder_ms) >= 1000;
+            // Only go deep when idle: no RxDone/CrcErr/HdrErr/Timeout pending and the
+            // chip is not mid-reception (preamble/header bits clear). 0x0276 covers
+            // RxDone|CrcErr|HdrErr|Timeout|PreambleDetected|HeaderValid|SyncWordValid.
+            const bool rx_active = (irq != 0 && irq != 0xFFFFu) && (irq & 0x027Eu) != 0;
+            const bool deep = throttle_elapsed && !rx_active;
             LoraBoard::RadioRxLadder ladder;
-            if (board_.pollRadioRxLadder(irq, &ladder))
+            if (board_.pollRadioRxLadder(irq, &ladder, deep))
             {
-                static uint32_t s_last_ladder_ms = 0;
-                if (static_cast<int32_t>(now_ms - s_last_ladder_ms) >= 1000)
+                if (deep)
                 {
                     s_last_ladder_ms = now_ms;
                     printf("idf-mc: rxladder preamble=%u header=%u rxdone=%u crcerr=%u mode=%u\n",
@@ -5166,6 +5181,13 @@ void MeshCoreAdapter::processSendQueue()
             const bool rx_err = (irq & (0x0020u | 0x0040u | 0x0200u)) != 0;  // Hdr/Crc/Timeout
             if (rx_done || rx_err)
             {
+                if (rx_done)
+                {
+                    // Post-RxDone localization: read back what the demod actually
+                    // decoded (header CR / CRC flag / buffer status) BEFORE clearing
+                    // the IRQ, so the rxdec line reflects this exact reception.
+                    board_.logRadioRxDecode();
+                }
                 board_.clearRadioIrqFlags(irq);
                 if (rx_done)
                 {

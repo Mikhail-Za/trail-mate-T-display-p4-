@@ -49,12 +49,21 @@ class LoraBoard
         uint32_t notrx_polls = 0;
         uint16_t irq_seen = 0;
     };
-    virtual bool pollRadioRxLadder(uint32_t irq, RadioRxLadder* out)
+    // deep==true permits the (rare, ~1 Hz) diagnostic SPI reads of chip mode / RSSI /
+    // device errors. deep==false (the fast 30 ms poll) must do NO chip SPI beyond the
+    // already-read IRQ word, so it never disturbs an in-flight LoRa reception.
+    virtual bool pollRadioRxLadder(uint32_t irq, RadioRxLadder* out, bool deep)
     {
         (void)irq;
         (void)out;
+        (void)deep;
         return false;
     }
+
+    // Post-RxDone localization hook: log what the demodulator actually decoded for
+    // the just-received LoRa frame (header coding rate / CRC flag / buffer status).
+    // Default no-op for boards without the instrumented SX1262 driver.
+    virtual void logRadioRxDecode() {}
 
     virtual int getRadioPacketLength(bool update) = 0;
     virtual int readRadioData(uint8_t* buf, size_t len) = 0;

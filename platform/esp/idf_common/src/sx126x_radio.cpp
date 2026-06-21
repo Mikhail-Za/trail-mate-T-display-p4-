@@ -106,6 +106,24 @@ constexpr uint16_t kRegRxGainRetention0 = 0x029F;
 // SET for every LoRa bandwidth except 500 kHz (RadioLib fixSensitivity()).
 constexpr uint16_t kRegSensitivityConfig = 0x0889;
 constexpr uint16_t kRegIqConfig = 0x0736;
+// LoRa RX decode-status registers (RadioLib getPacketStatus/getLoRaConfig). After
+// RxDone these reflect what the demodulator actually decoded from the received
+// explicit header: 0x0749 bits 6:4 = received coding rate; 0x076B bit 4 = received
+// CRC-present flag. Reading them post-RxDone localizes a header mis-decode.
+constexpr uint16_t kRegLoraRxCodingRate = 0x0749;
+constexpr uint16_t kRegFreqErrorRxCrc = 0x076B;
+// SX1262 datasheet §15.2 PA-clamping register (RadioLib fixPaClamping). Applied in
+// RadioLib's SX1262::begin on every config. Without it the PA can over-clamp and
+// DISTORT the transmitted LoRa signal, so a receiver locks the preamble (RxDone)
+// but the demodulated symbols carry bit errors -> wrong header length + CRC fail at
+// strong RSSI. Read-modify-write: set bits 4:1 (|= 0x1E).
+constexpr uint16_t kRegTxClampConfig = 0x08D8;
+// Undocumented SX1262 RX-improvement register patch (Meshtastic SX126xInterface:
+// "recommended by Heltec/Semtech for improved RX"; sets bit 0 of 0x08B5). The proven
+// on-this-board Meshtastic receiver applies it on every config; our exhaustive
+// register diff omitted it. It tunes the SX1262 RX front-end/AGC; without it the
+// demod can mis-track and produce bit errors. Add it to match the reference.
+constexpr uint16_t kRegRxImprovement = 0x08B5;
 constexpr uint8_t kRxGainBoosted = 0x96;
 constexpr uint8_t kRxGainPowerSaving = 0x94;
 // DIO3 TCXO control voltage code 0x00 = 1.6V (datasheet SetDIO3AsTCXOCtrl table).
@@ -311,6 +329,29 @@ uint8_t ocp_for_60ma()
 {
     return static_cast<uint8_t>(60.0f / 2.5f);
 }
+
+// SX1262 optimized PA-configuration lookup (RadioLib SX1262.cpp paOptTable, from
+// the radiolib power-tests campaign). Indexed by output power + 9 (range -9..+22 ->
+// 0..31). Each entry is the {paDutyCycle, hpMax, paVal} the SX1262 PA needs for that
+// target power. The previous firmware HARDCODED the +22 dBm config (paDutyCycle=4,
+// hpMax=7) for every power while driving SetTxParams at the requested (e.g. +14)
+// power -- a mismatched PA operating point that distorts the modulated output and
+// makes the receiver demodulate the peer with bit errors. Use the per-power table
+// exactly as RadioLib does on this exact board.
+struct PaOptEntry
+{
+    uint8_t pa_duty_cycle;
+    uint8_t hp_max;
+    int8_t pa_val;
+};
+constexpr PaOptEntry kPaOptTable[32] = {
+    {2, 2, -5}, {2, 1, 0},  {1, 1, 3},  {1, 2, 0},  {1, 1, 6},  {1, 2, 3},
+    {2, 2, 2},  {4, 1, 6},  {1, 1, 11}, {2, 1, 11}, {1, 1, 14}, {2, 1, 14},
+    {1, 1, 20}, {1, 1, 22}, {2, 2, 11}, {3, 1, 21}, {1, 2, 17}, {4, 2, 13},
+    {1, 2, 20}, {1, 2, 22}, {2, 2, 21}, {3, 2, 21}, {1, 4, 19}, {1, 4, 20},
+    {3, 3, 20}, {2, 5, 19}, {1, 6, 22}, {2, 5, 22}, {3, 5, 22}, {3, 6, 22},
+    {4, 6, 22}, {4, 7, 22},
+};
 
 const auto& lora_pins()
 {
@@ -901,19 +942,74 @@ bool Sx126xRadio::set_rf_frequency_locked(float freq_mhz)
     return true;
 }
 
+bool Sx126xRadio::apply_standard_iq_workaround_locked()
+{
+    // SX1262 §15.4 standard-IQ workaround: bit 2 of REG_IQ (0x0736) SET. Done as a
+    // read-modify-write to preserve the register's other bits. CONTRACT SUSPECT #1:
+    // a read issued while BUSY is high can return garbage (0x00 / 0xFF), and ORing
+    // 0x04 onto garbage then writing it back CLOBBERS the IQ config (e.g. 0xFF) ->
+    // the demod mis-handles standard-IQ packets and produces bit errors. Guard the
+    // base: if the read looks like the BUSY/dead signature, fall back to the known
+    // reset base (0x0D on this SX1262, observed stable) before setting bit 2, so the
+    // write can never poison the register.
+    uint8_t iq_cfg = 0;
+    if (!read_register_locked(kRegIqConfig, &iq_cfg, 1))
+    {
+        return false;
+    }
+    if (iq_cfg == 0x00 || iq_cfg == 0xFF)
+    {
+        iq_cfg = 0x0D; // SX1262 REG_IQ reset base; observed stable on this board
+    }
+    iq_cfg = static_cast<uint8_t>(iq_cfg | 0x04);
+    return write_register_locked(kRegIqConfig, &iq_cfg, 1);
+}
+
+bool Sx126xRadio::fix_pa_clamping_locked()
+{
+    // SX1262 datasheet §15.2 (RadioLib fixPaClamping): set bits 4:1 of the TX-clamp
+    // register so the PA does not over-clamp and distort the transmitted waveform.
+    uint8_t clamp = 0;
+    if (!read_register_locked(kRegTxClampConfig, &clamp, 1))
+    {
+        return false;
+    }
+    clamp = static_cast<uint8_t>(clamp | 0x1E);
+    return write_register_locked(kRegTxClampConfig, &clamp, 1);
+}
+
 bool Sx126xRadio::set_tx_power_locked(int8_t tx_power)
 {
-    int8_t clipped = std::max<int8_t>(-9, std::min<int8_t>(22, tx_power));
+    const int8_t clipped = std::max<int8_t>(-9, std::min<int8_t>(22, tx_power));
+    // §15.2 PA-clamping fix first, exactly as RadioLib's SX1262::begin runs it
+    // before setOutputPower. A distorted (over-clamped) TX waveform is a prime cause
+    // of "receiver locks the preamble but every frame fails CRC" on this board.
+    (void)fix_pa_clamping_locked();
+
+    // Per-power optimized PA config (RadioLib paOptTable), NOT a hardcoded +22 dBm
+    // config. Index = power + 9. This sets the PA operating point that actually
+    // matches the requested output power so the modulated signal is clean.
+    const PaOptEntry& pa = kPaOptTable[static_cast<size_t>(clipped + 9)];
+
     uint8_t ocp = 0;
     read_register_locked(kRegOcpConfiguration, &ocp, 1);
-    const uint8_t pa_config[4] = {0x04, 0x07, kPaConfigDeviceSelSx1262, kPaConfigPaLut};
+    const uint8_t pa_config[4] = {pa.pa_duty_cycle, pa.hp_max, kPaConfigDeviceSelSx1262,
+                                  kPaConfigPaLut};
     if (!write_command_locked(kCmdSetPaConfig, pa_config, sizeof(pa_config), true))
     {
         return false;
     }
-    const uint8_t tx_params[2] = {static_cast<uint8_t>(clipped), kPaRamp200u};
+    // SetTxParams power is the table's paVal (the calibrated register value for the
+    // target dBm), not the raw requested dBm -- matching RadioLib's setOutputPower.
+    const uint8_t tx_params[2] = {static_cast<uint8_t>(pa.pa_val), kPaRamp200u};
     const bool ok = write_command_locked(kCmdSetTxParams, tx_params, sizeof(tx_params), true);
     write_register_locked(kRegOcpConfiguration, &ocp, 1);
+    if (rx_diag_count_ < 2)
+    {
+        printf("idf-mc: pacfg pwr=%d paval=%d dutycycle=%u hpmax=%u\n",
+               static_cast<int>(clipped), static_cast<int>(pa.pa_val),
+               static_cast<unsigned>(pa.pa_duty_cycle), static_cast<unsigned>(pa.hp_max));
+    }
     return ok;
 }
 
@@ -1058,6 +1154,8 @@ bool Sx126xRadio::configure_lora_locked(float freq_mhz,
     {
         return false;
     }
+    std::memcpy(last_mod_bytes_, mod, sizeof(mod));
+    have_last_mod_ = true;
 
     const uint8_t packet[6] = {
         static_cast<uint8_t>((preamble_len >> 8) & 0xFF),
@@ -1071,6 +1169,8 @@ bool Sx126xRadio::configure_lora_locked(float freq_mhz,
     {
         return false;
     }
+    std::memcpy(last_pkt_bytes_, packet, sizeof(packet));
+    have_last_pkt_ = true;
 
     // SX1262 datasheet §15.4 "Optimizing the Inverted IQ Operation" workaround.
     // RadioLib applies this (fixInvertedIQ) on every SetPacketParams: for STANDARD
@@ -1080,17 +1180,9 @@ bool Sx126xRadio::configure_lora_locked(float freq_mhz,
     // that gets through decodes a corrupted length. Our driver never touched 0x0736,
     // leaving it at the inverted-IQ default. Read-modify-write bit 2 to match the
     // proven RadioLib receive path that demodulates on this exact board.
+    if (!apply_standard_iq_workaround_locked())
     {
-        uint8_t iq_cfg = 0;
-        if (!read_register_locked(kRegIqConfig, &iq_cfg, 1))
-        {
-            return false;
-        }
-        iq_cfg = static_cast<uint8_t>(iq_cfg | 0x04);
-        if (!write_register_locked(kRegIqConfig, &iq_cfg, 1))
-        {
-            return false;
-        }
+        return false;
     }
 
     const uint8_t sync[2] = {
@@ -1115,6 +1207,23 @@ bool Sx126xRadio::configure_lora_locked(float freq_mhz,
     if (!fix_rx_sensitivity_locked(bw_khz))
     {
         return false;
+    }
+
+    // Undocumented SX1262 RX-improvement patch the proven Meshtastic receiver on this
+    // exact board applies (set bit 0 of 0x08B5). Read-modify-write so we don't clobber
+    // the rest of the register. Our prior register diff missed this entirely.
+    {
+        uint8_t rximp = 0;
+        if (read_register_locked(kRegRxImprovement, &rximp, 1))
+        {
+            const uint8_t patched = static_cast<uint8_t>(rximp | 0x01);
+            (void)write_register_locked(kRegRxImprovement, &patched, 1);
+            if (rx_diag_count_ < 2)
+            {
+                printf("idf-mc: rximp 0x08B5 base=0x%02X -> 0x%02X\n",
+                       static_cast<unsigned>(rximp), static_cast<unsigned>(patched));
+            }
+        }
     }
 
     return true;
@@ -1291,18 +1400,33 @@ bool Sx126xRadio::set_rx_packet_params_locked()
     // reprograms SetPacketParams with the TX payload length) the receiver was
     // left armed with a stale/TX-shaped packet config. The demodulator then
     // sensed RF but never correlated the preamble.
-    // SX1262 datasheet §15.4 standard-IQ workaround, applied BEFORE SetPacketParams
-    // exactly as RadioLib's setPacketParams -> fixInvertedIQ does (read-modify-write
-    // REG_IQ 0x0736 bit 2 SET for standard IQ). Re-asserting it on every arm
-    // guarantees the demod is in the correct IQ state when SetRx follows, even if a
-    // prior TX/standby cycle perturbed the register.
-    uint8_t iq_cfg = 0;
-    if (!read_register_locked(kRegIqConfig, &iq_cfg, 1))
+    // Re-assert the LoRa MODULATION params (SF/BW/CR/LDRO) from the cached config
+    // immediately before arming RX. The TX path already re-asserts SetModulationParams
+    // before every SetTx, but this RX re-arm path previously did NOT -- an asymmetry:
+    // if the chip's modem ever lost or never latched the configured SF/BW/CR/LDRO (a
+    // SetModulationParams write dropped under BUSY, or perturbed by a TX/standby/revive
+    // cycle), TX would self-correct but RX would arm on a wrong modem. The peer's
+    // preamble can still trip RxDone while the data symbols (the explicit header
+    // first) demodulate to garbage -> CR reads 0, wrong length, CRC fail -- exactly
+    // the observed 'rxdec rawcr=0x00 rxlen=190' signature. Re-issuing it here makes
+    // the RX demod provably identical to the TX modem on every arm.
+    if (lora_cfg_valid_)
     {
-        return false;
+        const uint8_t mod[4] = {lora_sf_, map_lora_bw(lora_bw_khz_), map_lora_cr(lora_cr_),
+                                calc_ldro(lora_sf_, lora_bw_khz_)};
+        if (!write_command_locked(kCmdSetModulationParams, mod, sizeof(mod), true))
+        {
+            return false;
+        }
+        std::memcpy(last_mod_bytes_, mod, sizeof(mod));
+        have_last_mod_ = true;
     }
-    iq_cfg = static_cast<uint8_t>(iq_cfg | 0x04);
-    if (!write_register_locked(kRegIqConfig, &iq_cfg, 1))
+
+    // SX1262 datasheet §15.4 standard-IQ workaround, applied BEFORE SetPacketParams
+    // exactly as RadioLib's setPacketParams -> fixInvertedIQ does. Re-asserting it on
+    // every arm guarantees the demod is in the correct IQ state when SetRx follows,
+    // even if a prior TX/standby cycle perturbed the register. Guarded read.
+    if (!apply_standard_iq_workaround_locked())
     {
         return false;
     }
@@ -1316,7 +1440,13 @@ bool Sx126xRadio::set_rx_packet_params_locked()
         kLoRaCrcOn,
         kLoRaIqStandard,
     };
-    return write_command_locked(kCmdSetPacketParams, packet, sizeof(packet), true);
+    const bool ok = write_command_locked(kCmdSetPacketParams, packet, sizeof(packet), true);
+    if (ok)
+    {
+        std::memcpy(last_pkt_bytes_, packet, sizeof(packet));
+        have_last_pkt_ = true;
+    }
+    return ok;
 }
 
 bool Sx126xRadio::start_receive_locked()
@@ -1410,6 +1540,22 @@ bool Sx126xRadio::startReceive()
                sync_rb[0], sync_rb[1], static_cast<unsigned>(iq_rb),
                static_cast<unsigned>(sens_rb), static_cast<unsigned>(gain_rb),
                mode, static_cast<double>(rssi_raw) / -2.0);
+        // MANDATORY DIAGNOSTIC: the demod-critical on-air state, read back/echoed
+        // right after the RX is armed, so it can be compared (a) to the intended
+        // values, (b) against the TX-path 'rdbk' line (they MUST match on-air), and
+        // (c) against RadioLib. SetModulationParams/SetPacketParams have no readback
+        // command, so the EXACT bytes last written are echoed; the IQ/sensitivity/
+        // sync REGISTERS are read back over SPI to prove the writes actually landed
+        // (a write dropped/garbled under BUSY would show here).
+        printf("idf-mc: rdbk side=RX mod=%02X%02X%02X%02X pkt=%02X%02X%02X%02X%02X%02X "
+               "iq=0x%02X sens=0x%02X sync=%02X%02X gain=0x%02X\n",
+               static_cast<unsigned>(last_mod_bytes_[0]), static_cast<unsigned>(last_mod_bytes_[1]),
+               static_cast<unsigned>(last_mod_bytes_[2]), static_cast<unsigned>(last_mod_bytes_[3]),
+               static_cast<unsigned>(last_pkt_bytes_[0]), static_cast<unsigned>(last_pkt_bytes_[1]),
+               static_cast<unsigned>(last_pkt_bytes_[2]), static_cast<unsigned>(last_pkt_bytes_[3]),
+               static_cast<unsigned>(last_pkt_bytes_[4]), static_cast<unsigned>(last_pkt_bytes_[5]),
+               static_cast<unsigned>(iq_rb), static_cast<unsigned>(sens_rb),
+               sync_rb[0], sync_rb[1], static_cast<unsigned>(gain_rb));
         ++rx_diag_count_;
     }
     give_mutex(mutex_);
@@ -1617,6 +1763,26 @@ int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
             const uint8_t mod[4] = {lora_sf_, map_lora_bw(lora_bw_khz_), map_lora_cr(lora_cr_),
                                     calc_ldro(lora_sf_, lora_bw_khz_)};
             ok = ok && write_command_locked(kCmdSetModulationParams, mod, sizeof(mod), true);
+            std::memcpy(last_mod_bytes_, mod, sizeof(mod));
+            have_last_mod_ = true;
+        }
+        // SX1262 §15.4 standard-IQ workaround on the TX path too. RadioLib applies
+        // fixInvertedIQ on EVERY setPacketParams (TX and RX). Our TX previously wrote
+        // SetPacketParams WITHOUT first re-asserting REG_IQ bit 2, so the on-air IQ
+        // state of a transmit depended on whatever the last RX arm left in 0x0736.
+        // Assert it here (guarded read) so TX and RX are provably IQ-identical on-air.
+        (void)apply_standard_iq_workaround_locked();
+        // SX1262 §15.1 "Modulation Quality" register (0x0889): RadioLib's staged-mode
+        // config re-applies fixSensitivity before EVERY transmit, not just at config.
+        // The readback diagnostic PROVED this register diverges TX-vs-RX on this board
+        // (RX reads 0x0E, TX read 0x04 -- bits 1,3 cleared by TX time), and 0x0889 is
+        // the TX MODULATION-QUALITY register, so a wrong value here distorts the
+        // transmitted LoRa symbols -> the peer demodulates bit errors and every frame
+        // fails CRC. Re-assert it before SetTx so the transmitted waveform carries the
+        // same §15.1 fix the RX side has, closing the runtime TX-vs-RX divergence.
+        if (lora_cfg_valid_)
+        {
+            (void)fix_rx_sensitivity_locked(lora_bw_khz_);
         }
         const uint16_t tx_preamble = lora_cfg_valid_ && lora_preamble_ > 0 ? lora_preamble_ : 16;
         const uint8_t lo[6] = {
@@ -1628,6 +1794,35 @@ int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
             kLoRaIqStandard,
         };
         ok = ok && write_command_locked(kCmdSetPacketParams, lo, sizeof(lo), true);
+        std::memcpy(last_pkt_bytes_, lo, sizeof(lo));
+        have_last_pkt_ = true;
+        if (ok && tx_rdbk_count_ < 3)
+        {
+            // MANDATORY DIAGNOSTIC (TX side): same fields as the RX 'rdbk' line so
+            // the two can be diffed for an on-air TX-vs-RX divergence. Read the
+            // IQ/sensitivity/sync registers back over SPI right before SetTx.
+            uint8_t iq_rb = 0, sens_rb = 0, sync_rb[2] = {0};
+            (void)read_register_locked(kRegIqConfig, &iq_rb, 1);
+            (void)read_register_locked(kRegSensitivityConfig, &sens_rb, 1);
+            (void)read_register_locked(kRegLoraSyncWordMsb, sync_rb, sizeof(sync_rb));
+            printf("idf-mc: rdbk side=TX mod=%02X%02X%02X%02X pkt=%02X%02X%02X%02X%02X%02X "
+                   "iq=0x%02X sens=0x%02X sync=%02X%02X len=%u\n",
+                   static_cast<unsigned>(last_mod_bytes_[0]), static_cast<unsigned>(last_mod_bytes_[1]),
+                   static_cast<unsigned>(last_mod_bytes_[2]), static_cast<unsigned>(last_mod_bytes_[3]),
+                   static_cast<unsigned>(lo[0]), static_cast<unsigned>(lo[1]), static_cast<unsigned>(lo[2]),
+                   static_cast<unsigned>(lo[3]), static_cast<unsigned>(lo[4]), static_cast<unsigned>(lo[5]),
+                   static_cast<unsigned>(iq_rb), static_cast<unsigned>(sens_rb),
+                   sync_rb[0], sync_rb[1], static_cast<unsigned>(size));
+            // First TX payload bytes, to compare on-air against the peer's rxbytes.
+            if (data && size >= 16)
+            {
+                printf("idf-mc: txbytes %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X "
+                       "%02X %02X %02X %02X\n",
+                       data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
+                       data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+            }
+            ++tx_rdbk_count_;
+        }
     }
     else
     {
@@ -1723,6 +1918,24 @@ int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
         ok = tx_done;
     }
 
+    // Clean TX->RX hand-off. After TxDone the chip auto-falls back to STDBY_RC, but
+    // command an explicit standby and let the PA/antenna path settle before the
+    // adapter re-arms RX. Without the settle, SetRx fires while this unit's OWN
+    // just-transmitted burst is still decaying on the shared antenna, and the demod
+    // completes a bogus self-reception (RxDone+CrcErr) reading the stale TX FIFO --
+    // observed as 'rxbytes == own txbytes' immediately after every advert, polluting
+    // the RX path with phantom frames instead of the peer's. A brief standby+settle
+    // lets the residual die so the next RX arm starts clean and only real peer frames
+    // trigger RxDone. NOTE: TxDone is intentionally LEFT LATCHED (only RX-terminal
+    // bits are cleared) so the adapter's airtime-bounded TxDone poll still observes a
+    // genuine completion -- clearing TxDone here would make it log done=0.
+    {
+        const uint8_t standby_mode = kStandbyRc;
+        (void)write_command_locked(kCmdSetStandby, &standby_mode, 1, true);
+        clear_irq_locked(kIrqRxDone | kIrqCrcErr | kIrqHeaderErr | kIrqTimeout);
+        vTaskDelay(pdMS_TO_TICKS(8));
+    }
+
     give_mutex(mutex_);
     return ok ? 0 : -1;
 }
@@ -1753,7 +1966,7 @@ void Sx126xRadio::clearIrqFlags(uint32_t flags)
     give_mutex(mutex_);
 }
 
-bool Sx126xRadio::pollRxLadder(uint16_t irq, RxLadderCounts* out)
+bool Sx126xRadio::pollRxLadder(uint16_t irq, RxLadderCounts* out, bool deep)
 {
     if (!take_mutex(mutex_))
     {
@@ -1777,22 +1990,27 @@ bool Sx126xRadio::pollRxLadder(uint16_t irq, RxLadderCounts* out)
         rxladder_irq_seen_ |= irq;
     }
 
-    const uint8_t status = read_chip_status_locked();
-    const unsigned mode = (status >> 4) & 0x07;
-
-    // Count, at full poll rate, how many polls observed the chip NOT in RX
-    // (mode != 0x5). If the chip silently falls out of continuous RX between the
-    // 1 Hz snapshots, notrx climbs even while the throttled line catches mode=5.
+    // ROOT-CAUSE FIX: only the throttled (deep) poll touches the chip over SPI. The
+    // fast 30 ms poll does ZERO SPI here so it cannot disturb an in-flight reception
+    // (deterministic 30 ms-spaced GetStatus/GetRssiInst/GetDeviceErrors bursts were
+    // corrupting the LoRa data symbols -> RxDone with a garbage explicit header).
+    unsigned mode = rxladder_last_mode_;
     ++rxladder_polls_;
-    if (mode != 0x5)
+    if (deep)
     {
-        ++rxladder_notrx_polls_;
-    }
+        const uint8_t status = read_chip_status_locked();
+        mode = (status >> 4) & 0x07;
+        rxladder_last_mode_ = mode;
 
-    // Device-error register (GetDeviceErrors): a chip in mode=RX that cannot
-    // demodulate usually has a latched PLL/XOSC/IMG error -- the decisive "in RX but
-    // deaf" signal. OR into the cumulative value so a transient latch is not missed.
-    {
+        // Count how many deep polls observed the chip NOT in RX (mode != 0x5).
+        if (mode != 0x5)
+        {
+            ++rxladder_notrx_polls_;
+        }
+
+        // Device-error register (GetDeviceErrors): a chip in mode=RX that cannot
+        // demodulate usually has a latched PLL/XOSC/IMG error. OR into the cumulative
+        // value so a transient latch is not missed.
         uint8_t dev_err[2] = {0};
         if (read_command_locked(kCmdGetDeviceErrors, nullptr, 0, dev_err, sizeof(dev_err), true))
         {
@@ -1802,21 +2020,18 @@ bool Sx126xRadio::pollRxLadder(uint16_t irq, RxLadderCounts* out)
                 rxladder_dev_errors_ |= errs;
             }
         }
-    }
 
-    // Peak VALID instantaneous RSSI (mode-5 only, ignoring raw==0 glitch reads).
-    // A peer transmit lifts this well above the noise floor; if it never rises, RF
-    // is not reaching the demod -- if it rises but preamble/rxdone stay flat, the
-    // demod hears energy it cannot correlate.
-    if (mode == 0x5)
-    {
-        uint8_t rssi_raw = 0;
-        if (read_command_locked(kCmdGetRssiInst, nullptr, 0, &rssi_raw, 1, true) && rssi_raw != 0)
+        // Peak VALID instantaneous RSSI (mode-5 only, ignoring raw==0 glitch reads).
+        if (mode == 0x5)
         {
-            const float rssi_dbm = static_cast<float>(rssi_raw) / -2.0f;
-            if (rssi_dbm > rxladder_peak_rssi_)
+            uint8_t rssi_raw = 0;
+            if (read_command_locked(kCmdGetRssiInst, nullptr, 0, &rssi_raw, 1, true) && rssi_raw != 0)
             {
-                rxladder_peak_rssi_ = rssi_dbm;
+                const float rssi_dbm = static_cast<float>(rssi_raw) / -2.0f;
+                if (rssi_dbm > rxladder_peak_rssi_)
+                {
+                    rxladder_peak_rssi_ = rssi_dbm;
+                }
             }
         }
     }
@@ -1868,6 +2083,81 @@ bool Sx126xRadio::pollRxLadder(uint16_t irq, RxLadderCounts* out)
     }
     give_mutex(mutex_);
     return true;
+}
+
+void Sx126xRadio::logRxDecodeDiag()
+{
+    if (rxdec_count_ >= 6)
+    {
+        return;
+    }
+    if (!take_mutex(mutex_))
+    {
+        return;
+    }
+    uint8_t cr_reg = 0;
+    (void)read_register_locked(kRegLoraRxCodingRate, &cr_reg, 1);
+    // Frequency-error registers 0x076B..0x076D (RadioLib getFrequencyError): the
+    // measured carrier offset of the just-received frame. A large CFO would explain
+    // a header that demodulates to garbage while the preamble still locks (RxDone).
+    uint8_t efe[3] = {0};
+    (void)read_register_locked(kRegFreqErrorRxCrc, &efe[0], 1);
+    (void)read_register_locked(static_cast<uint16_t>(kRegFreqErrorRxCrc + 1), &efe[1], 1);
+    (void)read_register_locked(static_cast<uint16_t>(kRegFreqErrorRxCrc + 2), &efe[2], 1);
+    const uint8_t crc_reg = efe[0];
+    uint32_t efe_raw = (static_cast<uint32_t>(efe[0]) << 16) |
+                       (static_cast<uint32_t>(efe[1]) << 8) | efe[2];
+    efe_raw &= 0x0FFFFFu;
+    float cfo_hz = 0.0f;
+    const float bwk = (lora_bw_khz_ > 0.1f) ? lora_bw_khz_ : 62.5f;
+    if (efe_raw & 0x80000u)
+    {
+        efe_raw |= 0xFFF00000u;
+        const uint32_t mag = ~efe_raw + 1u;
+        cfo_hz = 1.55f * static_cast<float>(mag) / (1600.0f / bwk) * -1.0f * 1000.0f;
+    }
+    else
+    {
+        cfo_hz = 1.55f * static_cast<float>(efe_raw) / (1600.0f / bwk) * 1000.0f;
+    }
+    uint8_t bufstat[2] = {0};
+    (void)read_command_locked(kCmdGetRxBufferStatus, nullptr, 0, bufstat, sizeof(bufstat), true);
+    uint16_t irq = 0;
+    {
+        uint8_t irqb[2] = {0};
+        if (read_command_locked(kCmdGetIrqStatus, nullptr, 0, irqb, sizeof(irqb), true))
+        {
+            irq = (static_cast<uint16_t>(irqb[0]) << 8) | irqb[1];
+        }
+    }
+    // Decoded coding rate = bits 6:4 of 0x0749 (1=4/5,2=4/6,3=4/7,4=4/8). Received
+    // CRC-present = bit 4 of 0x076B. These come straight from the demodulated
+    // header, so they reveal whether the explicit header decoded sanely.
+    const unsigned decoded_cr = static_cast<unsigned>((cr_reg >> 4) & 0x07);
+    const unsigned hdr_crc_on = static_cast<unsigned>((crc_reg >> 4) & 0x01);
+    printf("idf-mc: rxdec rawcr=0x%02X cr=%u rawcrc=0x%02X crcon=%u rxlen=%u rxoff=%u cfo=%.0fHz irq=0x%04X\n",
+           static_cast<unsigned>(cr_reg), decoded_cr,
+           static_cast<unsigned>(crc_reg), hdr_crc_on,
+           static_cast<unsigned>(bufstat[0]), static_cast<unsigned>(bufstat[1]),
+           static_cast<double>(cfo_hz),
+           static_cast<unsigned>(irq));
+    // Dump the first bytes of what actually landed in the RX buffer. A real MeshCore
+    // advert starts with a route/header byte then a 0x04 (advert) payload type and a
+    // 32-byte pubkey; if these bytes resemble that (with bit errors) it is a PHY/demod
+    // corruption, if they are pure noise the receiver locked onto something else.
+    {
+        const uint8_t offset = bufstat[1];
+        uint8_t buf[24] = {0};
+        if (read_command_locked(kCmdReadBuffer, &offset, 1, buf, sizeof(buf), true))
+        {
+            printf("idf-mc: rxbytes %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X "
+                   "%02X %02X %02X %02X\n",
+                   buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],
+                   buf[8], buf[9], buf[10], buf[11], buf[12], buf[13], buf[14], buf[15]);
+        }
+    }
+    ++rxdec_count_;
+    give_mutex(mutex_);
 }
 
 int Sx126xRadio::getPacketLength(bool update)
