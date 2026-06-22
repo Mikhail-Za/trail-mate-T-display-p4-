@@ -12,7 +12,10 @@
 #include "ui/widgets/ime/pinyin_ime.h"
 
 #ifndef UI_SHARED_TOUCH_IME_ENABLED
-#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+// Touch IME builds on the large-touch boards: the M5Stack Tab5 and the
+// LilyGO T-Display P4 (keyboard-less touchscreen), which selects the Tab5
+// touch profile at runtime.
+#if defined(TRAIL_MATE_ESP_BOARD_TAB5) || defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
 #define UI_SHARED_TOUCH_IME_ENABLED 1
 #else
 #define UI_SHARED_TOUCH_IME_ENABLED 0

@@ -13,6 +13,7 @@
 #include "ui/ui_common.h"
 #include "ui/ui_status.h"
 #include "ui/watch_face.h"
+#include "ui/widgets/keyboard_button.h"
 #include "ui/widgets/system_notification.h"
 #include "ui_lvgl_ux_packs/ux/ux_menu_provider.h"
 
@@ -161,6 +162,11 @@ void initializeShell(const Hooks& hooks)
         menu_options.ux_menu = &s_ux_menu_model;
     }
     ui::menu_layout::init(menu_options);
+
+    // Global on-screen-keyboard launcher: a bottom-right button on the top layer
+    // that survives tileview navigation and opens the shared IME for whatever
+    // textarea is focused (chat, WiFi password, username, contact name).
+    ui::KeyboardButton::init();
 
     ui::menu_runtime::init(
         lv_screen_active(), main_screen, ui::menu_layout::menuPanel(), buildMenuRuntimeHooks(hooks));

@@ -489,6 +489,7 @@ set(TRAILMATE_ESP_IDF_UI_SHARED_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/presentation_sources/runtime_gps_status_source.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/runtime/memory_profile.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/system_notification.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/keyboard_button.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/Setting.c"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/Chat.c"
     # Team position-marker icon descriptors (lv_image_dsc_t) referenced as extern
