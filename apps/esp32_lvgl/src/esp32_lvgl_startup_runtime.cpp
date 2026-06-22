@@ -214,12 +214,11 @@ void runEsp32LvglStartupRuntime(const Esp32LvglRuntimeConfig& config)
         {
             auto& mc = s_chat_facade.getConfig().meshcore_config;
             mc.meshcore_region_preset = 15;
-            // TEMP (Goalkeeper TX-completion grind): use a frequency OFF the MeshCore
-            // public channel (910.525) so the autonomous, repeated TX testing never
-            // transmits on the shared channel. TxDone is frequency-independent, so the
-            // transmit fix validates identically here. Revert to 910.525f for the
-            // on-air interop test with Unit B (and re-confirm meshcore_region_preset).
-            mc.meshcore_freq_mhz = 909.0f;
+            // USA/Canada MeshCore public channel (matches region preset #15 above). This is
+            // the shared on-air channel Unit B / MeshOS use, so the units interoperate. (A
+            // temporary 909.0f off-channel override was used during the autonomous TX grind
+            // to avoid the shared channel; reverted now that the build/RX/toggle work is done.)
+            mc.meshcore_freq_mhz = 910.525f;
             mc.meshcore_bw_khz = 62.5f;
             mc.meshcore_sf = 7;
             mc.meshcore_cr = 5;
