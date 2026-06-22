@@ -13,6 +13,7 @@
 #include "app/app_facade_access.h"
 #include "board/BoardBase.h"
 #include "chat/domain/chat_types.h"
+#include "chat/domain/mesh_protocol_select.h"
 #include "chat/infra/mesh_protocol_utils.h"
 #include "chat/infra/meshcore/mc_region_presets.h"
 #include "chat/infra/meshtastic/mt_region.h"
@@ -972,7 +973,15 @@ static void settings_load()
     ESP_LOGI(kLogTag, "settings_load begin");
 #endif
     app::IAppFacade& app_ctx = app::appFacade();
-    g_settings.chat_protocol = static_cast<int>(app_ctx.getConfig().mesh_protocol);
+    // Initialize the Protocol display value from the persisted store (decoded through the
+    // shared helper) so the UI reflects exactly what the next boot will select. Default to
+    // the currently-active protocol when the key is absent; any unsupported/invalid stored
+    // value decodes to MeshCore.
+    const int stored_protocol = prefs_get_int_ns(
+        chat::kMeshProtocolNs, chat::kMeshProtocolKey,
+        chat::meshProtocolToSettingValue(app_ctx.getConfig().mesh_protocol));
+    g_settings.chat_protocol =
+        static_cast<int>(chat::meshProtocolFromSettingValue(stored_protocol));
 
     if (kChatRegionOptionCount == 0)
     {
@@ -1772,20 +1781,21 @@ static void on_option_clicked(lv_event_t* e)
     }
     if (payload->item->pref_key && strcmp(payload->item->pref_key, "mesh_protocol") == 0)
     {
+        // Persist the chosen protocol to the shared NVS key, encoded through the single
+        // source of truth (mesh_protocol_select.h) so the boot-time read decodes the exact
+        // same namespace/key/value. This is done UNCONDITIONALLY -- the protocol switch
+        // takes effect on the next boot (the factory reads config.mesh_protocol at startup),
+        // so it must not be gated on the in-session switchMeshProtocol(), which on this
+        // target is an inert no-op that only accepts a switch to the already-active protocol.
+        const chat::MeshProtocol chosen = static_cast<chat::MeshProtocol>(payload->value);
+        prefs_put_int_ns(chat::kMeshProtocolNs, chat::kMeshProtocolKey,
+                         chat::meshProtocolToSettingValue(chosen));
+        // Best-effort in-session apply (no-op on this target); the persisted value above is
+        // what actually drives the protocol selection on reboot.
         app::IAppFacade& app_ctx = app::appFacade();
-        chat::MeshProtocol target = static_cast<chat::MeshProtocol>(payload->value);
-        if (!app_ctx.switchMeshProtocol(target, true))
-        {
-            *payload->item->enum_value = previous_value;
-            update_item_value(*payload->widget);
-            ::ui::SystemNotification::show(::ui::i18n::tr("Protocol switch failed"), 3000);
-        }
-        else
-        {
-            rebuild_list = true;
-            ::ui::SystemNotification::show(::ui::i18n::tr("Protocol switched"), 2000);
-            restart_now = true;
-        }
+        (void)app_ctx.switchMeshProtocol(chosen, true);
+        ::ui::SystemNotification::show(::ui::i18n::tr("Protocol switched"), 2000);
+        restart_now = true;
     }
     if (payload->item->pref_key && strcmp(payload->item->pref_key, "chat_region") == 0)
     {

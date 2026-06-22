@@ -7,6 +7,7 @@
 #include "app/app_config.h"
 #include "app/app_facade_access.h"
 #include "board/BoardBase.h"
+#include "chat/domain/mesh_protocol_select.h"
 #include "esp_log.h"
 #include "platform/esp/boards/board_runtime.h"
 #include "platform/esp/idf_common/bsp_runtime.h"
@@ -184,11 +185,21 @@ void runEsp32LvglStartupRuntime(const Esp32LvglRuntimeConfig& config)
     {
         static platform::esp::idf_common::IdfChatFacade s_chat_facade(*board_handles.lora_board,
                                                                       board_handles.board);
-        // Protocol (Phase 2, boot-time selection): default the IDF firmware to MeshCore.
-        // The factory branches on mesh_protocol to construct the MeshCoreAdapter, and
-        // activeMeshConfig() then returns the MeshCore config. The facade ctor explicitly
-        // permits overwriting getConfig() before initialize().
-        s_chat_facade.getConfig().mesh_protocol = chat::MeshProtocol::MeshCore;
+        // Protocol (Phase 2, boot-time selection): read the persisted selection from the
+        // shared "settings" NVS namespace and decode it through the single source of truth
+        // (mesh_protocol_select.h), the same helper the Settings UI uses to persist. Default
+        // and any unsupported/invalid stored value resolve to MeshCore. The factory branches
+        // on mesh_protocol to construct the matching adapter, and activeMeshConfig() then
+        // returns the matching mesh config. The facade ctor explicitly permits overwriting
+        // getConfig() before initialize().
+        const int stored_protocol = platform::ui::settings_store::get_int(
+            chat::kMeshProtocolNs, chat::kMeshProtocolKey,
+            chat::meshProtocolToSettingValue(chat::MeshProtocol::MeshCore));
+        const chat::MeshProtocol active_protocol =
+            chat::meshProtocolFromSettingValue(stored_protocol);
+        s_chat_facade.getConfig().mesh_protocol = active_protocol;
+        ESP_LOGI(config.log_tag, "active protocol=%s",
+                 active_protocol == chat::MeshProtocol::Meshtastic ? "meshtastic" : "meshcore");
         // Region: the default AppConfig seeds CN (region code 4); this is a US board, so set
         // US (1) before initialize() applies the radio config. The facade ctor explicitly
         // permits overwriting getConfig() before initialize(); region is a uint8 Meshtastic code.
