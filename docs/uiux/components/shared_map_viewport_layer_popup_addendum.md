@@ -1,6 +1,6 @@
 # Shared Map Viewport Layer Popup Addendum
 
-本文件是 [shared_map_viewport.md](C:/Users/VicLi/Documents/Projects/trail-mate/docs/uiux/components/shared_map_viewport.md) 与 [shared_map_viewport_impl.md](C:/Users/VicLi/Documents/Projects/trail-mate/docs/uiux/components/shared_map_viewport_impl.md) 的最小增补，用于把图层弹窗里的“文案所有权”与“页面壳层职责”彻底切开。
+本文件是 [shared_map_viewport.md](shared_map_viewport.md) 与 [shared_map_viewport_impl.md](shared_map_viewport_impl.md) 的最小增补，用于把图层弹窗里的“文案所有权”与“页面壳层职责”彻底切开。
 
 ## 1. Distinction
 

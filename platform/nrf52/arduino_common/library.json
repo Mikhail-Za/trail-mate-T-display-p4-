@@ -24,14 +24,14 @@
       "-I../../../variants/gat562_mesh_evb_pro",
       "-I../../../.pio/libdeps/gat562_mesh_evb_pro/RadioLib/src",
       "-I../../../.pio/libdeps/gat562_mesh_evb_pro/TinyGPSPlus/src",
-      "-IC:/Users/VicLi/.platformio/packages/framework-arduinoadafruitnrf52/libraries/SPI",
-      "-IC:/Users/VicLi/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Wire",
-      "-IC:/Users/VicLi/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Bluefruit52Lib/src",
-      "-IC:/Users/VicLi/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Bluefruit52Lib/src/services",
-      "-IC:/Users/VicLi/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Adafruit_TinyUSB_Arduino/src",
-      "-IC:/Users/VicLi/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Adafruit_nRFCrypto/src",
-      "-IC:/Users/VicLi/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Adafruit_LittleFS/src",
-      "-IC:/Users/VicLi/.platformio/packages/framework-arduinoadafruitnrf52/libraries/InternalFileSytem/src"
+      "-IC:/Users/user/.platformio/packages/framework-arduinoadafruitnrf52/libraries/SPI",
+      "-IC:/Users/user/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Wire",
+      "-IC:/Users/user/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Bluefruit52Lib/src",
+      "-IC:/Users/user/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Bluefruit52Lib/src/services",
+      "-IC:/Users/user/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Adafruit_TinyUSB_Arduino/src",
+      "-IC:/Users/user/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Adafruit_nRFCrypto/src",
+      "-IC:/Users/user/.platformio/packages/framework-arduinoadafruitnrf52/libraries/Adafruit_LittleFS/src",
+      "-IC:/Users/user/.platformio/packages/framework-arduinoadafruitnrf52/libraries/InternalFileSytem/src"
     ]
   },
   "dependencies": [

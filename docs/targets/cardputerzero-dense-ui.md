@@ -98,12 +98,12 @@ ctest --preset linux-cardputer-zero-debug-test
 After visible page changes, regenerate Cardputer Zero screenshots:
 
 ```bash
-cd /mnt/c/Users/VicLi/Documents/Projects/trail-mate
+cd /path/to/trail-mate
 rm -f docs/images/cardputerzero/screenshots/*.png
 for target in dashboard chat contacts map sky_plot team tracker walkie extensions settings; do
   timeout 40s env TRAIL_MATE_LORA_DISABLE=1 \
     builds/linux_cmake/build/linux-cardputer-zero-debug/apps/linux_cardputer_zero/trailmate_linux_cardputer_zero_screenshot_capture \
-    /mnt/c/Users/VicLi/Documents/Projects/trail-mate/docs/images/cardputerzero/screenshots \
+    /path/to/trail-mate/docs/images/cardputerzero/screenshots \
     "$target" || exit $?
 done
 ```
@@ -124,9 +124,9 @@ $targets = @(
   'extensions',
   'settings'
 )
-wsl bash -lc 'cd /mnt/c/Users/VicLi/Documents/Projects/trail-mate && rm -f docs/images/cardputerzero/screenshots/*.png'
+wsl bash -lc 'cd /path/to/trail-mate && rm -f docs/images/cardputerzero/screenshots/*.png'
 foreach ($target in $targets) {
-  wsl bash -lc "cd /mnt/c/Users/VicLi/Documents/Projects/trail-mate && timeout 40s env TRAIL_MATE_LORA_DISABLE=1 builds/linux_cmake/build/linux-cardputer-zero-debug/apps/linux_cardputer_zero/trailmate_linux_cardputer_zero_screenshot_capture /mnt/c/Users/VicLi/Documents/Projects/trail-mate/docs/images/cardputerzero/screenshots $target"
+  wsl bash -lc "cd /path/to/trail-mate && timeout 40s env TRAIL_MATE_LORA_DISABLE=1 builds/linux_cmake/build/linux-cardputer-zero-debug/apps/linux_cardputer_zero/trailmate_linux_cardputer_zero_screenshot_capture /path/to/trail-mate/docs/images/cardputerzero/screenshots $target"
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 ```

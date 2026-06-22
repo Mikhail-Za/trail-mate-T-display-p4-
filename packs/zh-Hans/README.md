@@ -96,7 +96,7 @@ python tools/generate_binfont_with_lv_font_conv.py `
   --output packs/zh-Hans/fonts/zh-hans-core/font.bin `
   --size 16 `
   --bpp 2 `
-  --node-exe C:\Users\VicLi\AppData\Local\nodejs22\current\node.exe `
+  --node-exe node `
   --no-compress
 ```
 
@@ -109,7 +109,7 @@ python tools/generate_binfont_with_lv_font_conv.py `
   --output packs/zh-Hans/fonts/zh-hans-ext/font.bin `
   --size 16 `
   --bpp 2 `
-  --node-exe C:\Users\VicLi\AppData\Local\nodejs22\current\node.exe `
+  --node-exe node `
   --no-compress
 ```
 

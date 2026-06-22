@@ -50,7 +50,7 @@ python tools/generate_binfont_with_lv_font_conv.py `
   --output packs/ja/fonts/ja-cjk/font.bin `
   --size 16 `
   --bpp 2 `
-  --node-exe C:\Users\VicLi\AppData\Local\nodejs22\current\node.exe `
+  --node-exe node `
   --no-compress
 ```
 

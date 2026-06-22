@@ -1,6 +1,6 @@
 # Node Info Layer Popup Addendum
 
-本文件是 [node_info_page.md](C:/Users/VicLi/Documents/Projects/trail-mate/docs/uiux/pages/node_info_page.md) 的增补约束，只收敛 `Node Info` 页中的图层弹窗，不重新定义整页布局。
+本文件是 [node_info_page.md](node_info_page.md) 的增补约束，只收敛 `Node Info` 页中的图层弹窗，不重新定义整页布局。
 
 ## 1. Scope
 

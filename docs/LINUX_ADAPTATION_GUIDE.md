@@ -1413,13 +1413,13 @@ cmake --build --preset linux-uconsole-deb
 Windows/WSL simulator:
 
 ```powershell
-wsl.exe --exec bash -lc 'cd /mnt/c/Users/VicLi/Documents/Projects/trail-mate/builds/linux_cmake && cmake --preset linux-simulator-debug && cmake --build --preset linux-simulator-debug-build && ctest --preset linux-simulator-debug-test'
+wsl.exe --exec bash -lc 'cd /path/to/trail-mate/builds/linux_cmake && cmake --preset linux-simulator-debug && cmake --build --preset linux-simulator-debug-build && ctest --preset linux-simulator-debug-test'
 ```
 
 Windows/WSL uConsole:
 
 ```powershell
-wsl.exe --exec bash -lc 'cd /mnt/c/Users/VicLi/Documents/Projects/trail-mate/builds/linux_cmake && cmake --preset linux-uconsole-debug && cmake --build --preset linux-uconsole-debug-build && ctest --preset linux-uconsole-debug-test'
+wsl.exe --exec bash -lc 'cd /path/to/trail-mate/builds/linux_cmake && cmake --preset linux-uconsole-debug && cmake --build --preset linux-uconsole-debug-build && ctest --preset linux-uconsole-debug-test'
 ```
 
 SDK device:
