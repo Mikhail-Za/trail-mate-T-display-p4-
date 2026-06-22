@@ -24,6 +24,7 @@
 #include "board/LoraBoard.h"
 #include "chat/usecase/chat_service.h"
 #include "chat/usecase/contact_service.h"
+#include "platform/esp/boards/board_runtime.h"
 #include "sys/event_bus.h"
 #include "ui/chat_ui_runtime.h"
 
@@ -131,6 +132,17 @@ bool IdfChatFacade::initialize()
     {
         return true;
     }
+
+    // Create the global EventBus queue BEFORE the chat runtime/bridge is built.
+    // On Arduino this happens in app_context.cpp; the IDF startup path never did
+    // it, so the queue stayed nullptr and every ChatNewMessageEvent the bridge
+    // published was dropped (EventBus::publish frees the event and returns false
+    // when queue_ == nullptr). That broke live refresh of an open chat thread on
+    // received messages and delivery receipts. init() is idempotent (returns true
+    // if the queue already exists), so a repeat call is harmless. Same global
+    // sys::EventBus the ChatEventBusBridge publishes to and pumpMeshAndDrainEvents
+    // drains.
+    ::sys::EventBus::init(32U);
 
     runtime_ = createIdfChatRuntime(config_, lora_board_);
     if (!runtime_.isValid())
@@ -514,9 +526,33 @@ void IdfChatFacade::pumpMeshAndDrainEvents(std::size_t max_events)
         // UI feed for chat-relevant events (ChatNewMessage, ChatSendResult,
         // channel/unread changes, key-verification). onChatEvent() consumes the
         // event; if no UI runtime is attached we own it and must free it.
+        //
+        // Thread safety: onChatEvent() reaches into LVGL (reloadConversationView)
+        // and the LVGL render task runs separately, so this single UI feed must be
+        // serialized against it via the display lock. The lock wraps ONLY this
+        // call, never the radio pump (processSendQueue) above or the non-UI node
+        // events (which already continued out of the loop). Use a bounded timeout;
+        // if the lock cannot be taken, defer this event (the message is already in
+        // the store, so the next pump tick retries the UI feed) rather than calling
+        // LVGL unlocked.
         if (chat_ui_runtime_ != nullptr)
         {
-            chat_ui_runtime_->onChatEvent(event);
+            constexpr uint32_t kUiLockTimeoutMs = 150U;
+            if (::platform::esp::boards::lockDisplay(kUiLockTimeoutMs))
+            {
+                chat_ui_runtime_->onChatEvent(event);
+                ::platform::esp::boards::unlockDisplay();
+            }
+            else
+            {
+                // Lock contended: hand the event back to the bus and stop draining
+                // for this tick. The next updateCoreServices() tick retries the UI
+                // feed instead of busy-spinning here against a still-held lock. If
+                // the queue is full, publish frees the event (last-resort drop; the
+                // message is already in the store, so re-entry still shows it).
+                ::sys::EventBus::publish(event, 0U);
+                break;
+            }
         }
         else
         {
