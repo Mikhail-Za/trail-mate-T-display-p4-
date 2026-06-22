@@ -21,6 +21,7 @@
 #include "ui/localization.h"
 #include "ui/page/page_profile.h"
 #include "ui/presentation_sources/team_chat_presentation_source.h"
+#include "ui/screens/chat/chat_broadcast_targets.h"
 #include "ui/screens/chat/chat_compose_components.h"
 #include "ui/screens/chat/chat_conversation_components.h"
 #include "ui/screens/chat/chat_page_shell.h"
@@ -125,7 +126,9 @@ static void on_action_menu_key(lv_event_t* e);
 static lv_obj_t* create_action_menu_button(lv_obj_t* parent, const char* text);
 static const chat::contacts::NodeInfo* get_selected_node();
 static const chat::contacts::NodeInfo* find_node_by_id(uint32_t node_id);
-struct BroadcastTargetSpec;
+// Broadcast target enumeration is shared with the Chat new-message picker; see
+// ui/screens/chat/chat_broadcast_targets.h (single source of truth).
+using BroadcastTargetSpec = chat::ui::broadcast_targets::TargetSpec;
 static bool get_selected_broadcast_target(BroadcastTargetSpec* out_spec,
                                           std::string* out_title);
 static void open_add_edit_modal(bool is_edit);
@@ -336,15 +339,6 @@ static bool node_protocol_to_mesh(chat::contacts::NodeProtocolType protocol, cha
     }
 }
 
-struct BroadcastTargetSpec
-{
-    chat::MeshProtocol protocol = chat::MeshProtocol::Meshtastic;
-    chat::ChannelId channel = chat::ChannelId::PRIMARY;
-    uint8_t channel_index = 0;
-    bool enabled = false;
-    bool chat_supported = false;
-};
-
 enum class DiscoveryActionCommand : uint8_t
 {
     ScanLocal = 0,
@@ -382,91 +376,17 @@ static const char* broadcast_chat_unavailable_message(const BroadcastTargetSpec&
 
 static size_t get_broadcast_target_count()
 {
-    switch (chat_support::active_mesh_protocol())
-    {
-    case chat::MeshProtocol::Meshtastic:
-        return 8U;
-    case chat::MeshProtocol::MeshCore:
-        return 2U;
-    case chat::MeshProtocol::RNode:
-        return 1U;
-    default:
-        return 0U;
-    }
+    return chat::ui::broadcast_targets::count();
 }
 
 static bool get_broadcast_target_spec(int index, BroadcastTargetSpec* out)
 {
-    if (!out || index < 0)
-    {
-        return false;
-    }
-
-    if (chat_support::active_mesh_protocol() == chat::MeshProtocol::Meshtastic)
-    {
-        if (index >= 8)
-        {
-            return false;
-        }
-
-        const auto& cfg = app::appFacade().getConfig();
-        out->protocol = chat::MeshProtocol::Meshtastic;
-        out->channel_index = static_cast<uint8_t>(index);
-        out->channel = (index == 1) ? chat::ChannelId::SECONDARY : chat::ChannelId::PRIMARY;
-        out->enabled = (index == 0) ? cfg.primary_enabled : ((index == 1) ? cfg.secondary_enabled : false);
-        out->chat_supported = out->enabled && (index <= 1);
-        return true;
-    }
-
-    if (chat_support::active_mesh_protocol() == chat::MeshProtocol::RNode)
-    {
-        if (index != 0)
-        {
-            return false;
-        }
-        out->protocol = chat::MeshProtocol::RNode;
-        out->channel = chat::ChannelId::PRIMARY;
-        out->channel_index = 0;
-        out->enabled = true;
-        out->chat_supported = false;
-        return true;
-    }
-
-    switch (index)
-    {
-    case 0:
-        out->protocol = chat::MeshProtocol::MeshCore;
-        out->channel = chat::ChannelId::PRIMARY;
-        out->channel_index = 0;
-        out->enabled = true;
-        out->chat_supported = true;
-        return true;
-    case 1:
-        out->protocol = chat::MeshProtocol::MeshCore;
-        out->channel = chat::ChannelId::SECONDARY;
-        out->channel_index = 1;
-        out->enabled = true;
-        out->chat_supported = true;
-        return true;
-    default:
-        return false;
-    }
+    return chat::ui::broadcast_targets::spec(index, out);
 }
 
 static std::string format_broadcast_target_label(const BroadcastTargetSpec& spec)
 {
-    if (spec.protocol == chat::MeshProtocol::Meshtastic)
-    {
-        return std::string("[MT] ") +
-               chat::meshtastic::channelName(app::appFacade().getConfig().meshtastic_config,
-                                             spec.channel);
-    }
-    if (spec.protocol == chat::MeshProtocol::RNode)
-    {
-        return std::string("[RN] ") + ::ui::i18n::tr("Modem Bridge");
-    }
-    return std::string("[MC] ") +
-           ::ui::i18n::tr((spec.channel == chat::ChannelId::SECONDARY) ? "Secondary" : "Primary");
+    return chat::ui::broadcast_targets::label(spec);
 }
 
 static std::string format_broadcast_target_status(const BroadcastTargetSpec& spec)

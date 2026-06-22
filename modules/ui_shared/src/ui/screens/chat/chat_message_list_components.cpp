@@ -10,6 +10,7 @@
 #include "ui/assets/fonts/font_utils.h"
 #include "ui/components/info_card.h"
 #include "ui/localization.h"
+#include "ui/page/page_profile.h"
 #include "ui/screens/chat/chat_message_list_input.h"
 #include "ui/screens/chat/chat_message_list_layout.h"
 #include "ui/screens/chat/chat_message_list_styles.h"
@@ -218,6 +219,7 @@ ChatMessageListScreen::ChatMessageListScreen(lv_obj_t* parent)
       list_panel_(nullptr),
       direct_btn_(nullptr),
       broadcast_btn_(nullptr),
+      new_msg_btn_(nullptr),
       list_back_btn_(nullptr),
       selected_index_(-1),
       filter_mode_(FilterMode::Direct),
@@ -279,6 +281,26 @@ ChatMessageListScreen::ChatMessageListScreen(lv_obj_t* parent)
     if (top_bar_.container)
     {
         lv_obj_move_to_index(top_bar_.container, 0);
+    }
+
+    // ---------- New-message affordance (right side of the top bar) ----------
+    // Lets the user start a fresh broadcast or DM directly from the Chat list
+    // (today a conversation only appears here once it already has a message).
+    if (top_bar_.container)
+    {
+        const lv_coord_t bar_h = lv_obj_get_height(top_bar_.container);
+        const bool large_touch = ::ui::page_profile::current().large_touch_hitbox;
+        const lv_coord_t btn_h = large_touch ? 44 : 22;
+        const lv_coord_t btn_w = large_touch ? 52 : 30;
+        new_msg_btn_ = lv_btn_create(top_bar_.container);
+        lv_obj_set_size(new_msg_btn_, btn_w, btn_h);
+        lv_obj_set_style_radius(new_msg_btn_, large_touch ? 14 : 8, LV_PART_MAIN);
+        lv_obj_add_flag(new_msg_btn_, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(new_msg_btn_, new_message_event_cb, LV_EVENT_CLICKED, this);
+        lv_obj_t* plus_label = lv_label_create(new_msg_btn_);
+        lv_label_set_text(plus_label, LV_SYMBOL_PLUS);
+        lv_obj_center(plus_label);
+        (void)bar_h;
     }
 
     if (container_)
@@ -823,6 +845,18 @@ void ChatMessageListScreen::item_event_cb(lv_event_t* e)
     }
 }
 
+void ChatMessageListScreen::new_message_event_cb(lv_event_t* e)
+{
+    auto* screen =
+        static_cast<ChatMessageListScreen*>(lv_event_get_user_data(e));
+    if (!screen || !screen->guard_ || !screen->guard_->alive)
+    {
+        return;
+    }
+    CHAT_MESSAGE_LIST_LOG("[ChatMessageList] new_message_click\n");
+    screen->schedule_action_async(ActionIntent::NewMessage, chat::ConversationId());
+}
+
 void ChatMessageListScreen::list_back_event_cb(lv_event_t* e)
 {
     auto* screen =
@@ -1094,6 +1128,7 @@ void ChatMessageListScreen::handle_root_deleted()
     list_panel_ = nullptr;
     direct_btn_ = nullptr;
     broadcast_btn_ = nullptr;
+    new_msg_btn_ = nullptr;
     list_back_btn_ = nullptr;
 }
 

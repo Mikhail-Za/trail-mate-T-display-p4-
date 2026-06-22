@@ -15,9 +15,12 @@
 #include "ui/app_runtime.h"
 #include "ui/assets/fonts/font_utils.h"
 #include "ui/localization.h"
+#include "ui/page/page_profile.h"
+#include "ui/screens/chat/chat_broadcast_targets.h"
 #include "ui/screens/chat/chat_protocol_support.h"
 #include "ui/screens/chat/chat_team_workflow.h"
 #include "ui/ui_common.h"
+#include "ui/ui_theme.h"
 #include "ui/widgets/ime/ime_widget.h"
 #include "ui/widgets/system_notification.h"
 #include "ui_lvgl_ux_packs/common/key_verification_modal_renderer.h"
@@ -205,6 +208,11 @@ void handle_message_list_action(chat::ui::ChatMessageListScreen::ActionIntent in
         controller->onChannelClicked(conv);
         return;
     }
+    if (intent == chat::ui::ChatMessageListScreen::ActionIntent::NewMessage)
+    {
+        controller->openNewMessagePicker();
+        return;
+    }
     if (intent == chat::ui::ChatMessageListScreen::ActionIntent::Back)
     {
         controller->exitToMenu();
@@ -269,6 +277,12 @@ UiController::UiController(lv_obj_t* parent,
 
 UiController::~UiController()
 {
+    closeNewMessagePicker(false);
+    if (new_msg_group_)
+    {
+        lv_group_del(new_msg_group_);
+        new_msg_group_ = nullptr;
+    }
     closeTeamPositionPicker(false);
     team_position_picker_.reset();
     closeKeyVerificationModal(false);
@@ -436,6 +450,7 @@ void UiController::showKeyVerification(
 
 void UiController::switchToChannelList()
 {
+    closeNewMessagePicker(true);
     closeTeamPositionPicker(true);
     state_ = State::ChannelList;
     stopTeamConversationTimer();
@@ -475,6 +490,7 @@ void UiController::switchToChannelList()
 
 void UiController::switchToConversation(chat::ConversationId conv)
 {
+    closeNewMessagePicker(true);
     closeTeamPositionPicker(true);
     state_ = State::Conversation;
     current_channel_ = conv.channel;
@@ -596,6 +612,7 @@ void UiController::switchToConversation(chat::ConversationId conv)
 
 void UiController::switchToCompose(chat::ConversationId conv)
 {
+    closeNewMessagePicker(true);
     closeTeamPositionPicker(true);
     const bool is_team_conv = isTeamConversation(conv);
     if (!is_team_conv && conv.protocol != chat_support::active_mesh_protocol())
@@ -1307,6 +1324,307 @@ void UiController::handleConversationAction(ChatConversationScreen::ActionIntent
     }
 }
 
+namespace
+{
+// Sentinels stored on non-actionable picker rows (headings, empty-state). Use
+// values that cannot collide with a valid 0-based index into new_msg_targets_.
+constexpr intptr_t kPickerRowCancel = -1;
+constexpr intptr_t kPickerRowInert = -2;
+
+lv_obj_t* create_picker_overlay(lv_obj_t* parent_screen, int width, int height)
+{
+    lv_obj_t* screen = lv_screen_active();
+    if (!screen)
+    {
+        screen = parent_screen;
+    }
+    const lv_coord_t screen_w = lv_obj_get_width(screen);
+    const lv_coord_t screen_h = lv_obj_get_height(screen);
+
+    lv_obj_t* bg = lv_obj_create(screen);
+    lv_obj_set_size(bg, screen_w, screen_h);
+    lv_obj_set_pos(bg, 0, 0);
+    lv_obj_set_style_bg_color(bg, ::ui::theme::text(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(bg, LV_OPA_50, LV_PART_MAIN);
+    lv_obj_set_style_border_width(bg, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(bg, 0, LV_PART_MAIN);
+    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(bg, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t* win = lv_obj_create(bg);
+    lv_obj_set_size(win, width, height);
+    lv_obj_center(win);
+    lv_obj_set_style_bg_color(win, ::ui::theme::surface(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(win, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_width(win, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_color(win, ::ui::theme::border(), LV_PART_MAIN);
+    lv_obj_set_style_radius(win, 8, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(win, 8, LV_PART_MAIN);
+    lv_obj_clear_flag(win, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_flex_flow(win, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(win, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+    lv_obj_set_style_pad_row(win, 4, LV_PART_MAIN);
+
+    return bg;
+}
+} // namespace
+
+bool UiController::isNewMessagePickerOpen() const
+{
+    return new_msg_modal_ != nullptr;
+}
+
+void UiController::new_message_pick_event_cb(lv_event_t* e)
+{
+    auto* controller = static_cast<UiController*>(lv_event_get_user_data(e));
+    if (!controller)
+    {
+        return;
+    }
+    lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_current_target(e));
+    const intptr_t row = reinterpret_cast<intptr_t>(lv_obj_get_user_data(btn));
+    if (row < 0 ||
+        row >= static_cast<intptr_t>(controller->new_msg_targets_.size()))
+    {
+        return;
+    }
+    const chat::ConversationId conv = controller->new_msg_targets_[row];
+    controller->onNewMessagePicked(conv);
+}
+
+void UiController::new_message_cancel_event_cb(lv_event_t* e)
+{
+    auto* controller = static_cast<UiController*>(lv_event_get_user_data(e));
+    if (!controller)
+    {
+        return;
+    }
+    controller->closeNewMessagePicker(true);
+}
+
+void UiController::new_message_key_event_cb(lv_event_t* e)
+{
+    auto* controller = static_cast<UiController*>(lv_event_get_user_data(e));
+    if (!controller)
+    {
+        return;
+    }
+    const uint32_t key = lv_event_get_key(e);
+    if (key == LV_KEY_ESC || key == LV_KEY_BACKSPACE)
+    {
+        controller->closeNewMessagePicker(true);
+    }
+}
+
+void UiController::openNewMessagePicker()
+{
+    if (isNewMessagePickerOpen() || !parent_)
+    {
+        return;
+    }
+    // The picker only makes sense as a path INTO a conversation; only offer it
+    // from the list screen.
+    if (state_ != State::ChannelList)
+    {
+        return;
+    }
+
+    new_msg_targets_.clear();
+
+    new_msg_prev_group_ = lv_group_get_default();
+    if (!new_msg_group_)
+    {
+        new_msg_group_ = lv_group_create();
+    }
+    lv_group_remove_all_objs(new_msg_group_);
+    set_default_group(new_msg_group_);
+
+    const bool large_touch = ::ui::page_profile::current().large_touch_hitbox;
+    const lv_coord_t row_h = ::ui::page_profile::resolve_control_button_height();
+    new_msg_modal_ = create_picker_overlay(parent_, large_touch ? 260 : 200,
+                                           large_touch ? 320 : 240);
+    lv_obj_t* win = lv_obj_get_child(new_msg_modal_, 0);
+    if (!win)
+    {
+        closeNewMessagePicker(true);
+        return;
+    }
+
+    lv_obj_t* title = lv_label_create(win);
+    ::ui::i18n::set_label_text(title, "New message");
+    lv_obj_set_style_text_color(title, ::ui::theme::text(), LV_PART_MAIN);
+    lv_obj_set_width(title, LV_PCT(100));
+    lv_obj_set_style_text_align(title, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+
+    lv_obj_t* list = lv_obj_create(win);
+    lv_obj_set_width(list, LV_PCT(100));
+    lv_obj_set_height(list, 0);
+    lv_obj_set_flex_grow(list, 1);
+    lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+    lv_obj_set_style_bg_opa(list, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_width(list, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(list, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(list, large_touch ? 6 : 3, LV_PART_MAIN);
+    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_AUTO);
+
+    lv_obj_t* first_focus = nullptr;
+
+    auto add_heading = [&](const char* text)
+    {
+        lv_obj_t* label = lv_label_create(list);
+        ::ui::i18n::set_label_text(label, text);
+        lv_obj_set_style_text_color(label, ::ui::theme::text_muted(), LV_PART_MAIN);
+        lv_obj_set_width(label, LV_PCT(100));
+    };
+
+    auto add_row = [&](const char* text, const chat::ConversationId& conv)
+    {
+        const intptr_t row_index = static_cast<intptr_t>(new_msg_targets_.size());
+        new_msg_targets_.push_back(conv);
+
+        lv_obj_t* btn = lv_btn_create(list);
+        lv_obj_set_size(btn, LV_PCT(100), row_h);
+        lv_obj_set_style_bg_color(btn, ::ui::theme::surface_alt(), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(btn, ::ui::theme::accent(),
+                                  static_cast<lv_style_selector_t>(LV_PART_MAIN | LV_STATE_FOCUSED));
+        lv_obj_set_style_bg_color(btn, ::ui::theme::accent(),
+                                  static_cast<lv_style_selector_t>(LV_PART_MAIN | LV_STATE_FOCUS_KEY));
+        lv_obj_set_style_radius(btn, 6, LV_PART_MAIN);
+        lv_obj_set_user_data(btn, reinterpret_cast<void*>(row_index));
+        lv_obj_add_event_cb(btn, new_message_pick_event_cb, LV_EVENT_CLICKED, this);
+        lv_obj_add_event_cb(btn, new_message_key_event_cb, LV_EVENT_KEY, this);
+        lv_group_add_obj(new_msg_group_, btn);
+
+        lv_obj_t* label = lv_label_create(btn);
+        ::ui::i18n::set_label_text_raw(label, text);
+        lv_obj_set_style_text_color(label, ::ui::theme::text(), LV_PART_MAIN);
+        lv_obj_center(label);
+
+        if (!first_focus)
+        {
+            first_focus = btn;
+        }
+    };
+
+    auto add_inert_row = [&](const char* text)
+    {
+        lv_obj_t* label = lv_label_create(list);
+        ::ui::i18n::set_label_text(label, text);
+        lv_obj_set_style_text_color(label, ::ui::theme::text_muted(), LV_PART_MAIN);
+        lv_obj_set_width(label, LV_PCT(100));
+        lv_obj_set_user_data(label, reinterpret_cast<void*>(kPickerRowInert));
+    };
+
+    // ----- Broadcast section (only chat-capable channels) -----
+    const chat::MeshProtocol active_protocol = chat_support::active_mesh_protocol();
+    add_heading("Broadcast");
+    int broadcast_rows = 0;
+    const size_t target_count = chat::ui::broadcast_targets::count();
+    for (size_t i = 0; i < target_count; ++i)
+    {
+        chat::ui::broadcast_targets::TargetSpec target{};
+        if (!chat::ui::broadcast_targets::spec(static_cast<int>(i), &target))
+        {
+            continue;
+        }
+        if (!target.chat_supported)
+        {
+            continue;
+        }
+        const chat::ConversationId conv(target.channel, 0, target.protocol);
+        add_row(chat::ui::broadcast_targets::label(target).c_str(), conv);
+        ++broadcast_rows;
+    }
+    if (broadcast_rows == 0)
+    {
+        add_inert_row("No channels available");
+    }
+
+    // ----- Contacts section (direct messages) -----
+    add_heading("Contacts");
+    int contact_rows = 0;
+    auto contacts = app::messagingFacade().getContactService().getContacts();
+    for (const auto& contact : contacts)
+    {
+        std::string name = contact.display_name;
+        if (name.empty())
+        {
+            name = contact.short_name;
+        }
+        if (name.empty())
+        {
+            char buf[16] = {};
+            std::snprintf(buf, sizeof(buf), "%08lX",
+                          static_cast<unsigned long>(contact.node_id));
+            name = buf;
+        }
+        const chat::ConversationId conv(chat::ChannelId::PRIMARY,
+                                        contact.node_id,
+                                        active_protocol);
+        add_row(name.c_str(), conv);
+        ++contact_rows;
+    }
+    if (contact_rows == 0)
+    {
+        add_inert_row("No contacts yet");
+    }
+
+    // ----- Cancel -----
+    {
+        lv_obj_t* cancel_btn = lv_btn_create(list);
+        lv_obj_set_size(cancel_btn, LV_PCT(100), row_h);
+        lv_obj_set_style_bg_color(cancel_btn, ::ui::theme::surface_alt(), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(cancel_btn, ::ui::theme::accent(),
+                                  static_cast<lv_style_selector_t>(LV_PART_MAIN | LV_STATE_FOCUSED));
+        lv_obj_set_style_radius(cancel_btn, 6, LV_PART_MAIN);
+        lv_obj_set_user_data(cancel_btn, reinterpret_cast<void*>(kPickerRowCancel));
+        lv_obj_add_event_cb(cancel_btn, new_message_cancel_event_cb, LV_EVENT_CLICKED, this);
+        lv_obj_add_event_cb(cancel_btn, new_message_key_event_cb, LV_EVENT_KEY, this);
+        lv_group_add_obj(new_msg_group_, cancel_btn);
+        lv_obj_t* cancel_label = lv_label_create(cancel_btn);
+        ::ui::i18n::set_label_text(cancel_label, "Cancel");
+        lv_obj_set_style_text_color(cancel_label, ::ui::theme::text(), LV_PART_MAIN);
+        lv_obj_center(cancel_label);
+        if (!first_focus)
+        {
+            first_focus = cancel_btn;
+        }
+    }
+
+    if (first_focus)
+    {
+        lv_group_focus_obj(first_focus);
+    }
+}
+
+void UiController::closeNewMessagePicker(bool restore_group)
+{
+    if (new_msg_group_)
+    {
+        lv_group_remove_all_objs(new_msg_group_);
+    }
+    if (new_msg_modal_)
+    {
+        lv_obj_del(new_msg_modal_);
+        new_msg_modal_ = nullptr;
+    }
+    new_msg_targets_.clear();
+    if (restore_group && new_msg_prev_group_)
+    {
+        set_default_group(new_msg_prev_group_);
+    }
+    new_msg_prev_group_ = nullptr;
+}
+
+void UiController::onNewMessagePicked(const chat::ConversationId& conv)
+{
+    // Close the modal first so its overlay/group is gone before compose takes
+    // over the screen and the default focus group.
+    closeNewMessagePicker(true);
+    switchToCompose(conv);
+}
+
 void UiController::handleComposeAction(ChatComposeScreen::ActionIntent intent)
 {
     if (!compose_)
@@ -1371,6 +1689,7 @@ void UiController::exitToMenu()
     {
         return;
     }
+    closeNewMessagePicker(false);
     closeTeamPositionPicker(false);
     exiting_ = true;
     stopTeamConversationTimer();

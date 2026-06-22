@@ -70,6 +70,7 @@ class UiController : public IChatUiRefreshSink
     void backToList();
     void handleConversationAction(ChatConversationScreen::ActionIntent intent);
     void handleComposeAction(ChatComposeScreen::ActionIntent intent);
+    void openNewMessagePicker();
     void exitToMenu();
 
     State getState() const { return state_; }
@@ -148,6 +149,21 @@ class UiController : public IChatUiRefreshSink
     void submitKeyVerificationInput();
     void trustKeyFromVerificationModal();
     void clearKeyVerificationError();
+
+    // New-message picker modal (start a fresh broadcast or DM from the Chat
+    // list). Lightweight self-contained overlay; mirrors the contacts action
+    // menu pattern. Closes before handing off to switchToCompose().
+    bool isNewMessagePickerOpen() const;
+    void closeNewMessagePicker(bool restore_group);
+    void onNewMessagePicked(const chat::ConversationId& conv);
+    static void new_message_pick_event_cb(lv_event_t* e);
+    static void new_message_cancel_event_cb(lv_event_t* e);
+    static void new_message_key_event_cb(lv_event_t* e);
+
+    lv_obj_t* new_msg_modal_ = nullptr;
+    lv_group_t* new_msg_group_ = nullptr;
+    lv_group_t* new_msg_prev_group_ = nullptr;
+    std::vector<chat::ConversationId> new_msg_targets_;
 
     KeyVerificationModalRefs key_verify_modal_;
     std::unique_ptr<::ui::widgets::ImeWidget> key_verify_ime_;

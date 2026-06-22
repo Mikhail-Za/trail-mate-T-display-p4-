@@ -28,7 +28,8 @@ class ChatMessageListScreen
     enum class ActionIntent
     {
         SelectConversation,
-        Back
+        Back,
+        NewMessage
     };
 
     explicit ChatMessageListScreen(lv_obj_t* parent);
@@ -50,6 +51,7 @@ class ChatMessageListScreen
     bool isAlive() const { return guard_ && guard_->alive; }
 
     lv_obj_t* getObj() const { return container_; }
+    lv_obj_t* getNewMessageButton() const { return new_msg_btn_; }
     lv_obj_t* getDirectButton() const { return direct_btn_; }
     lv_obj_t* getBroadcastButton() const { return broadcast_btn_; }
     lv_obj_t* getTeamButton() const { return team_btn_; }
@@ -104,6 +106,7 @@ class ChatMessageListScreen
     lv_obj_t* direct_btn_ = nullptr;
     lv_obj_t* broadcast_btn_ = nullptr;
     lv_obj_t* team_btn_ = nullptr;
+    lv_obj_t* new_msg_btn_ = nullptr;
     lv_obj_t* list_back_btn_ = nullptr;
     ::ui::components::air_status_footer::Footer air_status_footer_{};
 
@@ -140,6 +143,7 @@ class ChatMessageListScreen
     void setFilterMode(FilterMode mode);
 
     static void item_event_cb(lv_event_t* e);
+    static void new_message_event_cb(lv_event_t* e);
     static void list_back_event_cb(lv_event_t* e);
     static void item_focused_cb(lv_event_t* e);
     static void filter_focus_cb(lv_event_t* e);
