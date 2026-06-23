@@ -39,9 +39,11 @@
 #include "ui/widgets/ime/ime_widget.h"
 #include "ui/widgets/system_notification.h"
 
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -63,6 +65,10 @@ static constexpr int kButtonHeight = 28;
 static constexpr int kBottomBtnMinWidth = 50;
 static constexpr int kBottomBtnPadH = 8;
 static constexpr intptr_t kBackListItemUserData = -2;
+// Sentinels for pinned, non-node rows in the Contacts list (must not collide with
+// real list indices, which are >= 0, nor with kBackListItemUserData).
+static constexpr intptr_t kMyIdListItemUserData = -3;
+static constexpr intptr_t kAddByIdListItemUserData = -4;
 
 // UI color tokens (must align with docs/skyplot.md)
 static constexpr uint32_t kColorAmber = 0xEBA341;
@@ -86,6 +92,25 @@ static lv_coord_t page_button_height()
 static lv_coord_t page_button_min_width()
 {
     return ::ui::page_profile::resolve_compact_button_min_width();
+}
+
+// Read the device's own node id from the bound app facade (mesh adapter). Returns
+// 0 if the facade is not yet available.
+static uint32_t local_node_id()
+{
+    if (!app::hasAppFacade())
+    {
+        return 0;
+    }
+    return static_cast<uint32_t>(app::appFacade().getSelfNodeId());
+}
+
+// Format a node id as the Meshtastic display form "!" + 8 lowercase hex digits.
+static std::string format_node_id_bang(uint32_t node_id)
+{
+    char buf[12];
+    std::snprintf(buf, sizeof(buf), "!%08lx", static_cast<unsigned long>(node_id));
+    return std::string(buf);
 }
 
 static lv_group_t* s_conv_group = nullptr;
@@ -132,6 +157,8 @@ using BroadcastTargetSpec = chat::ui::broadcast_targets::TargetSpec;
 static bool get_selected_broadcast_target(BroadcastTargetSpec* out_spec,
                                           std::string* out_title);
 static void open_add_edit_modal(bool is_edit);
+static void open_add_edit_modal_mode(AddEditMode mode);
+static void open_add_by_id_modal();
 static void open_delete_confirm_modal();
 static void open_node_info_screen_for_node(uint32_t node_id);
 static void close_node_info_screen();
@@ -662,7 +689,26 @@ static void on_filter_clicked(lv_event_t* e)
 static void on_list_item_clicked(lv_event_t* e)
 {
     lv_obj_t* item = (lv_obj_t*)lv_event_get_target(e);
-    g_contacts_state.selected_index = (int)(intptr_t)lv_obj_get_user_data(item);
+    const intptr_t tag = (intptr_t)lv_obj_get_user_data(item);
+    if (tag == kAddByIdListItemUserData)
+    {
+        g_contacts_state.selected_index = -1;
+        open_add_by_id_modal();
+        return;
+    }
+    if (tag == kMyIdListItemUserData)
+    {
+        // Read-only row: surface the full id but take no destructive action.
+        g_contacts_state.selected_index = -1;
+        const uint32_t self_id = local_node_id();
+        if (self_id != 0)
+        {
+            ::ui::SystemNotification::show(format_node_id_bang(self_id).c_str(), 2500);
+        }
+        contacts_focus_to_list();
+        return;
+    }
+    g_contacts_state.selected_index = (int)tag;
     if (g_contacts_state.selected_index == static_cast<int>(kBackListItemUserData))
     {
         g_contacts_state.selected_index = -1;
@@ -889,35 +935,95 @@ static bool is_any_modal_open()
 
 static void open_add_edit_modal(bool is_edit)
 {
+    open_add_edit_modal_mode(is_edit ? AddEditMode::EditNickname
+                                     : AddEditMode::AddNickname);
+}
+
+static void open_add_by_id_modal()
+{
+    open_add_edit_modal_mode(AddEditMode::AddById);
+}
+
+static void open_add_edit_modal_mode(AddEditMode mode)
+{
     if (g_contacts_state.add_edit_modal)
     {
         return;
     }
-    const auto* node = get_selected_node();
-    if (!node)
+
+    const bool is_edit = (mode == AddEditMode::EditNickname);
+    const bool needs_id_field = (mode == AddEditMode::AddById);
+
+    // Modes that act on the current selection need a selected node to resolve the
+    // target id and (for edit) the current nickname. AddById does not.
+    const chat::contacts::NodeInfo* node = nullptr;
+    if (mode == AddEditMode::EditNickname || mode == AddEditMode::AddNickname)
     {
-        return;
+        node = get_selected_node();
+        if (!node)
+        {
+            return;
+        }
     }
 
     g_contacts_state.modal_is_edit = is_edit;
-    g_contacts_state.modal_node_id = node->node_id;
+    g_contacts_state.modal_mode = mode;
+    if (node)
+    {
+        g_contacts_state.modal_node_id = node->node_id;
+    }
+    else
+    {
+        g_contacts_state.modal_node_id = 0; // resolved from the id field on save
+    }
 
     modal_prepare_group();
-    g_contacts_state.add_edit_modal = create_modal_root(280, 160);
+    const int modal_height = needs_id_field
+                                 ? (::ui::page_profile::current().large_touch_hitbox ? 224 : 200)
+                                 : 160;
+    g_contacts_state.add_edit_modal = create_modal_root(280, modal_height);
     lv_obj_t* win = lv_obj_get_child(g_contacts_state.add_edit_modal, 0);
 
     lv_obj_t* title = lv_label_create(win);
     apply_primary_text(title);
-    ::ui::i18n::set_label_text(title, is_edit ? "Edit nickname" : "Enter nickname");
+    const char* title_text = "Enter nickname";
+    if (is_edit)
+    {
+        title_text = "Edit nickname";
+    }
+    else if (needs_id_field)
+    {
+        title_text = "Add by ID";
+    }
+    ::ui::i18n::set_label_text(title, title_text);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
 
+    const int field_top = ::ui::page_profile::current().large_touch_hitbox ? 40 : 26;
+    const int field_step = ::ui::page_profile::current().large_touch_hitbox ? 44 : 34;
+
+    // Optional node-id field (AddById only), placed above the nickname field.
+    if (needs_id_field)
+    {
+        g_contacts_state.add_edit_id_textarea = lv_textarea_create(win);
+        lv_textarea_set_one_line(g_contacts_state.add_edit_id_textarea, true);
+        // Allow "!xxxxxxxx" (9 chars) or bare 8 hex digits.
+        lv_textarea_set_max_length(g_contacts_state.add_edit_id_textarea, 9);
+        lv_textarea_set_accepted_chars(g_contacts_state.add_edit_id_textarea,
+                                       "0123456789abcdefABCDEF!");
+        lv_textarea_set_placeholder_text(g_contacts_state.add_edit_id_textarea, "!a1b2c3d4");
+        lv_obj_set_width(g_contacts_state.add_edit_id_textarea, LV_PCT(100));
+        lv_obj_align(g_contacts_state.add_edit_id_textarea, LV_ALIGN_TOP_MID, 0, field_top);
+    }
+
+    const int nickname_top = needs_id_field ? (field_top + field_step) : field_top;
     g_contacts_state.add_edit_textarea = lv_textarea_create(win);
     lv_textarea_set_one_line(g_contacts_state.add_edit_textarea, true);
     lv_textarea_set_max_length(g_contacts_state.add_edit_textarea, 12);
+    lv_textarea_set_placeholder_text(g_contacts_state.add_edit_textarea, "nickname");
     lv_obj_set_width(g_contacts_state.add_edit_textarea, LV_PCT(100));
-    lv_obj_align(g_contacts_state.add_edit_textarea, LV_ALIGN_TOP_MID, 0, ::ui::page_profile::current().large_touch_hitbox ? 40 : 26);
+    lv_obj_align(g_contacts_state.add_edit_textarea, LV_ALIGN_TOP_MID, 0, nickname_top);
 
-    if (is_edit)
+    if (is_edit && node)
     {
         lv_textarea_set_text(g_contacts_state.add_edit_textarea, node->display_name.c_str());
         lv_textarea_set_cursor_pos(g_contacts_state.add_edit_textarea, LV_TEXTAREA_CURSOR_LAST);
@@ -926,7 +1032,7 @@ static void open_add_edit_modal(bool is_edit)
     g_contacts_state.add_edit_error_label = lv_label_create(win);
     lv_label_set_text(g_contacts_state.add_edit_error_label, "");
     lv_obj_set_style_text_color(g_contacts_state.add_edit_error_label, lv_color_hex(kColorWarn), 0);
-    lv_obj_align(g_contacts_state.add_edit_error_label, LV_ALIGN_TOP_MID, 0, 52);
+    lv_obj_align(g_contacts_state.add_edit_error_label, LV_ALIGN_TOP_MID, 0, nickname_top + (::ui::page_profile::current().large_touch_hitbox ? 36 : 26));
     lv_obj_add_flag(g_contacts_state.add_edit_error_label, LV_OBJ_FLAG_HIDDEN);
 
     lv_obj_t* btn_row = lv_obj_create(win);
@@ -958,10 +1064,21 @@ static void open_add_edit_modal(bool is_edit)
     lv_obj_center(cancel_label);
     lv_obj_add_event_cb(cancel_btn, on_add_edit_cancel_clicked, LV_EVENT_CLICKED, nullptr);
 
+    if (g_contacts_state.add_edit_id_textarea)
+    {
+        lv_group_add_obj(g_contacts_state.modal_group, g_contacts_state.add_edit_id_textarea);
+    }
     lv_group_add_obj(g_contacts_state.modal_group, g_contacts_state.add_edit_textarea);
     lv_group_add_obj(g_contacts_state.modal_group, save_btn);
     lv_group_add_obj(g_contacts_state.modal_group, cancel_btn);
-    lv_group_focus_obj(g_contacts_state.add_edit_textarea);
+    if (g_contacts_state.add_edit_id_textarea)
+    {
+        lv_group_focus_obj(g_contacts_state.add_edit_id_textarea);
+    }
+    else
+    {
+        lv_group_focus_obj(g_contacts_state.add_edit_textarea);
+    }
 }
 
 static void open_delete_confirm_modal()
@@ -1547,7 +1664,12 @@ static void on_team_conversation_action(chat::ui::ChatConversationScreen::Action
     {
         s_compose_from_conversation = true;
         open_chat_compose();
+        return;
     }
+    // SaveContact is handled inside the conversation screen itself (it owns the
+    // peer id and the nickname prompt and calls ContactService directly), so it is
+    // not forwarded here. The team conversation is broadcast (peer 0) anyway, so the
+    // Save button is never shown for it.
 }
 
 static void on_team_conversation_back(void* /*user_data*/)
@@ -1749,10 +1871,110 @@ static void send_team_position()
     }
 }
 
+// Parse a Meshtastic-style node id from user text. Accepts an optional leading
+// '!' (the Meshtastic display form) followed by exactly 8 hex digits, or 8 bare
+// hex digits. Returns true and writes *out_id on success; rejects 0 and anything
+// malformed.
+static bool parse_node_id_text(const char* text, uint32_t* out_id)
+{
+    if (!text || !out_id)
+    {
+        return false;
+    }
+    // Skip a single leading '!' (Meshtastic form) and any surrounding spaces.
+    while (*text == ' ')
+    {
+        ++text;
+    }
+    if (*text == '!')
+    {
+        ++text;
+    }
+
+    // Require exactly 8 hex digits (a 32-bit node id), nothing else.
+    size_t hex_len = 0;
+    for (const char* p = text; *p != '\0'; ++p)
+    {
+        if (*p == ' ')
+        {
+            // Trailing spaces are tolerated; once we hit one, the rest must be blank.
+            for (const char* q = p; *q != '\0'; ++q)
+            {
+                if (*q != ' ')
+                {
+                    return false;
+                }
+            }
+            break;
+        }
+        if (!std::isxdigit(static_cast<unsigned char>(*p)))
+        {
+            return false;
+        }
+        ++hex_len;
+    }
+    if (hex_len != 8)
+    {
+        return false;
+    }
+
+    char* end = nullptr;
+    const unsigned long value = std::strtoul(text, &end, 16);
+    if (end == text)
+    {
+        return false;
+    }
+    if (value == 0UL)
+    {
+        return false;
+    }
+    *out_id = static_cast<uint32_t>(value);
+    return true;
+}
+
+static void clear_add_edit_modal_state()
+{
+    g_contacts_state.add_edit_textarea = nullptr;
+    g_contacts_state.add_edit_id_textarea = nullptr;
+    g_contacts_state.add_edit_error_label = nullptr;
+}
+
 static void on_add_edit_save_clicked(lv_event_t* /*e*/)
 {
     if (!g_contacts_state.add_edit_textarea || !g_contacts_state.add_edit_error_label)
     {
+        return;
+    }
+
+    // Resolve the target node id. For AddById it comes from the id field; for all
+    // other modes it was fixed when the modal opened.
+    uint32_t target_id = g_contacts_state.modal_node_id;
+    if (g_contacts_state.modal_mode == AddEditMode::AddById)
+    {
+        if (!g_contacts_state.add_edit_id_textarea)
+        {
+            return;
+        }
+        const char* id_text = lv_textarea_get_text(g_contacts_state.add_edit_id_textarea);
+        if (!id_text || strlen(id_text) == 0)
+        {
+            ::ui::i18n::set_label_text(g_contacts_state.add_edit_error_label, "ID required");
+            lv_obj_clear_flag(g_contacts_state.add_edit_error_label, LV_OBJ_FLAG_HIDDEN);
+            return;
+        }
+        if (!parse_node_id_text(id_text, &target_id))
+        {
+            ::ui::i18n::set_label_text(g_contacts_state.add_edit_error_label, "Invalid ID (8 hex)");
+            lv_obj_clear_flag(g_contacts_state.add_edit_error_label, LV_OBJ_FLAG_HIDDEN);
+            return;
+        }
+        g_contacts_state.modal_node_id = target_id;
+    }
+
+    if (target_id == 0)
+    {
+        ::ui::i18n::set_label_text(g_contacts_state.add_edit_error_label, "Invalid ID");
+        lv_obj_clear_flag(g_contacts_state.add_edit_error_label, LV_OBJ_FLAG_HIDDEN);
         return;
     }
 
@@ -1777,7 +1999,7 @@ static void on_add_edit_save_clicked(lv_event_t* /*e*/)
     auto contacts = g_contacts_state.contact_service->getContacts();
     for (const auto& c : contacts)
     {
-        if (c.node_id == g_contacts_state.modal_node_id)
+        if (c.node_id == target_id)
         {
             continue;
         }
@@ -1792,11 +2014,11 @@ static void on_add_edit_save_clicked(lv_event_t* /*e*/)
     bool ok = false;
     if (g_contacts_state.modal_is_edit)
     {
-        ok = g_contacts_state.contact_service->editContact(g_contacts_state.modal_node_id, nickname);
+        ok = g_contacts_state.contact_service->editContact(target_id, nickname);
     }
     else
     {
-        ok = g_contacts_state.contact_service->addContact(g_contacts_state.modal_node_id, nickname);
+        ok = g_contacts_state.contact_service->addContact(target_id, nickname);
     }
 
     if (!ok)
@@ -1806,8 +2028,7 @@ static void on_add_edit_save_clicked(lv_event_t* /*e*/)
         return;
     }
 
-    g_contacts_state.add_edit_textarea = nullptr;
-    g_contacts_state.add_edit_error_label = nullptr;
+    clear_add_edit_modal_state();
     modal_close(g_contacts_state.add_edit_modal);
 
     if (!g_contacts_state.modal_is_edit)
@@ -1823,8 +2044,7 @@ static void on_add_edit_save_clicked(lv_event_t* /*e*/)
 
 static void on_add_edit_cancel_clicked(lv_event_t* /*e*/)
 {
-    g_contacts_state.add_edit_textarea = nullptr;
-    g_contacts_state.add_edit_error_label = nullptr;
+    clear_add_edit_modal_state();
     modal_close(g_contacts_state.add_edit_modal);
     contacts_focus_to_list();
 }
@@ -2003,6 +2223,7 @@ enum class ActionMenuCommand : uint8_t
     Delete = 6,
     ToggleIgnore = 7,
     Cancel = 8,
+    AddById = 9,
 };
 
 static void toggle_selected_node_ignore()
@@ -2098,6 +2319,9 @@ static void on_action_menu_item_clicked(lv_event_t* e)
     case ActionMenuCommand::Add:
         open_add_edit_modal(false);
         break;
+    case ActionMenuCommand::AddById:
+        open_add_by_id_modal();
+        break;
     case ActionMenuCommand::Delete:
         open_delete_confirm_modal();
         break;
@@ -2135,6 +2359,13 @@ static void open_action_menu_modal()
         (g_contacts_state.current_mode == ContactsMode::Team)
             ? chat_support::supports_team_chat()
             : chat_support::supports_local_text_chat();
+    // "Add by ID" is offered in the node-list modes so a contact can be created
+    // for a node that was never heard (no selection needed for the action itself).
+    const bool show_add_by_id =
+        (g_contacts_state.current_mode == ContactsMode::Contacts ||
+         g_contacts_state.current_mode == ContactsMode::Nearby ||
+         g_contacts_state.current_mode == ContactsMode::Ignored);
+
     int action_count = allow_chat_action ? 2 : 1; // Chat + Cancel
     if (g_contacts_state.current_mode == ContactsMode::Contacts)
     {
@@ -2152,6 +2383,10 @@ static void open_action_menu_modal()
     if (show_ignore)
     {
         action_count += 1;
+    }
+    if (show_add_by_id)
+    {
+        action_count += 1; // Add by ID
     }
 
     int modal_h = (::ui::page_profile::current().large_touch_hitbox ? 84 : 62) + action_count * (page_button_height() + (::ui::page_profile::current().large_touch_hitbox ? 8 : 2));
@@ -2259,6 +2494,10 @@ static void open_action_menu_modal()
     {
         add_action(ActionMenuCommand::ToggleIgnore,
                    (node && node->is_ignored) ? "Unignore" : "Ignore");
+    }
+    if (show_add_by_id)
+    {
+        add_action(ActionMenuCommand::AddById, "Add by ID");
     }
     add_action(ActionMenuCommand::Cancel, "Cancel");
 
@@ -2553,6 +2792,41 @@ void refresh_ui()
         lv_obj_add_event_cb(item, on_list_item_focused, LV_EVENT_FOCUSED, nullptr);
     }
 
+    // Pin two non-node rows in the Contacts list:
+    //   1. "My ID: !xxxxxxxx" so the owner can read this device's id off-screen.
+    //   2. "+ Add by ID" so a contact can be created for a never-heard node with no
+    //      selection required.
+    // They are appended AFTER the node rows so the real node indices (0..N-1) stay
+    // aligned with list_items[] for keypad focus restoration; they carry sentinel
+    // user_data intercepted in on_list_item_clicked before the index path.
+    if (g_contacts_state.current_mode == ContactsMode::Contacts)
+    {
+        const uint32_t self_id = local_node_id();
+        chat::contacts::NodeInfo my_id_row{};
+        my_id_row.display_name = self_id != 0
+                                     ? (std::string("My ID: ") + format_node_id_bang(self_id))
+                                     : std::string("My ID: --");
+        lv_obj_t* my_id_item = contacts::ui::layout::create_list_item(
+            g_contacts_state.sub_container,
+            my_id_row,
+            g_contacts_state.current_mode,
+            "");
+        lv_obj_set_user_data(my_id_item, reinterpret_cast<void*>(kMyIdListItemUserData));
+        lv_obj_add_event_cb(my_id_item, on_list_item_clicked, LV_EVENT_CLICKED, nullptr);
+        lv_obj_add_event_cb(my_id_item, on_list_item_focused, LV_EVENT_FOCUSED, nullptr);
+
+        chat::contacts::NodeInfo add_by_id_row{};
+        add_by_id_row.display_name = "+ Add by ID";
+        lv_obj_t* add_by_id_item = contacts::ui::layout::create_list_item(
+            g_contacts_state.sub_container,
+            add_by_id_row,
+            g_contacts_state.current_mode,
+            "New");
+        lv_obj_set_user_data(add_by_id_item, reinterpret_cast<void*>(kAddByIdListItemUserData));
+        lv_obj_add_event_cb(add_by_id_item, on_list_item_clicked, LV_EVENT_CLICKED, nullptr);
+        lv_obj_add_event_cb(add_by_id_item, on_list_item_focused, LV_EVENT_FOCUSED, nullptr);
+    }
+
     if (append_back_item)
     {
         chat::contacts::NodeInfo back_node{};
@@ -2678,6 +2952,7 @@ void cleanup_modals()
         g_contacts_state.add_edit_modal = nullptr;
     }
     g_contacts_state.add_edit_textarea = nullptr;
+    g_contacts_state.add_edit_id_textarea = nullptr;
     g_contacts_state.add_edit_error_label = nullptr;
     if (g_contacts_state.del_confirm_modal != nullptr)
     {

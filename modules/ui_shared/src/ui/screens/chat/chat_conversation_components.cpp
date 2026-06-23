@@ -8,6 +8,7 @@
 #include "app/app_config.h"
 #include "app/app_facade_access.h"
 #include "chat/usecase/contact_service.h"
+#include "ui/app_runtime.h"
 #include "ui/assets/fonts/font_utils.h"
 #include "ui/localization.h"
 #include "ui/page/page_profile.h"
@@ -15,6 +16,7 @@
 #include "ui/screens/chat/chat_conversation_layout.h"
 #include "ui/screens/chat/chat_conversation_styles.h"
 #include "ui/ui_common.h"
+#include "ui/widgets/system_notification.h"
 #include "ui_presentation/chat/chat_workspace_snapshot.h"
 
 #include "sys/clock.h"
@@ -23,6 +25,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <ctime>
 
 #ifndef CHAT_CONVERSATION_LOG_ENABLE
@@ -336,10 +339,18 @@ ChatConversationScreen::ChatConversationScreen(lv_obj_t* parent, chat::Conversat
 
     // ----- Input layer (explicit, v0 no-op) -----
     chat::ui::conversation::input::init(this, &input_binding_);
+
+    // Offer "Save contact" for direct conversations with a real peer.
+    refreshSaveContactButton();
 }
 
 ChatConversationScreen::~ChatConversationScreen()
 {
+    // Tear the save prompt down explicitly (group restore + widget delete) before the
+    // rest of the screen goes away. It is parented to container_, so deleting
+    // container_ below would also free it, but we close first so the focus group and
+    // pointers unwind cleanly.
+    closeSaveContactPrompt();
     if (container_ && lv_obj_is_valid(container_))
     {
         lv_obj_del(container_);
@@ -460,6 +471,7 @@ void ChatConversationScreen::setHeaderText(const char* title, const char* status
     {
         ::ui::widgets::top_bar_set_right_text(top_bar_, status);
     }
+    refreshSaveContactButton();
 }
 
 void ChatConversationScreen::updateBatteryFromBoard()
@@ -496,6 +508,352 @@ void ChatConversationScreen::setReplyEnabled(bool enabled)
     {
         lv_obj_add_state(reply_btn_, LV_STATE_DISABLED);
     }
+}
+
+void ChatConversationScreen::ensureSaveButton()
+{
+    if (!guard_ || !guard_->alive || !action_bar_)
+    {
+        return;
+    }
+    if (save_btn_)
+    {
+        return;
+    }
+
+    const auto& profile = ::ui::page_profile::current();
+    save_btn_ = lv_btn_create(action_bar_);
+    lv_obj_set_size(save_btn_,
+                    profile.dense ? 92 : 120,
+                    ::ui::page_profile::resolve_control_button_height());
+    lv_obj_clear_flag(save_btn_, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollbar_mode(save_btn_, LV_SCROLLBAR_MODE_OFF);
+    chat::ui::conversation::styles::apply_reply_btn(save_btn_);
+
+    save_label_ = lv_label_create(save_btn_);
+    lv_obj_center(save_label_);
+    ::ui::i18n::set_label_text(save_label_, "Save");
+    chat::ui::conversation::styles::apply_reply_label(save_label_);
+    ::ui::fonts::apply_localized_font(
+        save_label_, lv_label_get_text(save_label_), ::ui::fonts::ui_chrome_font());
+
+    save_ctx_.screen = this;
+    save_ctx_.intent = ActionIntent::SaveContact;
+    lv_obj_add_event_cb(save_btn_, action_event_cb, LV_EVENT_CLICKED, &save_ctx_);
+}
+
+bool ChatConversationScreen::peerIsContact() const
+{
+    if (conv_.peer == 0 || !app::hasAppFacade())
+    {
+        return false;
+    }
+    // A peer is "already a contact" exactly when it has a user-assigned nickname.
+    // getContacts() returns only nodes with nicknames, so a node_id match here means
+    // a real contact (getContactName falls back to short_name and cannot be used).
+    auto contacts = app::messagingFacade().getContactService().getContacts();
+    for (const auto& c : contacts)
+    {
+        if (c.node_id == conv_.peer)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ChatConversationScreen::refreshSaveContactButton()
+{
+    if (!guard_ || !guard_->alive || !action_bar_)
+    {
+        return;
+    }
+
+    // Broadcast / team conversations (peer 0) never get a Save action.
+    if (conv_.peer == 0)
+    {
+        if (save_btn_)
+        {
+            lv_obj_add_flag(save_btn_, LV_OBJ_FLAG_HIDDEN);
+        }
+        return;
+    }
+
+    ensureSaveButton();
+    if (!save_btn_)
+    {
+        return;
+    }
+    lv_obj_clear_flag(save_btn_, LV_OBJ_FLAG_HIDDEN);
+    // Relabel to "Edit" when the peer already has a nickname so the action reads as
+    // editing rather than creating; the prompt prefills the existing name.
+    const char* label = peerIsContact() ? "Edit" : "Save";
+    if (save_label_)
+    {
+        ::ui::i18n::set_label_text(save_label_, label);
+        ::ui::fonts::apply_localized_font(
+            save_label_, lv_label_get_text(save_label_), ::ui::fonts::ui_chrome_font());
+    }
+}
+
+void ChatConversationScreen::schedule_save_async()
+{
+    if (!guard_ || !guard_->alive)
+    {
+        return;
+    }
+    auto* payload = new BackPayload();
+    payload->guard = guard_;
+    payload->back_cb = nullptr;
+    payload->user_data = this;
+    guard_->pending_async++;
+    lv_async_call(async_save_cb, payload);
+}
+
+void ChatConversationScreen::async_save_cb(void* user_data)
+{
+    auto* payload = static_cast<BackPayload*>(user_data);
+    if (!payload)
+    {
+        return;
+    }
+    LifetimeGuard* guard = payload->guard;
+    if (guard && guard->alive)
+    {
+        auto* screen = static_cast<ChatConversationScreen*>(payload->user_data);
+        if (screen)
+        {
+            screen->openSaveContactPrompt();
+        }
+    }
+    if (guard && guard->pending_async > 0)
+    {
+        guard->pending_async--;
+        if (!guard->alive && guard->pending_async == 0)
+        {
+            delete guard;
+        }
+    }
+    delete payload;
+}
+
+void ChatConversationScreen::openSaveContactPrompt()
+{
+    if (!guard_ || !guard_->alive || save_modal_)
+    {
+        return;
+    }
+    if (conv_.peer == 0)
+    {
+        ::ui::SystemNotification::show("Cannot save broadcast", 1800);
+        return;
+    }
+
+    const auto& profile = ::ui::page_profile::current();
+
+    // Dim background over the whole conversation so the prompt reads as modal. Parent
+    // it to the conversation root (active screen), NOT lv_layer_top(): the global
+    // keyboard button and the IME both live on lv_layer_top(), which always sits
+    // above the active screen, so a screen-level backdrop covers the conversation
+    // content while leaving the top-layer button + keyboard tappable. (A backdrop on
+    // lv_layer_top() lands ABOVE the button created at boot and swallows its touches,
+    // so the keyboard can never be pulled up.) This mirrors the contacts/settings
+    // text-edit modals, whose backdrop parents to the active screen for the same
+    // reason. container_ is a flex column, so flag the backdrop FLOATING to keep it
+    // out of the flex flow and align it explicitly to cover the whole screen.
+    lv_obj_t* modal_parent = (container_ && lv_obj_is_valid(container_))
+                                 ? container_
+                                 : lv_screen_active();
+    save_modal_ = lv_obj_create(modal_parent);
+    lv_obj_add_flag(save_modal_, LV_OBJ_FLAG_FLOATING);
+    lv_obj_set_size(save_modal_, LV_PCT(100), LV_PCT(100));
+    lv_obj_align(save_modal_, LV_ALIGN_TOP_LEFT, 0, 0);
+    lv_obj_set_style_bg_color(save_modal_, lv_color_hex(0x000000), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(save_modal_, LV_OPA_40, LV_PART_MAIN);
+    lv_obj_set_style_border_width(save_modal_, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(save_modal_, 0, LV_PART_MAIN);
+    lv_obj_clear_flag(save_modal_, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(save_modal_, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t* win = lv_obj_create(save_modal_);
+    lv_obj_set_size(win, profile.large_touch_hitbox ? 320 : 260, profile.large_touch_hitbox ? 180 : 160);
+    lv_obj_center(win);
+    lv_obj_set_style_bg_color(win, lv_color_hex(0xFAF0D8), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(win, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_width(win, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_color(win, lv_color_hex(0xE7C98F), LV_PART_MAIN);
+    lv_obj_set_style_radius(win, 8, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(win, 8, LV_PART_MAIN);
+    lv_obj_clear_flag(win, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* title = lv_label_create(win);
+    const bool editing = peerIsContact();
+    ::ui::i18n::set_label_text(title, editing ? "Edit contact" : "Save contact");
+    lv_obj_set_style_text_color(title, lv_color_hex(0x6B4A1E), 0);
+    ::ui::fonts::apply_localized_font(title, lv_label_get_text(title), ::ui::fonts::ui_chrome_font());
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
+
+    save_modal_textarea_ = lv_textarea_create(win);
+    lv_textarea_set_one_line(save_modal_textarea_, true);
+    lv_textarea_set_max_length(save_modal_textarea_, 12);
+    lv_textarea_set_placeholder_text(save_modal_textarea_, "nickname");
+    lv_obj_set_width(save_modal_textarea_, LV_PCT(100));
+    lv_obj_align(save_modal_textarea_, LV_ALIGN_TOP_MID, 0, profile.large_touch_hitbox ? 40 : 28);
+    if (editing && app::hasAppFacade())
+    {
+        const std::string existing =
+            app::messagingFacade().getContactService().getContactName(conv_.peer);
+        if (!existing.empty())
+        {
+            lv_textarea_set_text(save_modal_textarea_, existing.c_str());
+            lv_textarea_set_cursor_pos(save_modal_textarea_, LV_TEXTAREA_CURSOR_LAST);
+        }
+    }
+
+    save_modal_error_ = lv_label_create(win);
+    lv_label_set_text(save_modal_error_, "");
+    lv_obj_set_style_text_color(save_modal_error_, lv_color_hex(0xB94A2C), 0);
+    lv_obj_align(save_modal_error_, LV_ALIGN_TOP_MID, 0, profile.large_touch_hitbox ? 84 : 58);
+    lv_obj_add_flag(save_modal_error_, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_t* btn_row = lv_obj_create(win);
+    lv_obj_set_size(btn_row, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_align(btn_row, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_set_flex_flow(btn_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(btn_row, LV_FLEX_ALIGN_SPACE_EVENLY, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_all(btn_row, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(btn_row, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_width(btn_row, 0, LV_PART_MAIN);
+    lv_obj_clear_flag(btn_row, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* save_btn = lv_btn_create(btn_row);
+    lv_obj_set_size(save_btn, ::ui::page_profile::resolve_control_button_min_width(),
+                    ::ui::page_profile::resolve_control_button_height());
+    chat::ui::conversation::styles::apply_reply_btn(save_btn);
+    lv_obj_t* save_lbl = lv_label_create(save_btn);
+    ::ui::i18n::set_label_text(save_lbl, "Save");
+    ::ui::fonts::apply_localized_font(save_lbl, lv_label_get_text(save_lbl), ::ui::fonts::ui_chrome_font());
+    lv_obj_center(save_lbl);
+    lv_obj_add_event_cb(save_btn, on_save_modal_save_clicked, LV_EVENT_CLICKED, this);
+
+    lv_obj_t* cancel_btn = lv_btn_create(btn_row);
+    lv_obj_set_size(cancel_btn, ::ui::page_profile::resolve_control_button_min_width(),
+                    ::ui::page_profile::resolve_control_button_height());
+    chat::ui::conversation::styles::apply_reply_btn(cancel_btn);
+    lv_obj_t* cancel_lbl = lv_label_create(cancel_btn);
+    ::ui::i18n::set_label_text(cancel_lbl, "Cancel");
+    ::ui::fonts::apply_localized_font(cancel_lbl, lv_label_get_text(cancel_lbl), ::ui::fonts::ui_chrome_font());
+    lv_obj_center(cancel_lbl);
+    lv_obj_add_event_cb(cancel_btn, on_save_modal_cancel_clicked, LV_EVENT_CLICKED, this);
+
+    // Dedicated focus group so the textarea/buttons take keypad/encoder focus and
+    // the global keyboard button finds the field; restore the previous group on close.
+    // Use set_default_group (not raw lv_group_set_default): it also rebinds the
+    // pointer/keypad/encoder indevs to this group, so a tap on the textarea keeps it
+    // focused in the default group. The keyboard button resolves the target via
+    // lv_group_get_focused(lv_group_get_default()); without the indev rebind the
+    // indev still drives the conversation group and the tapped field is not focused
+    // in the default group, so the keyboard cannot find it. Every other modal in the
+    // app (contacts, settings) goes through this wrapper for the same reason.
+    save_modal_prev_group_ = lv_group_get_default();
+    save_modal_group_ = lv_group_create();
+    lv_group_add_obj(save_modal_group_, save_modal_textarea_);
+    lv_group_add_obj(save_modal_group_, save_btn);
+    lv_group_add_obj(save_modal_group_, cancel_btn);
+    set_default_group(save_modal_group_);
+    lv_group_focus_obj(save_modal_textarea_);
+}
+
+void ChatConversationScreen::closeSaveContactPrompt(bool restore_group)
+{
+    if (save_modal_group_)
+    {
+        if (restore_group && save_modal_prev_group_ &&
+            lv_group_get_default() == save_modal_group_)
+        {
+            // Mirror the open path: rebind the indevs back to the previous group, not
+            // just the default-group global. When restore_group is false the owner
+            // installs the next screen's group during teardown, so we skip this.
+            set_default_group(save_modal_prev_group_);
+        }
+        lv_group_del(save_modal_group_);
+        save_modal_group_ = nullptr;
+    }
+    save_modal_prev_group_ = nullptr;
+    if (save_modal_)
+    {
+        lv_obj_del(save_modal_);
+        save_modal_ = nullptr;
+    }
+    save_modal_textarea_ = nullptr;
+    save_modal_error_ = nullptr;
+}
+
+void ChatConversationScreen::commitSaveContact()
+{
+    if (!save_modal_textarea_ || !save_modal_error_)
+    {
+        return;
+    }
+    if (conv_.peer == 0)
+    {
+        closeSaveContactPrompt();
+        return;
+    }
+    const char* name = lv_textarea_get_text(save_modal_textarea_);
+    if (!name || std::strlen(name) == 0)
+    {
+        ::ui::i18n::set_label_text(save_modal_error_, "Name required");
+        lv_obj_clear_flag(save_modal_error_, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+    if (std::strlen(name) > 12)
+    {
+        ::ui::i18n::set_label_text(save_modal_error_, "Name too long");
+        lv_obj_clear_flag(save_modal_error_, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+    if (!app::hasAppFacade())
+    {
+        ::ui::i18n::set_label_text(save_modal_error_, "Save failed");
+        lv_obj_clear_flag(save_modal_error_, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    // addContact synthesizes a node record if the peer was never heard, and the
+    // store rejects a duplicate nickname (returns false) which we surface here.
+    const bool ok =
+        app::messagingFacade().getContactService().addContact(conv_.peer, name);
+    if (!ok)
+    {
+        ::ui::i18n::set_label_text(save_modal_error_, "Name in use or failed");
+        lv_obj_clear_flag(save_modal_error_, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    closeSaveContactPrompt();
+    ::ui::SystemNotification::show("Contact saved", 1500);
+    refreshSaveContactButton();
+}
+
+void ChatConversationScreen::on_save_modal_save_clicked(lv_event_t* e)
+{
+    auto* screen = static_cast<ChatConversationScreen*>(lv_event_get_user_data(e));
+    if (!screen || !screen->guard_ || !screen->guard_->alive)
+    {
+        return;
+    }
+    screen->commitSaveContact();
+}
+
+void ChatConversationScreen::on_save_modal_cancel_clicked(lv_event_t* e)
+{
+    auto* screen = static_cast<ChatConversationScreen*>(lv_event_get_user_data(e));
+    if (!screen || !screen->guard_ || !screen->guard_->alive)
+    {
+        return;
+    }
+    screen->closeSaveContactPrompt();
 }
 
 void ChatConversationScreen::createMessageItem(const ::ui::chat::MessageRow& row)
@@ -685,7 +1043,16 @@ void ChatConversationScreen::action_event_cb(lv_event_t* e)
     {
         return;
     }
-    if (!screen->reply_enabled_)
+    if (ctx->intent == ActionIntent::SaveContact)
+    {
+        // Save is handled entirely inside the screen (own peer + own prompt +
+        // ContactService), independent of the reply-enabled gate and the owner's
+        // action callback.
+        screen->schedule_save_async();
+        return;
+    }
+    // The reply-enabled gate only applies to the Reply action.
+    if (ctx->intent == ActionIntent::Reply && !screen->reply_enabled_)
     {
         return;
     }
@@ -823,11 +1190,21 @@ void ChatConversationScreen::handle_root_deleted()
     {
         guard_->alive = false;
     }
+
+    // This fires from container_'s own LV_EVENT_DELETE, before LVGL walks and frees
+    // its children, so save_modal_ (a child of container_) is still valid here. Close
+    // it explicitly to unwind the focus group and null the pointers; the explicit
+    // lv_obj_del also keeps the child out of the about-to-run recursive teardown.
+    // Do not restore the previous focus group: the owner installs the next screen's
+    // group as part of this teardown.
+    closeSaveContactPrompt(false);
+
     action_cb_ = nullptr;
     action_cb_user_data_ = nullptr;
     back_cb_ = nullptr;
     back_cb_user_data_ = nullptr;
     reply_ctx_.screen = nullptr;
+    save_ctx_.screen = nullptr;
 
     chat::ui::conversation::input::cleanup(&input_binding_);
     clear_all_timers();
@@ -841,6 +1218,8 @@ void ChatConversationScreen::handle_root_deleted()
     msg_list_ = nullptr;
     action_bar_ = nullptr;
     reply_btn_ = nullptr;
+    save_btn_ = nullptr;
+    save_label_ = nullptr;
     compose_btn_ = nullptr;
 }
 

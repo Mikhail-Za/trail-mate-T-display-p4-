@@ -30,7 +30,8 @@ class ChatConversationScreen
   public:
     enum class ActionIntent
     {
-        Reply
+        Reply,
+        SaveContact
     };
 
     ChatConversationScreen(lv_obj_t* parent, chat::ConversationId conv);
@@ -50,6 +51,13 @@ class ChatConversationScreen
     lv_obj_t* getBackBtn() const { return top_bar_.back_btn; }
 
     chat::ChannelId getChannel() const { return conv_.channel; }
+    chat::NodeId getPeer() const { return conv_.peer; }
+
+    // Re-evaluate whether the "Save contact" action should be shown for the current
+    // peer (hidden for broadcast peer 0; relabeled to "Edit" when the peer already
+    // has a nickname). Safe to call repeatedly; owners may call it after the header
+    // is set, and the screen also calls it itself on construction and header update.
+    void refreshSaveContactButton();
 
     void setHeaderText(const char* title, const char* status = nullptr);
     void updateBatteryFromBoard();
@@ -102,7 +110,19 @@ class ChatConversationScreen
     lv_obj_t* msg_list_ = nullptr;
     lv_obj_t* action_bar_ = nullptr;
     lv_obj_t* reply_btn_ = nullptr;
+    lv_obj_t* save_btn_ = nullptr;   // "Save contact" action (created lazily)
+    lv_obj_t* save_label_ = nullptr; // label inside save_btn_
     lv_obj_t* compose_btn_ = nullptr; // kept for compatibility (not created in v0)
+
+    // "Save contact" nickname prompt (self-contained modal parented to the
+    // conversation root container, below lv_layer_top() so the global keyboard
+    // button + IME stay above it and tappable).
+    lv_obj_t* save_modal_ = nullptr;
+    lv_obj_t* save_modal_textarea_ = nullptr;
+    lv_obj_t* save_modal_error_ = nullptr;
+    lv_group_t* save_modal_group_ = nullptr;
+    lv_group_t* save_modal_prev_group_ = nullptr;
+
     chat::ConversationId conv_{};
 
     void (*action_cb_)(ActionIntent intent, void*) = nullptr;
@@ -129,7 +149,22 @@ class ChatConversationScreen
     std::vector<TimerEntry> timers_;
     conversation::input::Binding input_binding_{};
     ActionContext reply_ctx_{};
+    ActionContext save_ctx_{};
     bool reply_enabled_ = true;
+
+    void ensureSaveButton();
+    bool peerIsContact() const;
+
+    // "Save contact" nickname prompt lifecycle. closeSaveContactPrompt restores the
+    // previous focus group only when restore_group is true; during screen teardown
+    // the owner installs the next group, so we skip the restore there.
+    void openSaveContactPrompt();
+    void closeSaveContactPrompt(bool restore_group = true);
+    void commitSaveContact();
+    static void on_save_modal_save_clicked(lv_event_t* e);
+    static void on_save_modal_cancel_clicked(lv_event_t* e);
+    void schedule_save_async();
+    static void async_save_cb(void* user_data);
 
     void createMessageItem(const ::ui::chat::MessageRow& row);
 

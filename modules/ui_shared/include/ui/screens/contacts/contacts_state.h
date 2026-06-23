@@ -39,6 +39,15 @@ namespace contacts
 namespace ui
 {
 
+// How the shared add/edit nickname modal is being used. Drives which fields are
+// shown and which node id addContact/editContact is called with.
+enum class AddEditMode
+{
+    EditNickname, // rename an existing selected contact
+    AddNickname,  // name an already-selected (heard) node
+    AddById       // manual entry: node-id field + nickname field
+};
+
 enum class ContactsMode
 {
     Contacts,  // Show contacts (nodes with nicknames)
@@ -92,7 +101,8 @@ struct ContactsPageState
 
     // Modal windows
     lv_obj_t* add_edit_modal = nullptr;
-    lv_obj_t* add_edit_textarea = nullptr;
+    lv_obj_t* add_edit_textarea = nullptr;    // nickname field
+    lv_obj_t* add_edit_id_textarea = nullptr; // node-id field (AddById only)
     lv_obj_t* add_edit_error_label = nullptr;
     lv_obj_t* del_confirm_modal = nullptr;
     lv_obj_t* action_menu_modal = nullptr;
@@ -101,6 +111,7 @@ struct ContactsPageState
     lv_group_t* prev_group = nullptr;
     uint32_t modal_node_id = 0;
     bool modal_is_edit = false;
+    AddEditMode modal_mode = AddEditMode::AddNickname;
     lv_timer_t* discover_scan_timer = nullptr;
     size_t discover_scan_start_nearby = 0;
 
