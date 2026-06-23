@@ -39,6 +39,7 @@
 #include "chat/usecase/contact_service.h"
 #include "platform/esp/arduino_common/chat/infra/chat_event_bus_bridge.h"
 #include "platform/esp/arduino_common/chat/infra/meshcore/meshcore_adapter.h"
+#include "platform/ui/settings_store.h"
 
 namespace platform::esp::idf_common
 {
@@ -46,17 +47,21 @@ namespace
 {
 
 // ---------------------------------------------------------------------------
-// In-memory blob stores for the minimal RAM-only chat scope.
+// Blob stores for the minimal chat scope.
 //
 // NodeStoreCore / ContactStoreCore persist via an injected blob-store port.
 // The Arduino shells (meshtastic::NodeStore / contacts::ContactStore) back that
 // port with SD/NVS through storage/sd_card_runtime.h, which hard-includes
 // <SPI.h> / <Arduino.h> / <Preferences.h> and so cannot build in the pure
-// ESP-IDF target. v1 chat keeps contacts in RAM only (no on-device persistence
-// across reboots), so these blob stores are volatile: load() returns the bytes
-// last saved this boot (initially empty), save() retains them, clear() drops
-// them. This is the IDF analogue of the Linux*BlobStore classes in
-// platform/linux/common/src/app/linux_app_services.cpp.
+// ESP-IDF target. The IDF target therefore provides its own blob stores (the
+// IDF analogue of the Linux*BlobStore classes in
+// platform/linux/common/src/app/linux_app_services.cpp):
+//   - RamNodeBlobStore: volatile node roster. load() returns the bytes last
+//     saved this boot (initially empty), save() retains them, clear() drops
+//     them. The node roster is ephemeral RF telemetry that repopulates from
+//     live packets and is re-synthesized for each persisted contact on boot, so
+//     it intentionally does NOT persist across reboots.
+//   - NvsContactBlobStore (below): durable contacts in NVS.
 // ---------------------------------------------------------------------------
 class RamNodeBlobStore final : public chat::contacts::INodeBlobStore
 {
@@ -89,30 +94,77 @@ class RamNodeBlobStore final : public chat::contacts::INodeBlobStore
     std::vector<uint8_t> blob_;
 };
 
-class RamContactBlobStore final : public chat::IContactBlobStore
+// ---------------------------------------------------------------------------
+// NVS-backed contact blob store: the ONE durable piece of chat state.
+//
+// Mirrors the Linux precedent (LinuxContactBlobStore in
+// platform/linux/common/src/app/linux_app_services.cpp): persist only the
+// CONTACT blob (id + nickname, user-authored) to NVS so contacts survive
+// reboot / reflash. ContactStoreCore::saveEntries fires only on add/edit/remove
+// (infrequent, NVS-friendly). The node roster stays in RAM (RamNodeBlobStore):
+// NodeStoreCore saves every ~5s under mesh traffic, so NVS-backing it would wear
+// the flash, and it is ephemeral RF telemetry that repopulates from live
+// packets. On boot, ContactService::begin() re-synthesizes each loaded contact's
+// node record via ensureNodeExistsForContact, so the node store needs no
+// persistence and no on-load hook is required here.
+//
+// Storage isolation + forward-compat:
+//   - Dedicated NVS namespace/key ("tm_contacts" / "contacts_v1", both <=15
+//     chars) so contact data never touches the license-bearing "settings"
+//     namespace. Only this single key is ever written; clear_namespace is never
+//     called.
+//   - A 4-byte file-level header {'T','M','C',0x01} is prepended on save and
+//     stripped on load. The header is transparent to the core: ContactStoreCore
+//     decodes a RAW Entry[] array (len must be a multiple of sizeof(Entry)), so
+//     the header must NOT reach the core. loadBlob returns only the raw payload.
+//     The version byte lets a future format reject older blobs cleanly.
+// ---------------------------------------------------------------------------
+class NvsContactBlobStore final : public chat::IContactBlobStore
 {
   public:
     bool loadBlob(std::vector<uint8_t>& out) override
     {
-        out = blob_;
-        return !blob_.empty();
+        out.clear();
+        std::vector<uint8_t> raw;
+        if (!platform::ui::settings_store::get_blob(kNamespace, kKey, raw))
+        {
+            return false;
+        }
+        // Reject empty / truncated / wrong-magic blobs: hand the core nothing
+        // rather than a malformed (or headered) buffer.
+        if (raw.size() < kHeaderSize || raw[0] != kHeader[0] || raw[1] != kHeader[1] ||
+            raw[2] != kHeader[2] || raw[3] != kHeader[3])
+        {
+            return false;
+        }
+        out.assign(raw.begin() + kHeaderSize, raw.end());
+        return !out.empty();
     }
 
     bool saveBlob(const uint8_t* data, size_t len) override
     {
-        if (data != nullptr && len > 0)
+        if (len == 0)
         {
-            blob_.assign(data, data + len);
+            // No contacts: erase the key (put_blob with len 0 removes it).
+            return platform::ui::settings_store::put_blob(kNamespace, kKey, nullptr, 0);
         }
-        else
+        // Prepend the 4-byte header, then the raw Entry[] payload.
+        std::vector<uint8_t> buffer;
+        buffer.reserve(kHeaderSize + len);
+        buffer.insert(buffer.end(), kHeader, kHeader + kHeaderSize);
+        if (data != nullptr)
         {
-            blob_.clear();
+            buffer.insert(buffer.end(), data, data + len);
         }
-        return true;
+        return platform::ui::settings_store::put_blob(
+            kNamespace, kKey, buffer.data(), buffer.size());
     }
 
   private:
-    std::vector<uint8_t> blob_;
+    static constexpr const char* kNamespace = "tm_contacts";
+    static constexpr const char* kKey = "contacts_v1";
+    static constexpr size_t kHeaderSize = 4;
+    static constexpr uint8_t kHeader[kHeaderSize] = {'T', 'M', 'C', 0x01};
 };
 
 // Self-owning store wrappers: each bundles its volatile blob store with the
@@ -128,13 +180,16 @@ class RamNodeStore final : public chat::contacts::NodeStoreCore
     RamNodeBlobStore blob_store_;
 };
 
-class RamContactStore final : public chat::contacts::ContactStoreCore
+// Contact store wrapper backed by the NVS contact blob store so contacts
+// persist across reboot / reflash (see NvsContactBlobStore above). The node
+// store stays RAM-backed (RamNodeStore) by design.
+class NvsContactStore final : public chat::contacts::ContactStoreCore
 {
   public:
-    RamContactStore() : chat::contacts::ContactStoreCore(blob_store_) {}
+    NvsContactStore() : chat::contacts::ContactStoreCore(blob_store_) {}
 
   private:
-    RamContactBlobStore blob_store_;
+    NvsContactBlobStore blob_store_;
 };
 
 std::unique_ptr<chat::IChatStore> createChatStore()
@@ -157,13 +212,20 @@ createChatMessageObserver(chat::ChatService& service)
 app::ContactServicesBundle createIdfContactServices()
 {
     app::ContactServicesBundle bundle;
-    // Portable core stores backed by volatile RAM blob stores (see above): the
-    // Arduino meshtastic::NodeStore / contacts::ContactStore shells are not
-    // pure-IDF buildable. Each wrapper owns its blob store as a member.
+    // Portable core stores (the Arduino meshtastic::NodeStore /
+    // contacts::ContactStore shells are not pure-IDF buildable). Each wrapper
+    // owns its blob store as a member:
+    //   - node store: volatile RAM (RamNodeStore). Ephemeral RF telemetry that
+    //     repopulates from live packets; NVS-backing it would wear the flash
+    //     (NodeStoreCore saves every ~5s). On boot ContactService::begin()
+    //     re-synthesizes a node record for each persisted contact, so no node
+    //     persistence is needed.
+    //   - contact store: NVS-backed (NvsContactStore) so contacts (id +
+    //     nickname, user-authored) survive reboot / reflash.
     bundle.node_store =
         std::unique_ptr<chat::contacts::INodeStore>(new RamNodeStore());
     bundle.contact_store =
-        std::unique_ptr<chat::contacts::IContactStore>(new RamContactStore());
+        std::unique_ptr<chat::contacts::IContactStore>(new NvsContactStore());
     if (!bundle.node_store || !bundle.contact_store)
     {
         return bundle;
