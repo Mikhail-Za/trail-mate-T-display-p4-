@@ -75,4 +75,26 @@ app::ContactServicesBundle createIdfContactServices();
  */
 IdfChatRuntime createIdfChatRuntime(const app::AppConfig& config, LoraBoard& lora_board);
 
+/**
+ * @brief Load the persisted Meshtastic channel config from NVS into config.
+ *
+ * Reads the tm_chans / channels_v1 blob (NvsChannelBlobStore, mirroring the
+ * NvsContactBlobStore contact path) and decodes it into
+ * config.meshtastic_config.channels, then refreshes the legacy primary_/secondary_
+ * compat mirrors. When no blob exists yet (first boot after an update), the legacy
+ * primary_/secondary_ scalars + app_config enable flags are MIGRATED into slots
+ * 0/1 so the pre-existing channel-0 config is preserved. Call before building the
+ * chat runtime so the radio adapter starts from the persisted channels.
+ *
+ * @return true if a stored blob was loaded; false if it migrated legacy defaults.
+ */
+bool loadChannelConfigFromNvs(app::AppConfig& config);
+
+/**
+ * @brief Persist the current Meshtastic channel config (all kMaxChannels slots)
+ *        to NVS via NvsChannelBlobStore. Call on channel edit (infrequent, like
+ *        contacts), e.g. from the facade's applyMeshConfig().
+ */
+void saveChannelConfigToNvs(const app::AppConfig& config);
+
 } // namespace platform::esp::idf_common

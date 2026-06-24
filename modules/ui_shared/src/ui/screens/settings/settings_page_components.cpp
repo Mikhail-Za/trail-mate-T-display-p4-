@@ -72,8 +72,11 @@ namespace tracker_runtime = ::platform::ui::tracker;
 namespace wireless_companion_runtime = ::platform::ui::wireless_companion;
 namespace wifi_runtime = ::platform::ui::wifi;
 
-constexpr size_t kMaxItems = 32;
+constexpr size_t kMaxItems = 48;
 constexpr size_t kMaxOptions = 40;
+// Local alias for the canonical channel count so the per-slot editor reads
+// `kMaxChannels` directly (the channel slots are sized/looped on this).
+constexpr size_t kMaxChannels = chat::kMaxChannels;
 constexpr size_t kMaxWifiNetworks = 24;
 constexpr const char* kPrefsNs = "settings";
 constexpr int kChatContactAlertsNone = 0;
@@ -199,6 +202,7 @@ static void append_custom_timezone_option_if_needed(int profile_id, int offset_m
 }
 
 static void update_item_value(settings::ui::ItemWidget& widget);
+static int channel_slot_index_from_key(const char* key);
 static void open_factory_reset_modal();
 static void open_settings_restore_modal();
 static void open_gps_diagnostics_modal();
@@ -1080,6 +1084,27 @@ static void settings_load()
 
     g_settings.chat_region = mt_cfg.region;
     g_settings.chat_channel = cfg.chat_channel;
+
+    // Load the 8 fixed Meshtastic channel slots from the canonical channels[]
+    // array into the editor state (enable + name + key-as-hex per slot).
+    for (size_t ch = 0; ch < kMaxChannels; ++ch)
+    {
+        const chat::ChannelRecord& rec = mt_cfg.channels[ch];
+        g_settings.channel_enabled[ch] = rec.enabled;
+        std::snprintf(g_settings.channel_name[ch], sizeof(g_settings.channel_name[ch]),
+                      "%s", rec.name);
+        const uint8_t key_len = chat::normalizeMeshtasticChannelKeyLen(
+            rec.key, sizeof(rec.key), rec.key_len);
+        if (key_len == 0 || is_zero_key(rec.key, key_len))
+        {
+            g_settings.channel_key[ch][0] = '\0';
+        }
+        else
+        {
+            bytes_to_hex(rec.key, key_len, g_settings.channel_key[ch],
+                         sizeof(g_settings.channel_key[ch]));
+        }
+    }
     g_settings.chat_message_alerts = prefs_get_int("chat_message_alerts", 1) ? 1 : 0;
     g_settings.chat_contact_alerts = prefs_get_int("chat_contact_alerts", kChatContactAlertsContacts);
     if (g_settings.chat_contact_alerts < kChatContactAlertsNone ||
@@ -1463,39 +1488,50 @@ static void on_text_save_clicked(lv_event_t* e)
         {
             app::appFacade().broadcastNodeInfo();
         }
-        if (g_state.editing_item->pref_key && strcmp(g_state.editing_item->pref_key, "chat_psk") == 0)
+        // Per-slot Meshtastic channel NAME edit (ch<i>_name).
         {
-            app::IAppFacade& app_ctx = app::appFacade();
-            uint8_t key[chat::kMeshtasticChannelKeyMaxLen] = {};
-            size_t parsed_key_len = 0;
-            const size_t key_capacity =
-                (app_ctx.getConfig().mesh_protocol == chat::MeshProtocol::MeshCore)
-                    ? chat::kMeshCoreChannelKeyLen
-                    : chat::kMeshtasticChannelKeyMaxLen;
-            if (!parse_psk(g_state.editing_item->text_value, key, key_capacity, &parsed_key_len))
+            const char* pk = g_state.editing_item->pref_key;
+            const int ch_idx = channel_slot_index_from_key(pk);
+            if (ch_idx >= 0 && pk &&
+                std::strcmp(pk + std::strlen(pk) - 5, "_name") == 0)
             {
-                ::ui::SystemNotification::show(::ui::i18n::tr("PSK must be 32/64 hex or 16/32 chars"), 4000);
-                modal_close();
-                return;
+                app::IAppFacade& app_ctx = app::appFacade();
+                chat::MeshConfig& mesh = app_ctx.getConfig().meshtastic_config;
+                std::snprintf(mesh.channels[ch_idx].name, sizeof(mesh.channels[ch_idx].name),
+                              "%s", g_state.editing_item->text_value);
+                mesh.syncChannelMirrors();
+                app_ctx.saveConfig();
+                app_ctx.applyMeshConfig();
             }
-            if (app_ctx.getConfig().mesh_protocol == chat::MeshProtocol::MeshCore)
+        }
+        // Per-slot Meshtastic channel KEY/PSK edit (ch<i>_key).
+        {
+            const char* pk = g_state.editing_item->pref_key;
+            const int ch_idx = channel_slot_index_from_key(pk);
+            if (ch_idx >= 0 && pk &&
+                std::strcmp(pk + std::strlen(pk) - 4, "_key") == 0)
             {
-                memset(app_ctx.getConfig().meshcore_config.secondary_key, 0,
-                       sizeof(app_ctx.getConfig().meshcore_config.secondary_key));
-                memcpy(app_ctx.getConfig().meshcore_config.secondary_key, key, chat::kMeshCoreChannelKeyLen);
+                app::IAppFacade& app_ctx = app::appFacade();
+                uint8_t key[chat::kMeshtasticChannelKeyMaxLen] = {};
+                size_t parsed_key_len = 0;
+                if (!parse_psk(g_state.editing_item->text_value, key,
+                               chat::kMeshtasticChannelKeyMaxLen, &parsed_key_len))
+                {
+                    ::ui::SystemNotification::show(
+                        ::ui::i18n::tr("PSK must be 32/64 hex or 16/32 chars"), 4000);
+                    modal_close();
+                    return;
+                }
+                chat::MeshConfig& mesh = app_ctx.getConfig().meshtastic_config;
+                std::memset(mesh.channels[ch_idx].key, 0, sizeof(mesh.channels[ch_idx].key));
+                std::memcpy(mesh.channels[ch_idx].key, key, parsed_key_len);
+                mesh.channels[ch_idx].key_len = chat::normalizeMeshtasticChannelKeyLen(
+                    mesh.channels[ch_idx].key, sizeof(mesh.channels[ch_idx].key),
+                    static_cast<uint8_t>(parsed_key_len));
+                mesh.syncChannelMirrors();
+                app_ctx.saveConfig();
+                app_ctx.applyMeshConfig();
             }
-            else
-            {
-                auto& mesh = app_ctx.getConfig().meshtastic_config;
-                memset(mesh.secondary_key, 0, sizeof(mesh.secondary_key));
-                memcpy(mesh.secondary_key, key, parsed_key_len);
-                mesh.secondary_key_len =
-                    chat::normalizeMeshtasticChannelKeyLen(mesh.secondary_key,
-                                                           sizeof(mesh.secondary_key),
-                                                           static_cast<uint8_t>(parsed_key_len));
-            }
-            app_ctx.saveConfig();
-            app_ctx.applyMeshConfig();
         }
         if (g_state.editing_item->pref_key && strcmp(g_state.editing_item->pref_key, "net_freq_offset") == 0)
         {
@@ -2866,10 +2902,6 @@ static const settings::ui::SettingOption kMapTrackFormatOptions[] = {
     {"Binary", 2},
 };
 
-static const settings::ui::SettingOption kChatChannelOptions[] = {
-    {"Primary", 0},
-    {"Secondary", 1},
-};
 static const settings::ui::SettingOption kChatProtocolOptions[] = {
     {"Meshtastic", static_cast<int>(chat::MeshProtocol::Meshtastic)},
     {"MeshCore", static_cast<int>(chat::MeshProtocol::MeshCore)},
@@ -3059,8 +3091,8 @@ static settings::ui::SettingItem kChatItems[] = {
     {"Short Name", settings::ui::SettingType::Text, nullptr, 0, nullptr, nullptr, g_settings.short_name, sizeof(g_settings.short_name), false, "chat_short"},
     {"Protocol", settings::ui::SettingType::Enum, kChatProtocolOptions, 4, &g_settings.chat_protocol, nullptr, nullptr, 0, false, "mesh_protocol"},
     {"Region", settings::ui::SettingType::Enum, kChatRegionOptions, 0, &g_settings.chat_region, nullptr, nullptr, 0, false, "chat_region"},
-    {"Channel", settings::ui::SettingType::Enum, kChatChannelOptions, 2, &g_settings.chat_channel, nullptr, nullptr, 0, false, "chat_channel"},
-    {"Channel Key / PSK", settings::ui::SettingType::Text, nullptr, 0, nullptr, nullptr, g_settings.chat_psk, sizeof(g_settings.chat_psk), true, "chat_psk"},
+    // The per-channel slot editor (8 fixed slots x enable/name/key) is appended
+    // here at runtime by build_chat_items_with_channels(); see kChannelSlotItems.
     {"Encryption Mode", settings::ui::SettingType::Enum, kPrivacyEncryptOptions, 3, &g_settings.privacy_encrypt_mode, nullptr, nullptr, 0, false, "privacy_encrypt"},
     {"Message Alerts", settings::ui::SettingType::Enum, kBoolOptions, sizeof(kBoolOptions) / sizeof(kBoolOptions[0]), &g_settings.chat_message_alerts, nullptr, nullptr, 0, false, "chat_message_alerts"},
     {"Contact Alerts", settings::ui::SettingType::Enum, kChatContactAlertOptions, sizeof(kChatContactAlertOptions) / sizeof(kChatContactAlertOptions[0]), &g_settings.chat_contact_alerts, nullptr, nullptr, 0, false, "chat_contact_alerts"},
@@ -3068,6 +3100,109 @@ static settings::ui::SettingItem kChatItems[] = {
     {"Reset Node DB", settings::ui::SettingType::Action, nullptr, 0, nullptr, nullptr, nullptr, 0, false, "chat_reset_nodes"},
     {"Clear Message DB", settings::ui::SettingType::Action, nullptr, 0, nullptr, nullptr, nullptr, 0, false, "chat_clear_messages"},
 };
+
+// ---------------------------------------------------------------------------
+// Meshtastic per-channel editor: kMaxChannels FIXED slots, each offering an
+// enable toggle, a channel name, and a PSK/key field. This replaces the old
+// single Primary/Secondary "Channel" dropdown + single "Channel Key / PSK"
+// field. The slots are static rows (no dynamic LVGL add/remove list); they are
+// built once into kChannelSlotItems and spliced into the Chat category between
+// "Region" and "Encryption Mode".
+//
+// Per-slot pref_keys are generated as ch<i>_en / ch<i>_name / ch<i>_key so the
+// save/load handlers can recover the slot index from the key suffix.
+// ---------------------------------------------------------------------------
+constexpr size_t kChannelSlotFieldsPerSlot = 3; // enable + name + key
+// 8 FIXED slots (sized on kMaxChannels), each carrying an enable + name + key.
+static char kChannelEnableKeys[kMaxChannels][8] = {};   // "ch7_en"
+static char kChannelNameKeys[kMaxChannels][12] = {};    // "ch7_name"
+static char kChannelKeyKeys[kMaxChannels][12] = {};     // "ch7_key"
+static char kChannelEnableLabels[kMaxChannels][20] = {}; // "Channel 8 Enabled"
+static char kChannelNameLabels[kMaxChannels][20] = {};   // "Channel 8 Name"
+static char kChannelKeyLabels[kMaxChannels][20] = {};    // "Channel 8 Key"
+static settings::ui::SettingItem kChannelSlotItems[kMaxChannels * kChannelSlotFieldsPerSlot] = {};
+static bool s_channel_slot_items_built = false;
+
+// Recover the channel slot index from a generated per-slot pref_key
+// ("ch<i>_..."), or -1 if the key is not a channel-slot key.
+static int channel_slot_index_from_key(const char* key)
+{
+    if (!key || key[0] != 'c' || key[1] != 'h')
+    {
+        return -1;
+    }
+    const char digit = key[2];
+    if (digit < '0' || digit > '9')
+    {
+        return -1;
+    }
+    const int idx = digit - '0';
+    if (idx < 0 || idx >= static_cast<int>(chat::kMaxChannels))
+    {
+        return -1;
+    }
+    return idx;
+}
+
+static void init_channel_slot_items()
+{
+    if (s_channel_slot_items_built)
+    {
+        return;
+    }
+    size_t out = 0;
+    for (size_t i = 0; i < kMaxChannels; ++i)
+    {
+        std::snprintf(kChannelEnableKeys[i], sizeof(kChannelEnableKeys[i]), "ch%zu_en", i);
+        std::snprintf(kChannelNameKeys[i], sizeof(kChannelNameKeys[i]), "ch%zu_name", i);
+        std::snprintf(kChannelKeyKeys[i], sizeof(kChannelKeyKeys[i]), "ch%zu_key", i);
+        std::snprintf(kChannelEnableLabels[i], sizeof(kChannelEnableLabels[i]), "Channel %zu Enabled", i + 1);
+        std::snprintf(kChannelNameLabels[i], sizeof(kChannelNameLabels[i]), "Channel %zu Name", i + 1);
+        std::snprintf(kChannelKeyLabels[i], sizeof(kChannelKeyLabels[i]), "Channel %zu Key", i + 1);
+
+        kChannelSlotItems[out++] = {kChannelEnableLabels[i], settings::ui::SettingType::Toggle,
+                                    nullptr, 0, nullptr, &g_settings.channel_enabled[i], nullptr, 0,
+                                    false, kChannelEnableKeys[i]};
+        kChannelSlotItems[out++] = {kChannelNameLabels[i], settings::ui::SettingType::Text,
+                                    nullptr, 0, nullptr, nullptr, g_settings.channel_name[i],
+                                    sizeof(g_settings.channel_name[i]), false, kChannelNameKeys[i]};
+        kChannelSlotItems[out++] = {kChannelKeyLabels[i], settings::ui::SettingType::Text,
+                                    nullptr, 0, nullptr, nullptr, g_settings.channel_key[i],
+                                    sizeof(g_settings.channel_key[i]), true, kChannelKeyKeys[i]};
+    }
+    s_channel_slot_items_built = true;
+}
+
+// Merged Chat category: base chat rows with the 24 channel-slot rows spliced in
+// after the "Region" row. Built once into kChatItemsFull.
+static settings::ui::SettingItem
+    kChatItemsFull[(sizeof(kChatItems) / sizeof(kChatItems[0])) +
+                   kMaxChannels * kChannelSlotFieldsPerSlot] = {};
+static size_t kChatItemsFullCount = 0;
+
+static void build_chat_items_with_channels()
+{
+    if (kChatItemsFullCount != 0)
+    {
+        return;
+    }
+    init_channel_slot_items();
+    const size_t base_count = sizeof(kChatItems) / sizeof(kChatItems[0]);
+    size_t out = 0;
+    for (size_t i = 0; i < base_count; ++i)
+    {
+        kChatItemsFull[out++] = kChatItems[i];
+        // Splice the channel slots in right after the Region row.
+        if (kChatItems[i].pref_key && strcmp(kChatItems[i].pref_key, "chat_region") == 0)
+        {
+            for (size_t s = 0; s < kMaxChannels * kChannelSlotFieldsPerSlot; ++s)
+            {
+                kChatItemsFull[out++] = kChannelSlotItems[s];
+            }
+        }
+    }
+    kChatItemsFullCount = out;
+}
 
 static settings::ui::SettingItem kNetworkItems[] = {
     {"Use Preset", settings::ui::SettingType::Enum, kBoolOptions, sizeof(kBoolOptions) / sizeof(kBoolOptions[0]), &g_settings.net_use_preset, nullptr, nullptr, 0, false, "net_use_preset"},
@@ -3146,7 +3281,9 @@ static settings::ui::SettingItem kAdvancedItems[] = {
     {"Debug Logs", settings::ui::SettingType::Toggle, nullptr, 0, nullptr, &g_settings.advanced_debug_logs, nullptr, 0, false, "adv_debug"},
 };
 
-static const CategoryDef kCategories[] = {
+// Non-const so the Chat entry can be re-pointed at the runtime-built merged
+// array (base chat rows + the 8 channel slots) in ensure_chat_category_built().
+static CategoryDef kCategories[] = {
     {"GPS", kGpsItems, sizeof(kGpsItems) / sizeof(kGpsItems[0])},
     {"Map", kMapItems, sizeof(kMapItems) / sizeof(kMapItems[0])},
     {"Chat", kChatItems, sizeof(kChatItems) / sizeof(kChatItems[0])},
@@ -3155,6 +3292,16 @@ static const CategoryDef kCategories[] = {
     {"Wi-Fi", kWifiItems, sizeof(kWifiItems) / sizeof(kWifiItems[0])},
     {"Advanced", kAdvancedItems, sizeof(kAdvancedItems) / sizeof(kAdvancedItems[0])},
 };
+static constexpr size_t kChatCategoryIndex = 2;
+
+// Build the merged Chat category (with the 8 channel slots) once and re-point
+// the Chat CategoryDef at it. Idempotent.
+static void ensure_chat_category_built()
+{
+    build_chat_items_with_channels();
+    kCategories[kChatCategoryIndex].items = kChatItemsFull;
+    kCategories[kChatCategoryIndex].item_count = kChatItemsFullCount;
+}
 
 static void update_filter_styles()
 {
@@ -3315,6 +3462,14 @@ static bool should_show_item(const settings::ui::SettingItem& item)
     const bool meshcore = is_meshcore_protocol_selected();
     const bool rnode = is_rnode_protocol_selected();
 
+    // The per-slot Meshtastic channel editor (ch<i>_en / ch<i>_name / ch<i>_key)
+    // is Meshtastic-only; hide it for MeshCore / RNode (mirrors how the old
+    // single Channel/PSK dropdown was hidden for those protocols).
+    if (channel_slot_index_from_key(item.pref_key) >= 0 && (meshcore || rnode))
+    {
+        return false;
+    }
+
     // Relay is currently not implemented as real forwarding in Meshtastic path.
     if (has_pref_key(item, "net_relay"))
     {
@@ -3468,6 +3623,7 @@ static void build_item_list()
     {
         return;
     }
+    ensure_chat_category_built();
     s_building_list = true;
 #if defined(ESP_PLATFORM)
     ESP_LOGI(kLogTag,
@@ -3597,6 +3753,30 @@ static bool activate_item_widget(settings::ui::ItemWidget& widget)
                 prefs_put_bool(item.pref_key, *item.bool_value);
             }
             update_item_value(widget);
+            {
+                const int ch_idx = channel_slot_index_from_key(item.pref_key);
+                if (ch_idx >= 0 && item.pref_key &&
+                    std::strcmp(item.pref_key + std::strlen(item.pref_key) - 3, "_en") == 0)
+                {
+                    app::IAppFacade& app_ctx = app::appFacade();
+                    chat::MeshConfig& mesh = app_ctx.getConfig().meshtastic_config;
+                    mesh.channels[ch_idx].enabled = *item.bool_value;
+                    app_ctx.getConfig().channel_enabled[ch_idx] = *item.bool_value;
+                    // Keep the legacy scalar mirrors + app_config enable flags in
+                    // sync for slots 0/1.
+                    if (ch_idx == 0)
+                    {
+                        app_ctx.getConfig().primary_enabled = *item.bool_value;
+                    }
+                    else if (ch_idx == 1)
+                    {
+                        app_ctx.getConfig().secondary_enabled = *item.bool_value;
+                    }
+                    mesh.syncChannelMirrors();
+                    app_ctx.saveConfig();
+                    app_ctx.applyMeshConfig();
+                }
+            }
             if (item.pref_key && strcmp(item.pref_key, "net_relay") == 0)
             {
                 app::IAppFacade& app_ctx = app::appFacade();
@@ -3970,6 +4150,7 @@ void create(lv_obj_t* parent)
 #endif
     refresh_timezone_options();
     refresh_timezone_option_count();
+    ensure_chat_category_built();
     settings_load();
 
     // Avoid auto-adding widgets to the current default group during creation.

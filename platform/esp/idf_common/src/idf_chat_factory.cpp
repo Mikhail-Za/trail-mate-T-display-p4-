@@ -28,6 +28,7 @@
 #include "esp_log.h"
 
 #include "board/LoraBoard.h"
+#include "chat/domain/channel_persist.h"
 #include "chat/domain/chat_model.h"
 #include "chat/domain/chat_types.h" // chat::MeshProtocol
 #include "chat/infra/contact_store_core.h"
@@ -165,6 +166,51 @@ class NvsContactBlobStore final : public chat::IContactBlobStore
     static constexpr const char* kKey = "contacts_v1";
     static constexpr size_t kHeaderSize = 4;
     static constexpr uint8_t kHeader[kHeaderSize] = {'T', 'M', 'C', 0x01};
+};
+
+// ---------------------------------------------------------------------------
+// NVS-backed channel blob store: persists the 8-slot Meshtastic channel config
+// so user-added channels survive reboot / reflash.
+//
+// Mirrors NvsContactBlobStore above: a dedicated NVS namespace/key
+// ("tm_chans" / "channels_v1", both <=15 chars) isolated from the
+// license-bearing "settings" namespace; only this one key is ever written;
+// clear_namespace is never called; put_blob with len 0 erases the key. The blob
+// itself is the versioned format produced by chat::channel_persist::encode (its
+// own 4-byte magic+version header), so no extra header is added here. Channel
+// edits are infrequent (user action), so NVS wear is not a concern (same posture
+// as contacts).
+// ---------------------------------------------------------------------------
+class NvsChannelBlobStore final
+{
+  public:
+    // Decode the persisted channel array into recs[0..max). Returns the record
+    // count on success, or 0 when no (valid) blob exists.
+    size_t load(chat::ChannelRecord* recs, size_t max)
+    {
+        std::vector<uint8_t> raw;
+        if (!platform::ui::settings_store::get_blob(kNamespace, kKey, raw))
+        {
+            return 0;
+        }
+        return chat::channel_persist::decode(raw.data(), raw.size(), recs, max);
+    }
+
+    // Encode and persist n channel records. n == 0 erases the key.
+    bool save(const chat::ChannelRecord* recs, size_t n)
+    {
+        if (n == 0)
+        {
+            return platform::ui::settings_store::put_blob(kNamespace, kKey, nullptr, 0);
+        }
+        std::vector<uint8_t> blob = chat::channel_persist::encode(recs, n);
+        return platform::ui::settings_store::put_blob(
+            kNamespace, kKey, blob.data(), blob.size());
+    }
+
+  private:
+    static constexpr const char* kNamespace = "tm_chans";
+    static constexpr const char* kKey = "channels_v1";
 };
 
 // Self-owning store wrappers: each bundles its volatile blob store with the
@@ -309,6 +355,48 @@ IdfChatRuntime createIdfChatRuntime(const app::AppConfig& config, LoraBoard& lor
 
     chat.incoming_message_observer = createChatMessageObserver(*chat.service);
     return runtime;
+}
+
+bool loadChannelConfigFromNvs(app::AppConfig& config)
+{
+    NvsChannelBlobStore store;
+    chat::ChannelRecord loaded[chat::kMaxChannels];
+    const size_t n = store.load(loaded, chat::kMaxChannels);
+    if (n > 0)
+    {
+        for (size_t i = 0; i < chat::kMaxChannels; ++i)
+        {
+            config.meshtastic_config.channels[i] =
+                (i < n) ? loaded[i] : chat::ChannelRecord{};
+        }
+        // Refresh the legacy scalar mirrors from slots 0/1 and the app_config
+        // enable flags so the rest of the (compat-mirror) surfaces are coherent.
+        config.meshtastic_config.syncChannelMirrors();
+        for (size_t i = 0; i < chat::kMaxChannels; ++i)
+        {
+            config.channel_enabled[i] = config.meshtastic_config.channels[i].enabled;
+        }
+        config.primary_enabled = config.meshtastic_config.channels[0].enabled;
+        config.secondary_enabled = config.meshtastic_config.channels[1].enabled;
+        return true;
+    }
+
+    // First boot after the update: no stored channel blob. Migrate the existing
+    // primary_/secondary_ scalars (+ the app_config enable flags) into slots
+    // 0/1 so the pre-existing channel-0 config is preserved unchanged.
+    config.meshtastic_config.migrateLegacyIntoSlots(config.primary_enabled,
+                                                    config.secondary_enabled);
+    for (size_t i = 0; i < chat::kMaxChannels; ++i)
+    {
+        config.channel_enabled[i] = config.meshtastic_config.channels[i].enabled;
+    }
+    return false;
+}
+
+void saveChannelConfigToNvs(const app::AppConfig& config)
+{
+    NvsChannelBlobStore store;
+    (void)store.save(config.meshtastic_config.channels, chat::kMaxChannels);
 }
 
 } // namespace platform::esp::idf_common

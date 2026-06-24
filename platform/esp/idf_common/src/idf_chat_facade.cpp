@@ -133,6 +133,12 @@ bool IdfChatFacade::initialize()
         return true;
     }
 
+    // Load the persisted 8-slot Meshtastic channel config (NvsChannelBlobStore)
+    // BEFORE building the runtime so the radio adapter starts from the stored
+    // channels. On first boot (no blob), this migrates the legacy
+    // primary_/secondary_ scalars into slots 0/1 so channel 0 is unchanged.
+    (void)loadChannelConfigFromNvs(config_);
+
     // Create the global EventBus queue BEFORE the chat runtime/bridge is built.
     // On Arduino this happens in app_context.cpp; the IDF startup path never did
     // it, so the queue stayed nullptr and every ChatNewMessageEvent the bridge
@@ -205,6 +211,14 @@ void IdfChatFacade::saveConfig()
 
 void IdfChatFacade::applyMeshConfig()
 {
+    // Persist the channel config (NvsChannelBlobStore) so user channel edits
+    // survive reboot / reflash. applyMeshConfig() is the funnel the settings UI
+    // calls after any mesh edit, so saving here covers every channel change; it
+    // is user-action-gated and infrequent (same posture as the contacts store).
+    if (config_.mesh_protocol == ::chat::MeshProtocol::Meshtastic)
+    {
+        saveChannelConfigToNvs(config_);
+    }
     if (::chat::IMeshAdapter* adapter = getMeshAdapter())
     {
         adapter->applyConfig(config_.activeMeshConfig());

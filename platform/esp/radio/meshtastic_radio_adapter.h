@@ -68,6 +68,11 @@ class MeshtasticRadioAdapter final : public chat::IMeshAdapter
                               const chat::contacts::NodePosition& pos);
     uint8_t channelHashFor(chat::ChannelId channel) const;
     const uint8_t* channelKeyFor(chat::ChannelId channel, size_t* out_len) const;
+    // Map a wire channel-hash byte back to a configured, enabled channel index.
+    // Multiple channels can share a hash (8-bit collisions), so the RX path
+    // tries each match in turn; matchCount/matchAt enumerate them.
+    size_t channelMatchCount(uint8_t hash) const;
+    chat::ChannelId channelMatchAt(uint8_t hash, size_t which) const;
 
     LoraBoard& board_;
     chat::MeshConfig config_{};
@@ -89,12 +94,14 @@ class MeshtasticRadioAdapter final : public chat::IMeshAdapter
     uint32_t radio_bw_hz_ = 0;
     uint8_t radio_sf_ = 0;
     uint8_t radio_cr_ = 0;
-    uint8_t primary_channel_hash_ = 0x00;
-    uint8_t secondary_channel_hash_ = 0x00;
-    uint8_t primary_psk_[chat::kMeshtasticChannelKeyMaxLen] = {};
-    size_t primary_psk_len_ = 0;
-    uint8_t secondary_psk_[chat::kMeshtasticChannelKeyMaxLen] = {};
-    size_t secondary_psk_len_ = 0;
+    // Per-channel derived hash + expanded PSK for all kMaxChannels slots. Only
+    // enabled slots participate in TX/RX (channel_enabled_). Computed once per
+    // applyConfig() in updateChannelKeys() using the SAME channelHashFromRecord
+    // the host test verifies (single source -> host-tested hash IS on-air hash).
+    bool channel_enabled_[chat::kMaxChannels] = {};
+    uint8_t channel_hash_[chat::kMaxChannels] = {};
+    uint8_t channel_psk_[chat::kMaxChannels][chat::kMeshtasticChannelKeyMaxLen] = {};
+    size_t channel_psk_len_[chat::kMaxChannels] = {};
 };
 
 } // namespace platform::esp::radio

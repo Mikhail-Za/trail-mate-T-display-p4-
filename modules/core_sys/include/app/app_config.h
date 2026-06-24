@@ -90,7 +90,13 @@ struct AppConfig
     char short_name[16];
     bool ble_enabled;
 
-    // Channel settings
+    // Channel settings.
+    // Canonical per-channel enable lives in meshtastic_config.channels[i].enabled
+    // (ChannelRecord). channel_enabled[] is a flat COMPAT MIRROR of those 8 slots
+    // (kept in sync on channel load/edit) so readers that only have AppConfig can
+    // see all 8 slots; primary_enabled/secondary_enabled remain as the legacy
+    // mirrors of slots 0/1.
+    bool channel_enabled[chat::kMaxChannels];
     bool primary_enabled;
     bool secondary_enabled;
     bool primary_uplink_enabled;
@@ -168,6 +174,10 @@ struct AppConfig
         node_name[0] = '\0';
         short_name[0] = '\0';
         ble_enabled = true;
+        for (size_t i = 0; i < chat::kMaxChannels; ++i)
+        {
+            channel_enabled[i] = meshtastic_config.channels[i].enabled;
+        }
         primary_enabled = true;
         secondary_enabled = false;
         primary_uplink_enabled = false;

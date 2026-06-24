@@ -89,6 +89,20 @@ const char* channelName(const MeshConfig& config, ChannelId channel)
     return (channel == ChannelId::SECONDARY) ? secondaryChannelName(config) : primaryChannelName(config);
 }
 
+const char* channelName(const MeshConfig& config, std::size_t index)
+{
+    if (index >= kMaxChannels)
+    {
+        index = 0;
+    }
+    if (index == 0)
+    {
+        // Slot 0 mirrors the primary channel: fall back to the preset name.
+        return primaryChannelName(config);
+    }
+    return config.channels[index].name;
+}
+
 RadioConfig deriveRadioConfig(const MeshConfig& config)
 {
     RadioConfig out{};

@@ -1,5 +1,6 @@
 #include "platform/esp/radio/meshtastic_radio_adapter.h"
 
+#include "chat/domain/channel_hash.h"
 #include "chat/domain/contact_types.h"
 #include "chat/infra/meshtastic/mt_node_payload.h"
 #include "chat/infra/meshtastic/mt_packet_wire.h"
@@ -40,17 +41,7 @@ uint32_t now_millis()
 
 uint8_t to_channel_index(chat::ChannelId channel)
 {
-    return (channel == chat::ChannelId::SECONDARY) ? 1U : 0U;
-}
-
-chat::ChannelId channel_from_hash(uint8_t hash, uint8_t primary_hash, uint8_t secondary_hash)
-{
-    if (hash == secondary_hash)
-    {
-        return chat::ChannelId::SECONDARY;
-    }
-    (void)primary_hash;
-    return chat::ChannelId::PRIMARY;
+    return static_cast<uint8_t>(channel);
 }
 
 void fill_rx_meta(chat::RxMeta& rx_meta,
@@ -429,9 +420,13 @@ void MeshtasticRadioAdapter::processReceivedPacket(const uint8_t* data, size_t s
     }
     dedup_.markSeen(header.from, header.id);
 
-    const chat::ChannelId channel =
-        channel_from_hash(header.channel, primary_channel_hash_, secondary_channel_hash_);
-    if (header.channel != channelHashFor(channel))
+    // Multi-channel RX: the wire carries only an 8-bit channel hash, which can
+    // collide across configured channels. Enumerate every enabled channel whose
+    // hash matches header.channel and try each one's key in turn, accepting the
+    // first whose payload decrypts AND pb_decodes. This is what lets channels
+    // 2..7 receive; channel 0 still wins on its own (usually unique) hash.
+    const size_t match_count = channelMatchCount(header.channel);
+    if (match_count == 0)
     {
         ESP_LOGI(kTag,
                  "drop unknown channel from=%08lX id=%08lX hash=0x%02X",
@@ -441,34 +436,60 @@ void MeshtasticRadioAdapter::processReceivedPacket(const uint8_t* data, size_t s
         return;
     }
 
-    size_t psk_len = 0;
-    const uint8_t* psk = channelKeyFor(channel, &psk_len);
+    chat::ChannelId channel = chat::ChannelId::PRIMARY;
     uint8_t plaintext[256];
-    size_t plaintext_len = sizeof(plaintext);
-    if (psk_len > 0)
+    size_t plaintext_len = 0;
+    bool decoded_ok = false;
+    meshtastic_Data decoded = meshtastic_Data_init_default;
+
+    for (size_t candidate = 0; candidate < match_count && !decoded_ok; ++candidate)
     {
-        if (!chat::meshtastic::decryptPayload(header, payload, payload_size, psk, psk_len,
-                                              plaintext, &plaintext_len))
+        const chat::ChannelId cand_channel = channelMatchAt(header.channel, candidate);
+        size_t psk_len = 0;
+        const uint8_t* psk = channelKeyFor(cand_channel, &psk_len);
+
+        uint8_t attempt[256];
+        size_t attempt_len = sizeof(attempt);
+        if (psk_len > 0)
         {
-            return;
+            if (!chat::meshtastic::decryptPayload(header, payload, payload_size, psk, psk_len,
+                                                  attempt, &attempt_len))
+            {
+                continue; // try the next colliding channel
+            }
         }
+        else
+        {
+            std::memcpy(attempt, payload, payload_size);
+            attempt_len = payload_size;
+        }
+
+        meshtastic_Data attempt_decoded = meshtastic_Data_init_default;
+        pb_istream_t stream = pb_istream_from_buffer(attempt, attempt_len);
+        if (!pb_decode(&stream, meshtastic_Data_fields, &attempt_decoded))
+        {
+            continue; // wrong key (hash collision) -> retry next candidate
+        }
+
+        // Accepted: this channel's key produced a valid Data payload.
+        channel = cand_channel;
+        std::memcpy(plaintext, attempt, attempt_len);
+        plaintext_len = attempt_len;
+        decoded = attempt_decoded;
+        decoded_ok = true;
     }
-    else
+
+    if (!decoded_ok)
     {
-        std::memcpy(plaintext, payload, payload_size);
-        plaintext_len = payload_size;
+        return;
     }
 
     chat::RxMeta rx_meta{};
     fill_rx_meta(rx_meta, header, last_rx_rssi_, last_rx_snr_,
                  radio_freq_hz_, radio_bw_hz_, radio_sf_, radio_cr_);
 
-    meshtastic_Data decoded = meshtastic_Data_init_default;
-    pb_istream_t stream = pb_istream_from_buffer(plaintext, plaintext_len);
-    if (!pb_decode(&stream, meshtastic_Data_fields, &decoded))
-    {
-        return;
-    }
+    size_t resolved_psk_len = 0;
+    (void)channelKeyFor(channel, &resolved_psk_len);
 
     node_last_channel_[header.from] = channel;
 
@@ -534,7 +555,7 @@ void MeshtasticRadioAdapter::processReceivedPacket(const uint8_t* data, size_t s
         incoming_text.msg_id = header.id;
         incoming_text.channel = channel;
         incoming_text.hop_limit = header.flags & chat::meshtastic::PACKET_FLAGS_HOP_LIMIT_MASK;
-        incoming_text.encrypted = (psk_len > 0);
+        incoming_text.encrypted = (resolved_psk_len > 0);
         incoming_text.rx_meta = rx_meta;
         text_queue_.push(incoming_text);
         return;
@@ -665,45 +686,65 @@ void MeshtasticRadioAdapter::configureRadio()
              static_cast<unsigned long>(radio.channel_slot),
              static_cast<unsigned>(radio.sync_word),
              static_cast<unsigned>(radio.preamble_len),
-             static_cast<unsigned>(primary_channel_hash_),
-             static_cast<unsigned>(secondary_channel_hash_));
+             static_cast<unsigned>(channel_hash_[0]),
+             static_cast<unsigned>(channel_hash_[1]));
 }
 
 void MeshtasticRadioAdapter::updateChannelKeys()
 {
-    if (chat::meshtastic::isZeroKey(config_.primary_key, sizeof(config_.primary_key)))
+    // Compute the on-air hash + expanded PSK for every configured channel slot
+    // using the SAME channelHashFromRecord the host test verifies, so the
+    // host-tested hash IS the on-air hash for channels 0 and 2..7 alike.
+    //
+    // Channel 0/1 no-regression: slot 0 with an empty key defaults to the
+    // LongFast default PSK (short-PSK index 1), exactly as the old PRIMARY path
+    // did; any other slot with an empty key stays open (no PSK), exactly as the
+    // old SECONDARY path did.
+    for (std::size_t i = 0; i < chat::kMaxChannels; ++i)
     {
-        chat::meshtastic::expandShortPsk(kDefaultPskIndex, primary_psk_, &primary_psk_len_);
-    }
-    else
-    {
-        primary_psk_len_ = chat::normalizeMeshtasticChannelKeyLen(config_.primary_key,
-                                                                  sizeof(config_.primary_key),
-                                                                  config_.primary_key_len);
-        std::memcpy(primary_psk_, config_.primary_key, primary_psk_len_);
-    }
+        channel_enabled_[i] = config_.channels[i].enabled;
+        std::memset(channel_psk_[i], 0, sizeof(channel_psk_[i]));
+        channel_psk_len_[i] = 0;
+        channel_hash_[i] = 0;
+        if (!config_.channels[i].enabled)
+        {
+            continue;
+        }
 
-    if (chat::meshtastic::isZeroKey(config_.secondary_key, sizeof(config_.secondary_key)))
-    {
-        std::memset(secondary_psk_, 0, sizeof(secondary_psk_));
-        secondary_psk_len_ = 0;
-    }
-    else
-    {
-        secondary_psk_len_ = chat::normalizeMeshtasticChannelKeyLen(config_.secondary_key,
-                                                                    sizeof(config_.secondary_key),
-                                                                    config_.secondary_key_len);
-        std::memcpy(secondary_psk_, config_.secondary_key, secondary_psk_len_);
-    }
+        // Build an effective record: normalize the stored key length, and apply
+        // the slot-0 default-PSK rule for an empty key.
+        chat::ChannelRecord eff = config_.channels[i];
+        const uint8_t normalized_len = chat::normalizeMeshtasticChannelKeyLen(
+            eff.key, sizeof(eff.key), eff.key_len);
+        if (normalized_len == 0)
+        {
+            if (i == 0)
+            {
+                // Empty key on the public channel => LongFast default PSK.
+                eff.key_len = 1;
+                eff.key[0] = kDefaultPskIndex;
+            }
+            else
+            {
+                eff.key_len = 0;
+            }
+        }
+        else
+        {
+            eff.key_len = normalized_len;
+        }
+        // Slot 0's name follows the modem-preset fallback (primaryChannelName).
+        const char* name = chat::meshtastic::channelName(config_, i);
+        std::snprintf(eff.name, sizeof(eff.name), "%s", name ? name : "");
 
-    primary_channel_hash_ =
-        chat::meshtastic::computeChannelHash(chat::meshtastic::primaryChannelName(config_),
-                                             primary_psk_,
-                                             primary_psk_len_);
-    secondary_channel_hash_ = chat::meshtastic::computeChannelHash(
-        chat::meshtastic::secondaryChannelName(config_),
-        secondary_psk_len_ > 0 ? secondary_psk_ : nullptr,
-        secondary_psk_len_);
+        // Expand the PSK bytes (what buildWirePacket / decryptPayload consume).
+        std::size_t expanded_len = 0;
+        chat::meshtastic::expandChannelPsk(eff.key, eff.key_len, channel_psk_[i], &expanded_len);
+        channel_psk_len_[i] = expanded_len;
+
+        // Hash is derived from the SAME effective record (single source).
+        channel_hash_[i] = chat::meshtastic::channelHashFromRecord(eff);
+    }
 }
 
 void MeshtasticRadioAdapter::initNodeIdentity()
@@ -802,25 +843,56 @@ void MeshtasticRadioAdapter::publishPositionEvent(chat::NodeId node_id,
 
 uint8_t MeshtasticRadioAdapter::channelHashFor(chat::ChannelId channel) const
 {
-    return (channel == chat::ChannelId::SECONDARY) ? secondary_channel_hash_ : primary_channel_hash_;
+    const std::size_t idx = static_cast<std::size_t>(channel);
+    if (idx >= chat::kMaxChannels)
+    {
+        return channel_hash_[0];
+    }
+    return channel_hash_[idx];
 }
 
 const uint8_t* MeshtasticRadioAdapter::channelKeyFor(chat::ChannelId channel, size_t* out_len) const
 {
-    if (channel == chat::ChannelId::SECONDARY)
+    std::size_t idx = static_cast<std::size_t>(channel);
+    if (idx >= chat::kMaxChannels)
     {
-        if (out_len)
-        {
-            *out_len = secondary_psk_len_;
-        }
-        return secondary_psk_;
+        idx = 0;
     }
-
     if (out_len)
     {
-        *out_len = primary_psk_len_;
+        *out_len = channel_psk_len_[idx];
     }
-    return primary_psk_;
+    return channel_psk_[idx];
+}
+
+size_t MeshtasticRadioAdapter::channelMatchCount(uint8_t hash) const
+{
+    size_t count = 0;
+    for (std::size_t i = 0; i < chat::kMaxChannels; ++i)
+    {
+        if (channel_enabled_[i] && channel_hash_[i] == hash)
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+chat::ChannelId MeshtasticRadioAdapter::channelMatchAt(uint8_t hash, size_t which) const
+{
+    size_t seen = 0;
+    for (std::size_t i = 0; i < chat::kMaxChannels; ++i)
+    {
+        if (channel_enabled_[i] && channel_hash_[i] == hash)
+        {
+            if (seen == which)
+            {
+                return static_cast<chat::ChannelId>(i);
+            }
+            ++seen;
+        }
+    }
+    return chat::ChannelId::PRIMARY;
 }
 
 } // namespace platform::esp::radio

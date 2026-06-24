@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "chat/domain/channel_record.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -68,15 +70,23 @@ inline uint8_t normalizeMeshtasticChannelKeyLen(const uint8_t* key,
     return kMeshtasticChannelKeyDefaultLen;
 }
 
+// Multi-channel generalization: kMaxChannels = 8 canonical channel slots
+// (defined in channel_record.h). MeshConfig.channels[kMaxChannels] below is the
+// source of truth; the legacy primary_/secondary_ scalars are compat mirrors of
+// slots 0/1.
+static_assert(kMaxChannels == 8, "kMaxChannels must be 8");
+
 /**
  * @brief Channel identifier
- * Primary channel (0) is the default public channel
+ * Primary channel (0) is the default public channel. Channels are now
+ * generalized to kMaxChannels slots (0..7); PRIMARY/SECONDARY remain as
+ * source-compat aliases for slots 0 and 1.
  */
 enum class ChannelId : uint8_t
 {
-    PRIMARY = 0,   // Public channel (default broadcast)
-    SECONDARY = 1, // Squad channel (encrypted)
-    MAX_CHANNELS = 3
+    PRIMARY = 0,   // Public channel (default broadcast), slot 0
+    SECONDARY = 1, // Squad channel (encrypted), slot 1
+    MAX_CHANNELS = kMaxChannels
 };
 
 /**
@@ -398,7 +408,16 @@ struct MeshConfig
     bool ignore_mqtt;             // Ignore incoming packets that arrived via MQTT
     bool config_ok_to_mqtt;       // Set ok_to_mqtt bit on outgoing packets
 
-    // Meshtastic channel identity and encryption keys
+    // Canonical per-slot Meshtastic channel array (0..kMaxChannels-1). This is
+    // the source of truth for multi-channel TX/RX. The primary_/secondary_
+    // scalar fields below are kept in sync as COMPATIBILITY MIRRORS of
+    // channels[0]/[1] for the sibling targets (BLE phone core, arduino config
+    // store, linux app/tests) that are not compiled into the P4 build and still
+    // read the scalars.
+    ChannelRecord channels[kMaxChannels];
+
+    // Meshtastic channel identity and encryption keys.
+    // COMPAT MIRRORS of channels[0]/[1] -- keep in sync via syncChannelMirrors().
     char primary_channel_name[32];
     char secondary_channel_name[32];
     uint32_t primary_channel_id;
@@ -455,6 +474,18 @@ struct MeshConfig
           meshcore_multi_acks(false),
           meshcore_channel_slot(0)
     {
+        for (std::size_t i = 0; i < kMaxChannels; ++i)
+        {
+            channels[i] = ChannelRecord{};
+        }
+        // Slot 0 defaults to the LongFast public channel (enabled); the rest are
+        // disabled empty slots.
+        channels[0].enabled = true;
+        strncpy(channels[0].name, "LongFast", sizeof(channels[0].name) - 1);
+        channels[0].name[sizeof(channels[0].name) - 1] = '\0';
+        strncpy(channels[1].name, "Secondary", sizeof(channels[1].name) - 1);
+        channels[1].name[sizeof(channels[1].name) - 1] = '\0';
+
         strncpy(primary_channel_name, "LongFast", sizeof(primary_channel_name) - 1);
         primary_channel_name[sizeof(primary_channel_name) - 1] = '\0';
         strncpy(secondary_channel_name, "Secondary", sizeof(secondary_channel_name) - 1);
@@ -462,6 +493,63 @@ struct MeshConfig
         memset(primary_key, 0, sizeof(primary_key));
         memset(secondary_key, 0, sizeof(secondary_key));
         meshcore_channel_name[0] = '\0';
+    }
+
+    // Push channels[0]/[1] out to the legacy primary_/secondary_ scalar mirrors.
+    // Call after any edit to channels[0]/[1] so the sibling targets that still
+    // read the scalars (BLE phone core, arduino config store, linux app) stay
+    // consistent. Channels 2..7 have no scalar mirror by design.
+    void syncChannelMirrors()
+    {
+        strncpy(primary_channel_name, channels[0].name, sizeof(primary_channel_name) - 1);
+        primary_channel_name[sizeof(primary_channel_name) - 1] = '\0';
+        strncpy(secondary_channel_name, channels[1].name, sizeof(secondary_channel_name) - 1);
+        secondary_channel_name[sizeof(secondary_channel_name) - 1] = '\0';
+        primary_channel_id = channels[0].channel_id;
+        secondary_channel_id = channels[1].channel_id;
+
+        memset(primary_key, 0, sizeof(primary_key));
+        primary_key_len = channels[0].key_len;
+        if (primary_key_len > sizeof(primary_key))
+        {
+            primary_key_len = sizeof(primary_key);
+        }
+        memcpy(primary_key, channels[0].key, primary_key_len);
+
+        memset(secondary_key, 0, sizeof(secondary_key));
+        secondary_key_len = channels[1].key_len;
+        if (secondary_key_len > sizeof(secondary_key))
+        {
+            secondary_key_len = sizeof(secondary_key);
+        }
+        memcpy(secondary_key, channels[1].key, secondary_key_len);
+    }
+
+    // Migrate the legacy primary_/secondary_ scalars into channels[0]/[1]. Used
+    // on boot/load so a config that only has the old scalar fields populates the
+    // canonical array. enabled flags are supplied by the caller (they live in
+    // app_config, not MeshConfig). Channels 2..7 are left untouched.
+    void migrateLegacyIntoSlots(bool primary_enabled, bool secondary_enabled)
+    {
+        channels[0].enabled = primary_enabled;
+        strncpy(channels[0].name, primary_channel_name, sizeof(channels[0].name) - 1);
+        channels[0].name[sizeof(channels[0].name) - 1] = '\0';
+        channels[0].channel_id = primary_channel_id;
+        memset(channels[0].key, 0, sizeof(channels[0].key));
+        channels[0].key_len = (primary_key_len > sizeof(channels[0].key))
+                                  ? static_cast<uint8_t>(sizeof(channels[0].key))
+                                  : primary_key_len;
+        memcpy(channels[0].key, primary_key, channels[0].key_len);
+
+        channels[1].enabled = secondary_enabled;
+        strncpy(channels[1].name, secondary_channel_name, sizeof(channels[1].name) - 1);
+        channels[1].name[sizeof(channels[1].name) - 1] = '\0';
+        channels[1].channel_id = secondary_channel_id;
+        memset(channels[1].key, 0, sizeof(channels[1].key));
+        channels[1].key_len = (secondary_key_len > sizeof(channels[1].key))
+                                  ? static_cast<uint8_t>(sizeof(channels[1].key))
+                                  : secondary_key_len;
+        memcpy(channels[1].key, secondary_key, channels[1].key_len);
     }
 };
 

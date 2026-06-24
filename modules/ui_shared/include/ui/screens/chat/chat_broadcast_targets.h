@@ -11,26 +11,22 @@
 #pragma once
 
 #include "app/app_facade_access.h"
+#include "chat/domain/channel_record.h"
 #include "chat/domain/chat_types.h"
 #include "chat/infra/mesh_protocol_utils.h"
 #include "chat/infra/meshtastic/mt_radio_config.h"
 #include "ui/localization.h"
+#include "ui/screens/chat/chat_broadcast_targets_core.h"
 #include "ui/screens/chat/chat_protocol_support.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
 namespace chat::ui::broadcast_targets
 {
 
-struct TargetSpec
-{
-    chat::MeshProtocol protocol = chat::MeshProtocol::Meshtastic;
-    chat::ChannelId channel = chat::ChannelId::PRIMARY;
-    uint8_t channel_index = 0;
-    bool enabled = false;
-    bool chat_supported = false;
-};
+// TargetSpec lives in chat_broadcast_targets_core.h (the pure, host-tested core).
 
 inline size_t count()
 {
@@ -56,18 +52,16 @@ inline bool spec(int index, TargetSpec* out)
 
     if (chat::ui::support::active_mesh_protocol() == chat::MeshProtocol::Meshtastic)
     {
-        if (index >= 8)
-        {
-            return false;
-        }
-
+        // Delegate to the pure, host-tested core reading the live per-channel
+        // config. specFor preserves the slot index and drives both enabled and
+        // chat_supported off the real per-slot channel_enabled flag
+        // (channels[index].enabled) for all 8 slots -- the old chat_supported
+        // clamp to the first two indices was the 2-channel bug and is gone.
         const auto& cfg = app::configFacade().getConfig();
-        out->protocol = chat::MeshProtocol::Meshtastic;
-        out->channel_index = static_cast<uint8_t>(index);
-        out->channel = (index == 1) ? chat::ChannelId::SECONDARY : chat::ChannelId::PRIMARY;
-        out->enabled = (index == 0) ? cfg.primary_enabled : ((index == 1) ? cfg.secondary_enabled : false);
-        out->chat_supported = out->enabled && (index <= 1);
-        return true;
+        return specFor(cfg.meshtastic_config.channels,
+                       static_cast<std::size_t>(chat::kMaxChannels),
+                       index,
+                       out);
     }
 
     if (chat::ui::support::active_mesh_protocol() == chat::MeshProtocol::RNode)
@@ -109,9 +103,11 @@ inline std::string label(const TargetSpec& target)
 {
     if (target.protocol == chat::MeshProtocol::Meshtastic)
     {
+        // Use the per-slot channel name (slot index preserved in channel_index)
+        // so channels 2..7 show their own names, not just Primary/Secondary.
         return std::string("[MT] ") +
                chat::meshtastic::channelName(app::configFacade().getConfig().meshtastic_config,
-                                             target.channel);
+                                             static_cast<std::size_t>(target.channel_index));
     }
     if (target.protocol == chat::MeshProtocol::RNode)
     {

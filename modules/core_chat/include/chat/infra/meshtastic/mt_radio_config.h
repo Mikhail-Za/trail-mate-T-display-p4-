@@ -36,6 +36,10 @@ struct RadioConfig
 const char* primaryChannelName(const MeshConfig& config);
 const char* secondaryChannelName(const MeshConfig& config);
 const char* channelName(const MeshConfig& config, ChannelId channel);
+// Per-slot channel name for slots 0..kMaxChannels-1. Slot 0 falls back to the
+// modem-preset name when the slot name is empty (mirrors primaryChannelName);
+// other slots return their stored name (or "" if empty).
+const char* channelName(const MeshConfig& config, std::size_t index);
 RadioConfig deriveRadioConfig(const MeshConfig& config);
 
 } // namespace meshtastic

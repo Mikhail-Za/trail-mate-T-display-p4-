@@ -5,6 +5,7 @@
 
 #include "chat/infra/meshtastic/mt_protocol_helpers.h"
 
+#include "chat/domain/channel_hash.h"
 #include "pb_decode.h"
 
 #include <algorithm>
@@ -20,8 +21,6 @@ namespace
 {
 constexpr uint32_t kBroadcastNodeId = 0xFFFFFFFFu;
 constexpr size_t kTraceRouteSlots = 8;
-constexpr uint8_t kDefaultPsk[16] = {0xd4, 0xf1, 0xbb, 0x3a, 0x20, 0x29, 0x07, 0x59,
-                                     0xf0, 0xbc, 0xff, 0xab, 0xcf, 0x4e, 0x69, 0x01};
 
 void selectTraceRouteArrays(meshtastic_RouteDiscovery* route,
                             bool towards_destination,
@@ -58,16 +57,6 @@ int8_t encodeTraceRouteSnr(const chat::RxMeta* rx_meta)
     const long max_v = static_cast<long>(std::numeric_limits<int8_t>::max());
     const long clamped = (scaled < min_v) ? min_v : ((scaled > max_v) ? max_v : scaled);
     return static_cast<int8_t>(clamped);
-}
-
-uint8_t xorHash(const uint8_t* data, size_t len)
-{
-    uint8_t out = 0;
-    for (size_t i = 0; i < len; ++i)
-    {
-        out ^= data[i];
-    }
-    return out;
 }
 
 } // namespace
@@ -154,9 +143,13 @@ void expandShortPsk(uint8_t index, uint8_t* out, size_t* out_len)
         }
         return;
     }
-    memcpy(out, kDefaultPsk, sizeof(kDefaultPsk));
-    out[sizeof(kDefaultPsk) - 1] = static_cast<uint8_t>(out[sizeof(kDefaultPsk) - 1] + index - 1);
-    *out_len = sizeof(kDefaultPsk);
+    // Single source: delegate to channel_hash. A short-PSK index maps to a
+    // one-byte key {index} under the channel_hash expansion rule (index N =>
+    // default PSK with (N-1) added to the last byte).
+    const uint8_t key[1] = {index};
+    std::size_t produced = 0;
+    expandChannelPsk(key, 1, out, &produced);
+    *out_len = produced;
 }
 
 bool isZeroKey(const uint8_t* key, size_t len)
@@ -177,12 +170,10 @@ bool isZeroKey(const uint8_t* key, size_t len)
 
 uint8_t computeChannelHash(const char* name, const uint8_t* key, size_t key_len)
 {
-    uint8_t h = xorHash(reinterpret_cast<const uint8_t*>(name), strlen(name));
-    if (key && key_len > 0)
-    {
-        h ^= xorHash(key, key_len);
-    }
-    return h;
+    // Single source: delegate to channel_hash. `key` here is already the
+    // EXPANDED PSK bytes (the callers expand short PSKs before calling), so this
+    // is computeChannelHashBytes(name, expandedPsk, len) verbatim.
+    return computeChannelHashBytes(name, key, key_len);
 }
 
 std::string toHex(const uint8_t* data, size_t len, size_t max_len)

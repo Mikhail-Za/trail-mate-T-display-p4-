@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "chat/domain/channel_record.h" // chat::kMaxChannels
 #include "lvgl.h"
 #include "ui/widgets/top_bar.h"
 #include <cstddef>
@@ -75,6 +76,13 @@ struct SettingsData
     char chat_psk[65] = {};
     int chat_message_alerts = 1;
     int chat_contact_alerts = 1;
+
+    // Meshtastic per-channel editor: 8 FIXED slots, each with an enable toggle,
+    // a name, and a PSK/key. These mirror app config channels[kMaxChannels] and
+    // replace the old single Primary/Secondary dropdown + single PSK field.
+    bool channel_enabled[chat::kMaxChannels] = {};
+    char channel_name[chat::kMaxChannels][32] = {};
+    char channel_key[chat::kMaxChannels][65] = {};
 
     // Network
     int net_use_preset = 1;
@@ -162,7 +170,10 @@ struct UiState
     ::ui::widgets::TopBar top_bar;
     lv_obj_t* filter_buttons[8]{};
     size_t filter_count = 0;
-    ItemWidget item_widgets[32]{};
+    // Sized to hold the largest category. The Chat category now carries 8 fixed
+    // channel slots (enable + name + key = 24 rows) plus the other chat rows, so
+    // this must exceed 32.
+    ItemWidget item_widgets[48]{};
     size_t item_count = 0;
     int current_category = 0;
 
