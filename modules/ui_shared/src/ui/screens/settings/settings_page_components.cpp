@@ -13,6 +13,7 @@
 #include "app/app_facade_access.h"
 #include "board/BoardBase.h"
 #include "chat/domain/chat_types.h"
+#include "chat/domain/channel_key.h"
 #include "chat/domain/mesh_protocol_select.h"
 #include "chat/infra/mesh_protocol_utils.h"
 #include "chat/infra/meshcore/mc_region_presets.h"
@@ -1514,11 +1515,16 @@ static void on_text_save_clicked(lv_event_t* e)
                 app::IAppFacade& app_ctx = app::appFacade();
                 uint8_t key[chat::kMeshtasticChannelKeyMaxLen] = {};
                 size_t parsed_key_len = 0;
-                if (!parse_psk(g_state.editing_item->text_value, key,
-                               chat::kMeshtasticChannelKeyMaxLen, &parsed_key_len))
+                // Accept ANY text as a channel key: empty -> open channel,
+                // 32/64 hex digits -> that raw AES key, anything else -> the
+                // SHA-256 of the passphrase. The same text on two devices yields
+                // the same key. deriveChannelKey only fails if the slot buffer is
+                // smaller than 32 bytes, which it never is.
+                if (!chat::deriveChannelKey(g_state.editing_item->text_value, key,
+                                            chat::kMeshtasticChannelKeyMaxLen, &parsed_key_len))
                 {
                     ::ui::SystemNotification::show(
-                        ::ui::i18n::tr("PSK must be 32/64 hex or 16/32 chars"), 4000);
+                        ::ui::i18n::tr("Could not set channel key"), 3000);
                     modal_close();
                     return;
                 }

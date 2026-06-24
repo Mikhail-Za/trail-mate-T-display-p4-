@@ -74,6 +74,8 @@ set(TRAILMATE_ESP_IDF_CORE_CHAT_SOURCES
     "${TRAILMATE_ROOT}/modules/core_chat/src/domain/chat_model.cpp"
     "${TRAILMATE_ROOT}/modules/core_chat/src/domain/channel_persist.cpp"
     "${TRAILMATE_ROOT}/modules/core_chat/src/domain/channel_hash.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/domain/channel_key.cpp"
+    "${TRAILMATE_ROOT}/modules/core_chat/src/domain/chat_sha256.cpp"
     "${TRAILMATE_ROOT}/modules/core_chat/src/usecase/chat_service.cpp"
     "${TRAILMATE_ROOT}/modules/core_chat/src/usecase/contact_service.cpp"
     "${TRAILMATE_ROOT}/modules/core_chat/src/infra/store/ram_store.cpp"
