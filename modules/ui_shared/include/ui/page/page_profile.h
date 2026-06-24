@@ -23,6 +23,7 @@ struct PageLayoutProfile
     LayoutVariant variant = LayoutVariant::HybridCompact;
 
     lv_coord_t top_bar_height = 30;
+    lv_coord_t top_safe_inset = 0;  // top area reserved for a camera punch-out (P4); 0 = none
     lv_coord_t top_content_gap = 3;
     const lv_font_t* title_font = nullptr;
     const lv_font_t* body_font = nullptr;

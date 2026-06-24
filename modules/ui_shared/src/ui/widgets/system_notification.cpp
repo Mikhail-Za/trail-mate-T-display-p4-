@@ -131,7 +131,8 @@ void SystemNotification::show(const char* text, uint32_t duration_ms)
     lv_anim_t anim;
     lv_anim_init(&anim);
     lv_anim_set_var(&anim, container_);
-    lv_anim_set_values(&anim, ::ui::page_profile::current().large_touch_hitbox ? -84 : -60, 0);
+    lv_anim_set_values(&anim, ::ui::page_profile::current().large_touch_hitbox ? -84 : -60,
+                       ::ui::page_profile::current().top_safe_inset);
     lv_anim_set_time(&anim, 300);
     lv_anim_set_exec_cb(&anim, (lv_anim_exec_xcb_t)lv_obj_set_y);
     lv_anim_set_ready_cb(&anim, animReadyCallback);

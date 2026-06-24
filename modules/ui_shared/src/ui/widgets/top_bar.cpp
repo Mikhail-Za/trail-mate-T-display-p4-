@@ -72,19 +72,25 @@ void top_bar_init(TopBar& bar, lv_obj_t* parent, const TopBarConfig& config)
 {
     const auto& profile = ::ui::page_profile::current();
     const lv_coord_t resolved_height = resolve_top_bar_height(config);
-    const bool large_touch = profile.large_touch_hitbox || resolved_height >= 56;
-    const bool dense = !large_touch && resolved_height <= 24;
-    const lv_coord_t side_pad = large_touch ? 18 : (dense ? 4 : (resolved_height >= 40 ? 14 : 10));
-    const lv_coord_t vertical_pad = large_touch ? 10 : (dense ? 3 : (resolved_height >= 40 ? 8 : 6));
+    // Camera punch-out safe area (P4): the profile reserves a top inset for the
+    // centred lens cutout. The bar grows to `resolved_height`, but the chrome
+    // (font, back button, pads) is sized from the real control-strip height, and
+    // the controls are pushed below the inset via extra pad_top below.
+    const lv_coord_t top_inset = (config.height > 0) ? 0 : profile.top_safe_inset;
+    const lv_coord_t chrome_height = resolved_height - top_inset;
+    const bool large_touch = profile.large_touch_hitbox || chrome_height >= 56;
+    const bool dense = !large_touch && chrome_height <= 24;
+    const lv_coord_t side_pad = large_touch ? 18 : (dense ? 4 : (chrome_height >= 40 ? 14 : 10));
+    const lv_coord_t vertical_pad = large_touch ? 10 : (dense ? 3 : (chrome_height >= 40 ? 8 : 6));
     const lv_coord_t back_btn_height = std::max<lv_coord_t>(
         large_touch ? 44 : (dense ? 16 : 20),
-        resolved_height - (vertical_pad * 2));
+        chrome_height - (vertical_pad * 2));
     const lv_coord_t back_btn_width = std::max<lv_coord_t>(
         large_touch ? 68 : (dense ? 28 : 44),
-        back_btn_height + (large_touch ? 24 : (dense ? 10 : (resolved_height >= 40 ? 16 : 10))));
+        back_btn_height + (large_touch ? 24 : (dense ? 10 : (chrome_height >= 40 ? 16 : 10))));
     const lv_coord_t back_btn_radius = std::max<lv_coord_t>(large_touch ? 16 : 10, back_btn_height / 2);
-    const lv_coord_t right_label_width = large_touch ? 156 : (dense ? 72 : (resolved_height >= 40 ? 120 : 90));
-    const lv_font_t* text_font = resolve_top_bar_font(resolved_height);
+    const lv_coord_t right_label_width = large_touch ? 156 : (dense ? 72 : (chrome_height >= 40 ? 120 : 90));
+    const lv_font_t* text_font = resolve_top_bar_font(chrome_height);
 
     bar.container = lv_obj_create(parent);
     lv_obj_set_size(bar.container, LV_PCT(100), resolved_height);
@@ -93,7 +99,7 @@ void top_bar_init(TopBar& bar, lv_obj_t* parent, const TopBarConfig& config)
     lv_obj_set_style_border_width(bar.container, 0, 0);
     lv_obj_set_style_pad_left(bar.container, side_pad, 0);
     lv_obj_set_style_pad_right(bar.container, side_pad, 0);
-    lv_obj_set_style_pad_top(bar.container, vertical_pad, 0);
+    lv_obj_set_style_pad_top(bar.container, vertical_pad + top_inset, 0);
     lv_obj_set_style_pad_bottom(bar.container, vertical_pad, 0);
     lv_obj_set_style_radius(bar.container, 0, 0);
     lv_obj_clear_flag(bar.container, LV_OBJ_FLAG_SCROLLABLE);
