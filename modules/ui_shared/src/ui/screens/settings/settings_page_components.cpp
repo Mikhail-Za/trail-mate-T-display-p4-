@@ -1709,6 +1709,24 @@ static void on_text_cancel_clicked(lv_event_t* e)
     modal_close();
 }
 
+// Toggle the masked (password) text field between hidden (****) and plain, so a
+// user can read back a channel passphrase / wifi password to type it identically
+// on another device. user_data is the button's own label, flipped Show<->Hide.
+static void on_text_reveal_clicked(lv_event_t* e)
+{
+    if (!g_state.modal_textarea)
+    {
+        return;
+    }
+    const bool now_masked = lv_textarea_get_password_mode(g_state.modal_textarea);
+    lv_textarea_set_password_mode(g_state.modal_textarea, !now_masked);
+    lv_obj_t* lbl = static_cast<lv_obj_t*>(lv_event_get_user_data(e));
+    if (lbl)
+    {
+        ::ui::i18n::set_label_text(lbl, now_masked ? "Hide" : "Show");
+    }
+}
+
 static void open_text_modal(const settings::ui::SettingItem& item, settings::ui::ItemWidget& widget)
 {
     if (g_state.modal_root)
@@ -1716,7 +1734,8 @@ static void open_text_modal(const settings::ui::SettingItem& item, settings::ui:
         return;
     }
     modal_prepare_group();
-    g_state.modal_root = create_modal_root(300, 170);
+    // Masked fields get a wider modal to fit the third (Show/Hide) button.
+    g_state.modal_root = create_modal_root(item.mask_text ? 340 : 300, 170);
     lv_obj_t* win = lv_obj_get_child(g_state.modal_root, 0);
 
     lv_obj_t* title = lv_label_create(win);
@@ -1769,6 +1788,18 @@ static void open_text_modal(const settings::ui::SettingItem& item, settings::ui:
     lv_group_add_obj(g_state.modal_group, g_state.modal_textarea);
     lv_group_add_obj(g_state.modal_group, save_btn);
     lv_group_add_obj(g_state.modal_group, cancel_btn);
+    // Masked fields get a Show/Hide button so the user can verify the text.
+    if (item.mask_text)
+    {
+        lv_obj_t* reveal_btn = lv_btn_create(btn_row);
+        lv_obj_set_size(reveal_btn, ::ui::page_profile::resolve_control_button_min_width(),
+                        ::ui::page_profile::resolve_control_button_height());
+        lv_obj_t* reveal_label = lv_label_create(reveal_btn);
+        ::ui::i18n::set_label_text(reveal_label, "Show");
+        lv_obj_center(reveal_label);
+        lv_obj_add_event_cb(reveal_btn, on_text_reveal_clicked, LV_EVENT_CLICKED, reveal_label);
+        lv_group_add_obj(g_state.modal_group, reveal_btn);
+    }
     lv_group_focus_obj(g_state.modal_textarea);
 }
 
@@ -4132,6 +4163,13 @@ static void on_list_back_clicked(lv_event_t* /*e*/)
 
 static void settings_back_cb(void* /*user_data*/)
 {
+    // If a submenu/option-picker overlay is open, BACK closes it and returns to
+    // the settings list instead of exiting all the way to the home screen.
+    if (g_state.modal_root)
+    {
+        modal_close();
+        return;
+    }
     ui_request_exit_to_menu();
 }
 
