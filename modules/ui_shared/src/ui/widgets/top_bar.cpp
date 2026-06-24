@@ -76,7 +76,8 @@ void top_bar_init(TopBar& bar, lv_obj_t* parent, const TopBarConfig& config)
     // centred lens cutout. The bar grows to `resolved_height`, but the chrome
     // (font, back button, pads) is sized from the real control-strip height, and
     // the controls are pushed below the inset via extra pad_top below.
-    const lv_coord_t top_inset = (config.height > 0) ? 0 : profile.top_safe_inset;
+    const lv_coord_t top_inset =
+        (config.height == 0 || config.height == profile.top_bar_height) ? profile.top_safe_inset : 0;
     const lv_coord_t chrome_height = resolved_height - top_inset;
     const bool large_touch = profile.large_touch_hitbox || chrome_height >= 56;
     const bool dense = !large_touch && chrome_height <= 24;

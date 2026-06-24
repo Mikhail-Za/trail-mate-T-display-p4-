@@ -54,8 +54,7 @@ PageLayoutProfile make_pager_profile()
     PageLayoutProfile profile{};
     profile.name = "pager";
     profile.variant = LayoutVariant::EncoderCompact;
-    profile.top_bar_height = 94;   // 30px control strip + 64px camera punch-out safe area
-    profile.top_safe_inset = 64;   // P4 lens cutout: reserve the top 64px so controls clear it
+    profile.top_bar_height = 30;
     profile.top_content_gap = 3;
     profile.title_font = &lv_font_montserrat_16;
     profile.body_font = &lv_font_montserrat_14;
@@ -211,7 +210,14 @@ PageLayoutProfile make_default_profile(lv_coord_t width, lv_coord_t height)
 {
     if (width >= 700 || height >= 700)
     {
-        return make_tab5_profile();
+        PageLayoutProfile profile = make_tab5_profile();
+        // A runtime-detected tall display here is the T-Display P4, which has a
+        // top-centre camera punch-out; reserve a top safe area so the bar controls
+        // and notifications clear the lens. (The real M5Stack Tab5 reaches
+        // make_tab5_profile via the macro path in current() and is unaffected.)
+        profile.top_safe_inset = 60;
+        profile.top_bar_height = static_cast<lv_coord_t>(profile.top_bar_height + 60);
+        return profile;
     }
     if (width >= 400)
     {
