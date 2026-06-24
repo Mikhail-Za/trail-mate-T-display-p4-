@@ -2,6 +2,7 @@
 
 #include "chat/domain/channel_hash.h"
 #include "chat/domain/contact_types.h"
+#include "chat/domain/nodeinfo_broadcast_scheduler.h"
 #include "chat/infra/meshtastic/mt_node_payload.h"
 #include "chat/infra/meshtastic/mt_packet_wire.h"
 #include "chat/infra/meshtastic/mt_protocol_helpers.h"
@@ -33,6 +34,9 @@ constexpr uint16_t kIrqCrcErr = 0x0040;
 constexpr uint16_t kIrqTimeout = 0x0200;
 constexpr uint8_t kBitfieldWantResponseMask = 0x02;
 constexpr uint32_t kRadioOk = 0;
+// Re-announce our own NodeInfo on this cadence so peers keep discovering us
+// (stock Meshtastic announces once at boot otherwise). 0 disables the periodic.
+constexpr uint32_t kNodeInfoBroadcastIntervalMs = 5U * 60U * 1000U;
 
 uint32_t now_millis()
 {
@@ -89,6 +93,7 @@ MeshtasticRadioAdapter::MeshtasticRadioAdapter(LoraBoard& board)
     : board_(board)
 {
     initNodeIdentity();
+    nodeinfo_scheduler_.configure(kNodeInfoBroadcastIntervalMs);
 }
 
 chat::MeshCapabilities MeshtasticRadioAdapter::getCapabilities() const
@@ -253,11 +258,19 @@ void MeshtasticRadioAdapter::processSendQueue()
     pollRadio();
     bool attempted = false;
     bool result = false;
-    if (!nodeinfo_broadcast_sent_ && ready_)
+    if (ready_)
     {
-        attempted = true;
-        result = broadcastNodeInfo();
-        nodeinfo_broadcast_sent_ = result;
+        const uint32_t now_ms = now_millis();
+        if (nodeinfo_scheduler_.due(now_ms))
+        {
+            attempted = true;
+            result = broadcastNodeInfo();
+            if (result)
+            {
+                nodeinfo_scheduler_.markSent(now_ms);
+                nodeinfo_broadcast_sent_ = true;
+            }
+        }
     }
     if (s_psq_n < 5U || (s_psq_n % 256U) == 0U || attempted)
     {

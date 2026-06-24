@@ -163,6 +163,12 @@ bool IdfChatFacade::initialize()
     // ESP-IDF build).
     self_node_id_ = runtime_.mesh_adapter->getNodeId();
 
+    // Push the configured user name to the radio adapter at startup so the first
+    // (and periodic) NodeInfo announce carries a name. Without this the IDF path
+    // never called applyUserInfo(), so every boot announced an empty name and
+    // peers rendered us as a hex id.
+    applyUserInfo();
+
     if (!::app::hasAppFacade())
     {
         ::app::bindAppFacade(*this);

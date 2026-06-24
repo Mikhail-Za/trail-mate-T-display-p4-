@@ -3,6 +3,7 @@
 #include "board/LoraBoard.h"
 #include "chat/domain/chat_types.h"
 #include "chat/domain/contact_types.h"
+#include "chat/domain/nodeinfo_broadcast_scheduler.h"
 #include "chat/infra/meshtastic/mt_codec_pb.h"
 #include "chat/infra/meshtastic/mt_dedup.h"
 #include "chat/ports/i_mesh_adapter.h"
@@ -88,6 +89,7 @@ class MeshtasticRadioAdapter final : public chat::IMeshAdapter
     bool ready_ = false;
     bool rx_started_ = false;
     bool nodeinfo_broadcast_sent_ = false;
+    chat::NodeInfoBroadcastScheduler nodeinfo_scheduler_;
     float last_rx_rssi_ = 0.0f;
     float last_rx_snr_ = 0.0f;
     uint32_t radio_freq_hz_ = 0;
