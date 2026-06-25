@@ -16,6 +16,7 @@
 #include "ui/screens/tracker/tracker_page_shell.h"
 #include "ui/ui_theme.h"
 
+#include <cstdint>
 #include <cstdio>
 
 namespace
@@ -153,6 +154,451 @@ ui::CallbackAppScreen s_companion_app("c6_companion",
                                       companion_enter,
                                       companion_exit,
                                       &s_companion_page_state);
+
+// ---------------------------------------------------------------------------
+// Snake: a fully self-contained touch-only Snake game, built inline the same
+// way as the C6 Companion app above (file-static state, enter()/exit() that
+// build/tear-down a root sized LV_PCT(100), and a CallbackAppScreen added to
+// s_apps[]). The boot self-test enters then immediately exits this screen once;
+// snake_exit must therefore delete the repeating game timer and the root with
+// the same null/validity guards companion_exit uses so nothing dangles.
+// ---------------------------------------------------------------------------
+struct SnakePageState
+{
+    static constexpr int kCols = 16;
+    static constexpr int kRows = 20;
+    static constexpr int kCellPx = 30;
+    static constexpr int kCellCount = kCols * kRows;
+
+    lv_obj_t* root = nullptr;
+    lv_obj_t* score_label = nullptr;
+    lv_obj_t* status_label = nullptr;
+    lv_timer_t* timer = nullptr;
+    lv_obj_t* cells[kCellCount] = {nullptr};
+
+    // Snake body stored as a ring of (x,y) cells, head at index 0..length-1
+    // in body[] order (body[0] = head). Max length is the whole grid.
+    int16_t body_x[kCellCount] = {0};
+    int16_t body_y[kCellCount] = {0};
+    int length = 0;
+
+    int dir_x = 1;  // current movement direction
+    int dir_y = 0;
+    int next_dir_x = 1;  // queued direction (applied at next tick)
+    int next_dir_y = 0;
+
+    int food_x = 0;
+    int food_y = 0;
+
+    unsigned int score = 0;
+    bool game_over = false;
+    uint32_t rng = 0;  // small LCG state
+};
+
+SnakePageState s_snake_state;
+
+uint32_t snake_rand(SnakePageState* st)
+{
+    // Numerical Recipes LCG; deterministic per-seed, no global state.
+    st->rng = st->rng * 1664525u + 1013904223u;
+    return st->rng;
+}
+
+int snake_cell_index(int x, int y)
+{
+    return y * SnakePageState::kCols + x;
+}
+
+bool snake_body_contains(SnakePageState* st, int x, int y, int ignore_tail)
+{
+    // ignore_tail: when moving, the tail cell is about to vacate, so it does
+    // not count as a collision (unless the snake just ate and grew).
+    const int n = st->length - (ignore_tail ? 1 : 0);
+    for (int i = 0; i < n; ++i)
+    {
+        if (st->body_x[i] == x && st->body_y[i] == y)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void snake_place_food(SnakePageState* st)
+{
+    // Pick a uniformly random empty cell. The grid is far larger than the
+    // snake early on, so rejection sampling terminates quickly; the bounded
+    // fallback scan guarantees termination even on a near-full board.
+    const int free_cells = SnakePageState::kCellCount - st->length;
+    if (free_cells <= 0)
+    {
+        st->food_x = -1;
+        st->food_y = -1;
+        return;
+    }
+    for (int attempt = 0; attempt < 64; ++attempt)
+    {
+        const int x = static_cast<int>(snake_rand(st) % SnakePageState::kCols);
+        const int y = static_cast<int>(snake_rand(st) % SnakePageState::kRows);
+        if (!snake_body_contains(st, x, y, 0))
+        {
+            st->food_x = x;
+            st->food_y = y;
+            return;
+        }
+    }
+    // Fallback: deterministic scan for the first empty cell.
+    for (int y = 0; y < SnakePageState::kRows; ++y)
+    {
+        for (int x = 0; x < SnakePageState::kCols; ++x)
+        {
+            if (!snake_body_contains(st, x, y, 0))
+            {
+                st->food_x = x;
+                st->food_y = y;
+                return;
+            }
+        }
+    }
+}
+
+void snake_render(SnakePageState* st)
+{
+    const lv_color_t empty = lv_color_hex(0xDDDDDD);
+    const lv_color_t green = ui::theme::status_green();
+    const lv_color_t red = ui::theme::error();
+    for (int i = 0; i < SnakePageState::kCellCount; ++i)
+    {
+        if (st->cells[i] && lv_obj_is_valid(st->cells[i]))
+        {
+            lv_obj_set_style_bg_color(st->cells[i], empty, 0);
+        }
+    }
+    if (st->food_x >= 0 && st->food_y >= 0)
+    {
+        const int fi = snake_cell_index(st->food_x, st->food_y);
+        if (st->cells[fi] && lv_obj_is_valid(st->cells[fi]))
+        {
+            lv_obj_set_style_bg_color(st->cells[fi], red, 0);
+        }
+    }
+    for (int i = 0; i < st->length; ++i)
+    {
+        const int ci = snake_cell_index(st->body_x[i], st->body_y[i]);
+        if (ci >= 0 && ci < SnakePageState::kCellCount && st->cells[ci] &&
+            lv_obj_is_valid(st->cells[ci]))
+        {
+            lv_obj_set_style_bg_color(st->cells[ci], green, 0);
+        }
+    }
+}
+
+void snake_update_score(SnakePageState* st)
+{
+    if (st->score_label && lv_obj_is_valid(st->score_label))
+    {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "Score: %u", st->score);
+        lv_label_set_text(st->score_label, buf);
+    }
+}
+
+void snake_reset(SnakePageState* st)
+{
+    st->length = 3;
+    const int start_x = SnakePageState::kCols / 2;
+    const int start_y = SnakePageState::kRows / 2;
+    // body[0] = head, growing to the left so initial rightward motion is legal.
+    for (int i = 0; i < st->length; ++i)
+    {
+        st->body_x[i] = static_cast<int16_t>(start_x - i);
+        st->body_y[i] = static_cast<int16_t>(start_y);
+    }
+    st->dir_x = 1;
+    st->dir_y = 0;
+    st->next_dir_x = 1;
+    st->next_dir_y = 0;
+    st->score = 0;
+    st->game_over = false;
+    snake_place_food(st);
+    snake_update_score(st);
+    if (st->status_label && lv_obj_is_valid(st->status_label))
+    {
+        lv_label_set_text(st->status_label, "");
+    }
+    if (st->timer)
+    {
+        lv_timer_resume(st->timer);
+    }
+    snake_render(st);
+}
+
+void snake_tick(lv_timer_t* timer)
+{
+    auto* st = static_cast<SnakePageState*>(lv_timer_get_user_data(timer));
+    if (!st || st->game_over)
+    {
+        return;
+    }
+
+    // Apply the queued direction (already validated against 180-degree reversal
+    // when it was set, but re-guard here in case length collapsed).
+    st->dir_x = st->next_dir_x;
+    st->dir_y = st->next_dir_y;
+
+    const int new_x = st->body_x[0] + st->dir_x;
+    const int new_y = st->body_y[0] + st->dir_y;
+
+    const bool ate = (new_x == st->food_x && new_y == st->food_y);
+
+    // Wall collision.
+    if (new_x < 0 || new_x >= SnakePageState::kCols || new_y < 0 ||
+        new_y >= SnakePageState::kRows)
+    {
+        st->game_over = true;
+    }
+    // Self collision (the tail cell is vacated this step unless we just ate).
+    else if (snake_body_contains(st, new_x, new_y, ate ? 0 : 1))
+    {
+        st->game_over = true;
+    }
+
+    if (st->game_over)
+    {
+        lv_timer_pause(timer);
+        if (st->status_label && lv_obj_is_valid(st->status_label))
+        {
+            char buf[48];
+            std::snprintf(buf, sizeof(buf), "Game Over - Score %u", st->score);
+            lv_label_set_text(st->status_label, buf);
+        }
+        return;
+    }
+
+    // Advance the body: shift cells back, then set the new head at index 0.
+    int new_length = st->length;
+    if (ate)
+    {
+        new_length = st->length + 1;
+        if (new_length > SnakePageState::kCellCount)
+        {
+            new_length = SnakePageState::kCellCount;
+        }
+    }
+    for (int i = new_length - 1; i > 0; --i)
+    {
+        st->body_x[i] = st->body_x[i - 1];
+        st->body_y[i] = st->body_y[i - 1];
+    }
+    st->body_x[0] = static_cast<int16_t>(new_x);
+    st->body_y[0] = static_cast<int16_t>(new_y);
+    st->length = new_length;
+
+    if (ate)
+    {
+        st->score += 1;
+        snake_update_score(st);
+        snake_place_food(st);
+    }
+
+    snake_render(st);
+}
+
+void snake_set_dir(SnakePageState* st, int dx, int dy)
+{
+    if (!st || st->game_over)
+    {
+        return;
+    }
+    // Forbid an immediate 180-degree reversal (compare against the CURRENT
+    // direction, the one the last tick actually moved).
+    if (dx == -st->dir_x && dy == -st->dir_y)
+    {
+        return;
+    }
+    st->next_dir_x = dx;
+    st->next_dir_y = dy;
+}
+
+lv_obj_t* snake_make_dpad_button(lv_obj_t* parent,
+                                 SnakePageState* st,
+                                 const char* text,
+                                 lv_event_cb_t cb)
+{
+    lv_obj_t* btn = lv_button_create(parent);
+    lv_obj_set_size(btn, 84, 64);
+    lv_obj_t* lbl = lv_label_create(btn);
+    lv_label_set_text(lbl, text);
+    lv_obj_center(lbl);
+    lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, st);
+    return btn;
+}
+
+void snake_enter(void* user_data, lv_obj_t* parent)
+{
+    auto* state = static_cast<SnakePageState*>(user_data);
+    if (!state || !parent || (state->root && lv_obj_is_valid(state->root)))
+    {
+        return;
+    }
+
+    state->root = lv_obj_create(parent);
+    lv_obj_set_size(state->root, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(state->root, ui::theme::white(), 0);
+    lv_obj_set_style_bg_opa(state->root, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(state->root, 0, 0);
+    lv_obj_set_style_radius(state->root, 0, 0);
+    lv_obj_set_style_pad_all(state->root, 10, 0);
+    lv_obj_set_flex_flow(state->root, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(state->root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(state->root, 8, 0);
+
+    // Top row: Back button + score label.
+    lv_obj_t* top = lv_obj_create(state->root);
+    lv_obj_set_size(top, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(top, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(top, 0, 0);
+    lv_obj_set_style_pad_all(top, 0, 0);
+    lv_obj_set_flex_flow(top, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(top, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+
+    lv_obj_t* back_btn = lv_button_create(top);
+    lv_obj_t* back_lbl = lv_label_create(back_btn);
+    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(
+        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+
+    state->score_label = lv_label_create(top);
+    lv_obj_set_style_text_color(state->score_label, ui::theme::text(), 0);
+    lv_obj_set_style_text_font(state->score_label, &lv_font_montserrat_14, 0);
+    lv_label_set_text(state->score_label, "Score: 0");
+
+    // Status (Game Over) line.
+    state->status_label = lv_label_create(state->root);
+    lv_obj_set_style_text_color(state->status_label, ui::theme::error(), 0);
+    lv_obj_set_style_text_font(state->status_label, &lv_font_montserrat_14, 0);
+    lv_label_set_text(state->status_label, "");
+
+    // Play grid: a fixed-size container holding kCols x kRows cell rectangles,
+    // positioned absolutely (created once, recolored each tick).
+    const int grid_w = SnakePageState::kCols * SnakePageState::kCellPx;
+    const int grid_h = SnakePageState::kRows * SnakePageState::kCellPx;
+    lv_obj_t* grid = lv_obj_create(state->root);
+    lv_obj_set_size(grid, grid_w, grid_h);
+    lv_obj_set_style_bg_color(grid, lv_color_hex(0xBBBBBB), 0);
+    lv_obj_set_style_bg_opa(grid, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(grid, 1, 0);
+    lv_obj_set_style_border_color(grid, ui::theme::border(), 0);
+    lv_obj_set_style_radius(grid, 0, 0);
+    lv_obj_set_style_pad_all(grid, 0, 0);
+    lv_obj_clear_flag(grid, LV_OBJ_FLAG_SCROLLABLE);
+
+    for (int y = 0; y < SnakePageState::kRows; ++y)
+    {
+        for (int x = 0; x < SnakePageState::kCols; ++x)
+        {
+            lv_obj_t* cell = lv_obj_create(grid);
+            lv_obj_remove_style_all(cell);
+            lv_obj_set_size(cell, SnakePageState::kCellPx - 1, SnakePageState::kCellPx - 1);
+            lv_obj_set_pos(cell, x * SnakePageState::kCellPx, y * SnakePageState::kCellPx);
+            lv_obj_set_style_bg_color(cell, lv_color_hex(0xDDDDDD), 0);
+            lv_obj_set_style_bg_opa(cell, LV_OPA_COVER, 0);
+            lv_obj_set_style_radius(cell, 2, 0);
+            lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
+            state->cells[snake_cell_index(x, y)] = cell;
+        }
+    }
+
+    // D-pad: Up on its own row, then Left/Down/Right, then Restart.
+    lv_obj_t* pad_up_row = lv_obj_create(state->root);
+    lv_obj_set_size(pad_up_row, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(pad_up_row, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(pad_up_row, 0, 0);
+    lv_obj_set_style_pad_all(pad_up_row, 0, 0);
+    lv_obj_set_flex_flow(pad_up_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(pad_up_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    snake_make_dpad_button(
+        pad_up_row, state, LV_SYMBOL_UP,
+        [](lv_event_t* e)
+        { snake_set_dir(static_cast<SnakePageState*>(lv_event_get_user_data(e)), 0, -1); });
+
+    lv_obj_t* pad_mid_row = lv_obj_create(state->root);
+    lv_obj_set_size(pad_mid_row, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(pad_mid_row, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(pad_mid_row, 0, 0);
+    lv_obj_set_style_pad_all(pad_mid_row, 0, 0);
+    lv_obj_set_flex_flow(pad_mid_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(pad_mid_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(pad_mid_row, 12, 0);
+    snake_make_dpad_button(
+        pad_mid_row, state, LV_SYMBOL_LEFT,
+        [](lv_event_t* e)
+        { snake_set_dir(static_cast<SnakePageState*>(lv_event_get_user_data(e)), -1, 0); });
+    snake_make_dpad_button(
+        pad_mid_row, state, LV_SYMBOL_DOWN,
+        [](lv_event_t* e)
+        { snake_set_dir(static_cast<SnakePageState*>(lv_event_get_user_data(e)), 0, 1); });
+    snake_make_dpad_button(
+        pad_mid_row, state, LV_SYMBOL_RIGHT,
+        [](lv_event_t* e)
+        { snake_set_dir(static_cast<SnakePageState*>(lv_event_get_user_data(e)), 1, 0); });
+
+    lv_obj_t* restart_btn = lv_button_create(state->root);
+    lv_obj_t* restart_lbl = lv_label_create(restart_btn);
+    lv_label_set_text(restart_lbl, LV_SYMBOL_REFRESH " Restart");
+    lv_obj_center(restart_lbl);
+    lv_obj_add_event_cb(
+        restart_btn,
+        [](lv_event_t* e)
+        { snake_reset(static_cast<SnakePageState*>(lv_event_get_user_data(e))); },
+        LV_EVENT_CLICKED, state);
+
+    // Seed the LCG from the tick counter, then start the game and the tick timer.
+    state->rng = lv_tick_get() ^ 0x9E3779B9u;
+    state->timer = lv_timer_create(snake_tick, 180, state);
+    snake_reset(state);
+}
+
+void snake_exit(void* user_data, lv_obj_t* parent)
+{
+    (void)parent;
+    auto* state = static_cast<SnakePageState*>(user_data);
+    if (!state)
+    {
+        return;
+    }
+    if (state->timer)
+    {
+        lv_timer_del(state->timer);
+        state->timer = nullptr;
+    }
+    if (!state->root || !lv_obj_is_valid(state->root))
+    {
+        state->root = nullptr;
+        state->score_label = nullptr;
+        state->status_label = nullptr;
+        for (int i = 0; i < SnakePageState::kCellCount; ++i)
+        {
+            state->cells[i] = nullptr;
+        }
+        return;
+    }
+    lv_obj_del(state->root);
+    state->root = nullptr;
+    state->score_label = nullptr;
+    state->status_label = nullptr;
+    for (int i = 0; i < SnakePageState::kCellCount; ++i)
+    {
+        state->cells[i] = nullptr;
+    }
+}
+
+ui::CallbackAppScreen s_snake_app("snake", "Snake", &Chat, snake_enter, snake_exit, &s_snake_state);
 
 // Chat shell entry. Mirrors modules/ui_shared/src/ui/app_catalog_builder.cpp:
 // the chat page shell's enter/exit take a ui::page::Host* as user_data, and the
@@ -328,7 +774,8 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_tracker_app,
                        &s_energy_sweep_app,
                        &s_pc_link_app,
-                       &s_companion_app};
+                       &s_companion_app,
+                       &s_snake_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 
