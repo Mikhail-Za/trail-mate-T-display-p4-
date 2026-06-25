@@ -27,13 +27,46 @@
 #include "platform/esp/boards/board_runtime.h"
 #include "platform/esp/idf_common/sx126x_radio.h"
 #include "sys/event_bus.h"
+#include "team/protocol/team_mgmt.h"
 #include "team/protocol/team_portnum.h"
 #include "ui/chat_ui_runtime.h"
+#include "ui/screens/team/team_page_shell.h"
 
 namespace platform::esp::idf_common
 {
 namespace
 {
+
+// How often to broadcast the team presence heartbeat while keys are held. The
+// online window the peer uses is 120 s (ui::team_presence::kDefaultOnlineWindowSeconds);
+// 25 s gives ~4 heartbeats per window so a single dropped frame never lapses a
+// peer to "stale", while staying light on LoRa airtime (a status frame is tiny).
+constexpr uint32_t kTeamPresenceIntervalMs = 25000U;
+
+// True for the team runtime events the team page handler owns, plus SystemTick
+// (which the team page uses to drive periodic status/keydist work). Mirrors
+// app_event_runtime_support.cpp::isTeamRuntimeEvent on the Arduino path.
+bool isTeamRuntimeOrTickEvent(::sys::EventType type)
+{
+    switch (type)
+    {
+    case ::sys::EventType::TeamKick:
+    case ::sys::EventType::TeamTransferLeader:
+    case ::sys::EventType::TeamKeyDist:
+    case ::sys::EventType::TeamKeyRequest:
+    case ::sys::EventType::TeamStatus:
+    case ::sys::EventType::TeamPosition:
+    case ::sys::EventType::TeamWaypoint:
+    case ::sys::EventType::TeamTrack:
+    case ::sys::EventType::TeamChat:
+    case ::sys::EventType::TeamPairing:
+    case ::sys::EventType::TeamError:
+    case ::sys::EventType::SystemTick:
+        return true;
+    default:
+        return false;
+    }
+}
 
 void copyBounded(char* out, std::size_t out_len, const char* text)
 {
@@ -634,6 +667,14 @@ void IdfChatFacade::pumpMeshAndDrainEvents(std::size_t max_events)
         {
             team_track_sampler_->update(team_controller_.get(), team_active);
         }
+
+        // Periodic team presence heartbeat (GPS-free liveness so a peer stays
+        // marked online), then a SystemTick so the team page runs its periodic
+        // status/keydist work. Both are no-ops until a team has keys; the
+        // SystemTick is always published so an in-team leader's scheduled status
+        // rebroadcast fires even with the team screen closed.
+        tickTeamPresence();
+        publishTeamSystemTick();
     }
 
     // 3. Drain the event bus. Ownership rule: subscribe() yields a heap Event*
@@ -684,6 +725,20 @@ void IdfChatFacade::pumpMeshAndDrainEvents(std::size_t max_events)
             break;
         }
 
+        // Team events (and SystemTick) go to the team page handler, NOT the chat
+        // UI runtime. This is the fix for the "member stuck on Scanning / leader
+        // shows member stale" bugs: the team page reducer is what applies
+        // TeamKeyDist/TeamPairing to the team UI snapshot (in_team, members,
+        // setKeysFromPsk) and advances the screen, and its SystemTick branch drives
+        // status/keydist rebroadcasts. The Arduino build routes these the same way
+        // (app_event_runtime_support.cpp handleUiEvent); the IDF facade previously
+        // dropped them into onChatEvent(), where the team UI never saw them.
+        // routeTeamEvent() takes ownership (deletes) when it consumes the event.
+        if (routeTeamEvent(event))
+        {
+            continue;
+        }
+
         // UI feed for chat-relevant events (ChatNewMessage, ChatSendResult,
         // channel/unread changes, key-verification). onChatEvent() consumes the
         // event; if no UI runtime is attached we own it and must free it.
@@ -720,6 +775,85 @@ void IdfChatFacade::pumpMeshAndDrainEvents(std::size_t max_events)
             delete event;
         }
     }
+}
+
+bool IdfChatFacade::routeTeamEvent(::sys::Event* event)
+{
+    if (event == nullptr || !isTeamRuntimeOrTickEvent(event->type))
+    {
+        return false;
+    }
+    // team::ui::shell::handle_event runs the team page reducer: applies key dist /
+    // pairing / status to the team UI snapshot (in_team, members, roster,
+    // setKeysFromPsk), advances the page off Scanning/Waiting, and on SystemTick
+    // drives process_status_broadcasts()/process_keydist_retries(). It does NOT
+    // take ownership of the event, so we delete it here (matches the Arduino
+    // handleUiEvent team branch). Safe even when the team screen is closed: the
+    // handler updates the snapshot/controller and only repaints if active.
+    (void)::team::ui::shell::handle_event(nullptr, event);
+    delete event;
+    return true;
+}
+
+void IdfChatFacade::publishTeamSystemTick()
+{
+    // The team page's SystemTick handler is the only driver of the leader's
+    // scheduled status rebroadcast and keydist retries. Nothing else publishes
+    // SystemTick on IDF (the Linux facade did, in tickEventRuntime()). Published
+    // unconditionally and cheaply; the team page early-outs when there is no
+    // pending status/keydist work. routeTeamEvent() (in the same pump tick's drain)
+    // will deliver it to the team page.
+    ::sys::EventBus::publish(new ::sys::Event(::sys::EventType::SystemTick), 0);
+}
+
+void IdfChatFacade::tickTeamPresence()
+{
+    if (team_service_ == nullptr || team_controller_ == nullptr)
+    {
+        return;
+    }
+
+    const bool has_keys = team_service_->hasKeys();
+    if (!has_keys)
+    {
+        // Left the team (or never joined): reset so the next join heartbeats at once.
+        team_presence_had_keys_ = false;
+        team_presence_last_tx_ms_ = 0;
+        return;
+    }
+
+    const uint32_t now_ms = team_runtime_.nowMillis();
+    const bool first_tick_with_keys = !team_presence_had_keys_;
+    team_presence_had_keys_ = true;
+
+    const bool due =
+        first_tick_with_keys || team_presence_last_tx_ms_ == 0 ||
+        (now_ms - team_presence_last_tx_ms_) >= kTeamPresenceIntervalMs;
+    if (!due)
+    {
+        return;
+    }
+    team_presence_last_tx_ms_ = now_ms;
+
+    // Minimal presence beacon: a TeamStatus with NO member roster. On the peer,
+    // reduceStatus() touch-updates THIS unit's last_seen (marking us online)
+    // without disturbing the peer's roster, because applyStatusRoster() ignores a
+    // status whose has_members is false. The leader's authoritative roster still
+    // flows via its own (member-listed) status rebroadcast. Sent both encrypted
+    // (the live team channel) and plain so a peer that has keys, and one mid-key-
+    // setup, both receive it -- mirrors the team page's dual status send.
+    ::team::proto::TeamStatus presence{};
+    presence.has_members = false; // liveness only; do not assert a roster
+
+    const bool sent_enc =
+        team_controller_->onStatus(presence, ::chat::ChannelId::PRIMARY, 0);
+    const bool sent_plain =
+        team_controller_->onStatusPlain(presence, ::chat::ChannelId::PRIMARY, 0);
+
+    ESP_LOGI("idf-team",
+             "presence heartbeat TX self=%08lX enc=%d plain=%d (online-keepalive)",
+             static_cast<unsigned long>(self_node_id_), sent_enc ? 1 : 0,
+             sent_plain ? 1 : 0);
 }
 
 } // namespace platform::esp::idf_common

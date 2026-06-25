@@ -307,7 +307,7 @@ void TeamPageLvglRenderer::renderStatusNotInTeam(
 
     addLabel(context.body, ::ui::i18n::tr("You are not in a team"), true, false);
     addLabel(context.body, ::ui::i18n::tr("- No shared map\n- No team awareness"), false, true);
-    addLabel(context.body, ::ui::i18n::tr("Keep devices within 5m"), false, false);
+    addLabel(context.body, ::ui::i18n::tr("Both units on the same channel"), false, false);
 
     // When the live team controller/pairing backend is absent (the IDF
     // safe-screen bind), Create/Join have nothing functional to drive, so present
@@ -509,7 +509,7 @@ void TeamPageLvglRenderer::renderJoinPending(
     updateTopBarTitle(context, ::ui::i18n::tr(pending.title));
 
     addLabel(context.body, ::ui::i18n::tr("Pairing in progress"), true, false);
-    addLabel(context.body, ::ui::i18n::tr("Keep devices within 5m"), false, true);
+    addLabel(context.body, ::ui::i18n::tr("Both units on the same channel"), false, true);
     if (pending.show_leader_members)
     {
         addLabel(context.body, ::ui::i18n::tr("Members"), true, false);

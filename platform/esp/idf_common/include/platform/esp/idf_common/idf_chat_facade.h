@@ -40,6 +40,11 @@
 class BoardBase;
 class LoraBoard;
 
+namespace sys
+{
+struct Event;
+}
+
 namespace platform::esp::idf_common
 {
 
@@ -127,6 +132,30 @@ class IdfChatFacade final : public ::app::IAppFacade
   private:
     void pumpMeshAndDrainEvents(std::size_t max_events);
 
+    // Deliver a single bus event to the team page event handler
+    // (team::ui::shell::handle_event). Mirrors the Arduino handleUiEvent() team
+    // branch: the team page reducer is what applies TeamKeyDist/TeamPairing/etc.
+    // to the team UI snapshot (in_team, members, setKeysFromPsk) and advances the
+    // screen off "Scanning"/"Waiting for member". Returns true if the event was a
+    // team/SystemTick event consumed here (caller must NOT also feed it to the
+    // chat UI runtime). Deletes the event when it consumes it.
+    bool routeTeamEvent(::sys::Event* event);
+
+    // Periodic team presence heartbeat. While the team has keys, broadcast a
+    // minimal (empty-roster) TeamStatus over the encrypted + plain team channel so
+    // the PEER marks this unit online (the receiver's reducer touch-updates the
+    // sender's last_seen on any team frame; an empty roster is non-destructive --
+    // applyStatusRoster() ignores a status with no members). This is the GPS-free
+    // member->leader liveness the TeamTrackSampler cannot provide without a fix,
+    // and it flows symmetrically both ways. No-op unless team_service_->hasKeys().
+    void tickTeamPresence();
+
+    // Publish a SystemTick onto the bus each pump so the team page runs its
+    // periodic work (process_status_broadcasts / process_keydist_retries). The IDF
+    // loop never published SystemTick (only the Linux facade did), so team presence
+    // + keydist retries never fired on-device.
+    void publishTeamSystemTick();
+
     // Construct the team services (crypto/runtime/track-source/event-sink ->
     // TeamService -> TeamController + TeamTrackSampler) so getTeamController()/
     // getTeamService() return real objects. Mirrors create_team_services() in
@@ -181,6 +210,16 @@ class IdfChatFacade final : public ::app::IAppFacade
     std::unique_ptr<team_infra::IdfLoraTeamPairingService> team_pairing_;
     std::unique_ptr<PairingAppDataRouter> pairing_app_data_router_;
     bool team_mode_active_ = false;
+
+    // Wall-clock (ms) of the last team presence heartbeat TX. 0 = never sent;
+    // tickTeamPresence() seeds it on the first in-team tick and re-broadcasts every
+    // kTeamPresenceIntervalMs while keys are held. Kept well under the 120 s online
+    // window so a peer never lapses to "stale" between heartbeats.
+    uint32_t team_presence_last_tx_ms_ = 0;
+    // Tracks key state across ticks so a heartbeat fires promptly on the first tick
+    // after keys are established (rather than waiting a full interval), and so the
+    // timer resets when a team is left.
+    bool team_presence_had_keys_ = false;
 };
 
 } // namespace platform::esp::idf_common
