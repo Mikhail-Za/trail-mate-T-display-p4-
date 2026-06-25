@@ -11,6 +11,7 @@
 #include "ui/ui_common.h"
 #include "ui/widgets/system_notification.h"
 #include "ui/widgets/top_bar.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -37,8 +38,9 @@ void request_exit()
     ui_request_exit_to_menu();
 }
 
-constexpr lv_coord_t kScreenW = 480;
-constexpr lv_coord_t kMainHeight = 192;
+constexpr lv_coord_t kClassicScreenW = 480;
+constexpr lv_coord_t kClassicMainHeight = 192;
+constexpr int kMeterSegments = 12;
 
 lv_coord_t top_bar_height()
 {
@@ -47,33 +49,151 @@ lv_coord_t top_bar_height()
                                       : static_cast<lv_coord_t>(::ui::widgets::kTopBarHeight);
 }
 
-lv_coord_t screen_height()
+// All of the SSTV screen geometry that used to be `constexpr` landscape
+// constants now lives in this runtime struct so the page can switch to a tall
+// portrait arrangement on the P4 (540x1168). The defaults reproduce the
+// original hand-tuned 480x192 landscape layout byte-for-byte, so every wide /
+// landscape screen is completely unchanged.
+struct SstvLayout
 {
-    return top_bar_height() + kMainHeight;
+    bool portrait = false;
+
+    lv_coord_t screen_w = kClassicScreenW;   // root width
+    lv_coord_t main_h = kClassicMainHeight;  // main content area height (below top bar)
+    lv_coord_t main_x = 0;                    // main content area x within root
+    lv_coord_t padding = 8;
+
+    // Image (waterfall) panel.
+    lv_coord_t img_w = 288;
+    lv_coord_t img_h = 192;
+    lv_coord_t img_x = 8;   // == padding default
+    lv_coord_t img_y = 0;
+
+    // Info (status/readout) panel. info_y is the panel's top within the main
+    // area: 0 in landscape (same row as the image), below the image in portrait.
+    lv_coord_t info_x = 8 + 288 + 8; // img_x + img_w + padding (landscape)
+    lv_coord_t info_y = 0;
+    lv_coord_t info_w = 168;
+    lv_coord_t info_h = 192;
+    lv_coord_t info_text_w = 140;
+
+    // Progress bar (positioned in the main area, in main coordinates).
+    lv_coord_t progress_h = 8;
+    lv_coord_t progress_x = 8 + 288 + 8; // info_x in landscape
+    lv_coord_t progress_y = kClassicMainHeight - 14;
+    lv_coord_t progress_w = 168;
+
+    // Audio meter (child of the info panel).
+    lv_coord_t meter_x = 136;
+    lv_coord_t meter_y = 34;
+    lv_coord_t meter_w = 32;
+    lv_coord_t meter_h = 120;
+    lv_coord_t meter_seg_h = 8;
+    lv_coord_t meter_seg_gap = 2;
+
+    // Info-panel child positions (within the info panel).
+    lv_coord_t state_sub_y = 6;
+    lv_coord_t mode_y = 56;
+    lv_coord_t ready_y = 128;
+    lv_coord_t btn_rx_x = 0;
+    lv_coord_t btn_rx_y = 150;
+    lv_coord_t btn_rx_w = 72;
+    lv_coord_t btn_rx_h = 22;
+
+    // Fonts (default to the classic inline sizes).
+    const lv_font_t* placeholder_font = &lv_font_montserrat_12;
+    const lv_font_t* state_sub_font = &lv_font_montserrat_14;
+    const lv_font_t* mode_font = &lv_font_montserrat_14;
+    const lv_font_t* ready_font = &lv_font_montserrat_14;
+    const lv_font_t* btn_rx_font = &lv_font_montserrat_16;
+};
+
+SstvLayout make_classic_layout()
+{
+    return SstvLayout{}; // defaults == original landscape constants
 }
-constexpr lv_coord_t kPadding = 8;
 
-constexpr lv_coord_t kImgW = 288;
-constexpr lv_coord_t kImgH = 192;
-constexpr lv_coord_t kImgX = kPadding;
-constexpr lv_coord_t kImgY = 0;
+// Tall portrait (P4 540x1168): the image fills the full width near the top,
+// the status block + audio meter sit below it, and the big RX button anchors
+// the bottom of the screen. Everything sits BELOW the top bar (which already
+// reserves the camera cutout via the page profile).
+SstvLayout make_portrait_tall_layout(int parent_w, int parent_h, int top_bar_h)
+{
+    SstvLayout l{};
+    l.portrait = true;
+    l.screen_w = parent_w > 0 ? static_cast<lv_coord_t>(parent_w) : 540;
+    const lv_coord_t screen_h = parent_h > 0 ? static_cast<lv_coord_t>(parent_h) : 1168;
 
-constexpr lv_coord_t kInfoX = kImgX + kImgW + kPadding;
-constexpr lv_coord_t kInfoW = 168;
-constexpr lv_coord_t kInfoH = 192;
-constexpr lv_coord_t kInfoTextW = 140;
+    const lv_coord_t side_margin = 12;
+    const lv_coord_t content_top = top_bar_h + ::ui::page_profile::current().top_content_gap;
+    const lv_coord_t bottom_margin = 16;
+    const lv_coord_t content_w = l.screen_w - (side_margin * 2);
 
-constexpr lv_coord_t kProgressH = 8;
-constexpr lv_coord_t kProgressY = kMainHeight - 14;
-constexpr lv_coord_t kProgressW = kInfoW;
+    // The main area spans from just below the top bar to the bottom of the
+    // screen, full width.
+    l.main_x = side_margin;
+    l.main_h = screen_h - content_top - bottom_margin;
+    l.padding = 0;
 
-constexpr lv_coord_t kMeterX = 136;
-constexpr lv_coord_t kMeterY = 34;
-constexpr lv_coord_t kMeterW = 32;
-constexpr lv_coord_t kMeterH = 120;
-constexpr lv_coord_t kMeterSegH = 8;
-constexpr lv_coord_t kMeterSegGap = 2;
-constexpr int kMeterSegments = 12;
+    // --- Image panel: full width, square-ish, anchored at the top of main.
+    l.img_x = 0;
+    l.img_y = 0;
+    l.img_w = content_w;
+    // Keep the decoded image's 288x192 (3:2) aspect ratio while filling width.
+    l.img_h = static_cast<lv_coord_t>(content_w * 192 / 288);
+
+    // --- Big RX button anchored at the bottom of the screen, full width.
+    l.btn_rx_h = 84;
+    l.btn_rx_w = content_w;
+    l.btn_rx_x = 0;
+    // btn_rx_y is in INFO-panel coordinates; the info panel starts right under
+    // the image, so place the button near the bottom of that panel.
+
+    // --- Info panel: fills the gap between the image and the RX button.
+    const lv_coord_t info_gap = 16;
+    l.info_x = 0;
+    l.info_y = l.img_h + info_gap;                 // info panel sits below the image
+    l.info_w = content_w;
+    l.info_h = l.main_h - l.info_y - info_gap;     // remaining height for status block + button
+    l.progress_x = 0; // progress lives inside info panel at its own x
+    l.progress_w = content_w - 16;
+    l.progress_h = 14;
+
+    // Lay the status labels down the left, meter on the right, button at bottom.
+    l.info_text_w = content_w - 96;
+    l.state_sub_y = 16;
+    l.mode_y = 96;
+    l.ready_y = 156;
+    l.btn_rx_y = l.info_h - l.btn_rx_h - 8;
+    l.progress_y = l.btn_rx_y - 28;
+
+    // Audio meter: a wider/taller vertical bar on the right edge of the info panel.
+    l.meter_w = 40;
+    l.meter_h = std::min<lv_coord_t>(200, l.btn_rx_y - 24);
+    l.meter_x = content_w - l.meter_w - 8;
+    l.meter_y = 16;
+    l.meter_seg_h = 12;
+    l.meter_seg_gap = 3;
+
+    // Larger fonts to fill the tall screen.
+    l.placeholder_font = &lv_font_montserrat_16;
+    l.state_sub_font = &lv_font_montserrat_16;
+    l.mode_font = &lv_font_montserrat_20;
+    l.ready_font = &lv_font_montserrat_24;
+    l.btn_rx_font = &lv_font_montserrat_24;
+    return l;
+}
+
+SstvLayout resolve_layout(int parent_w, int parent_h, int top_bar_h)
+{
+    if (parent_h >= 700 && parent_h > parent_w)
+    {
+        return make_portrait_tall_layout(parent_w, parent_h, top_bar_h);
+    }
+    return make_classic_layout();
+}
+
+SstvLayout s_layout{};
 constexpr uint32_t kColorWarmBg = 0xF6E6C6;
 constexpr uint32_t kColorAccent = 0xEBA341;
 constexpr uint32_t kColorPanelBg = 0xFAF0D8;
@@ -343,29 +463,19 @@ void build_top_bar(lv_obj_t* parent)
 
 void build_main_area(lv_obj_t* parent)
 {
+    const lv_coord_t main_w = s_layout.screen_w - (s_layout.portrait ? s_layout.main_x * 2 : 0);
+
     lv_obj_t* main = lv_obj_create(parent);
-    lv_obj_set_size(main, kScreenW, kMainHeight);
-    lv_obj_set_pos(main, 0, top_bar_height());
+    lv_obj_set_size(main, main_w, s_layout.main_h);
+    lv_obj_set_pos(main, s_layout.main_x, top_bar_height());
     lv_obj_set_style_bg_opa(main, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(main, 0, 0);
     lv_obj_set_style_pad_all(main, 0, 0);
     lv_obj_clear_flag(main, LV_OBJ_FLAG_SCROLLABLE);
 
-    s_ui.progress = lv_bar_create(main);
-    lv_obj_set_size(s_ui.progress, kProgressW, kProgressH);
-    lv_obj_set_pos(s_ui.progress, kInfoX, kProgressY);
-    lv_bar_set_range(s_ui.progress, 0, 100);
-    lv_bar_set_value(s_ui.progress, 0, LV_ANIM_OFF);
-    lv_obj_set_style_bg_color(s_ui.progress, lv_color_hex(kColorLine), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(s_ui.progress, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_radius(s_ui.progress, 4, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(s_ui.progress, lv_color_hex(kColorAccent), LV_PART_INDICATOR);
-    lv_obj_set_style_bg_opa(s_ui.progress, LV_OPA_COVER, LV_PART_INDICATOR);
-    lv_obj_set_style_radius(s_ui.progress, 4, LV_PART_INDICATOR);
-
     s_ui.img_box = lv_obj_create(main);
-    lv_obj_set_size(s_ui.img_box, kImgW, kImgH);
-    lv_obj_set_pos(s_ui.img_box, kImgX, kImgY);
+    lv_obj_set_size(s_ui.img_box, s_layout.img_w, s_layout.img_h);
+    lv_obj_set_pos(s_ui.img_box, s_layout.img_x, s_layout.img_y);
     lv_obj_set_style_bg_color(s_ui.img_box, lv_color_hex(kColorPanelBg), 0);
     lv_obj_set_style_bg_opa(s_ui.img_box, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.img_box, 2, 0);
@@ -379,49 +489,63 @@ void build_main_area(lv_obj_t* parent)
     lv_obj_add_flag(s_ui.img, LV_OBJ_FLAG_HIDDEN);
 
     s_ui.img_placeholder = lv_label_create(s_ui.img_box);
-    apply_label_style(s_ui.img_placeholder, &lv_font_montserrat_12, kColorTextDim);
+    apply_label_style(s_ui.img_placeholder, s_layout.placeholder_font, kColorTextDim);
     ::ui::i18n::set_label_text(s_ui.img_placeholder, "No image");
     lv_obj_center(s_ui.img_placeholder);
 
     s_ui.info_area = lv_obj_create(main);
-    lv_obj_set_size(s_ui.info_area, kInfoW, kInfoH);
-    lv_obj_set_pos(s_ui.info_area, kInfoX, kImgY);
+    lv_obj_set_size(s_ui.info_area, s_layout.info_w, s_layout.info_h);
+    lv_obj_set_pos(s_ui.info_area, s_layout.info_x, s_layout.info_y);
     lv_obj_set_style_bg_opa(s_ui.info_area, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(s_ui.info_area, 0, 0);
     lv_obj_set_style_pad_all(s_ui.info_area, 0, 0);
     lv_obj_clear_flag(s_ui.info_area, LV_OBJ_FLAG_SCROLLABLE);
 
+    // Progress bar lives inside the info panel (portrait) or the main area
+    // (landscape, info_x == progress_x so it overlaps the info column).
+    s_ui.progress = lv_bar_create(s_layout.portrait ? s_ui.info_area : main);
+    lv_obj_set_size(s_ui.progress, s_layout.progress_w, s_layout.progress_h);
+    lv_obj_set_pos(s_ui.progress, s_layout.progress_x, s_layout.progress_y);
+    lv_bar_set_range(s_ui.progress, 0, 100);
+    lv_bar_set_value(s_ui.progress, 0, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(s_ui.progress, lv_color_hex(kColorLine), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(s_ui.progress, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_radius(s_ui.progress, 4, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(s_ui.progress, lv_color_hex(kColorAccent), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(s_ui.progress, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_set_style_radius(s_ui.progress, 4, LV_PART_INDICATOR);
+
     s_ui.label_state_sub = lv_label_create(s_ui.info_area);
-    lv_obj_set_pos(s_ui.label_state_sub, 0, 6);
-    lv_obj_set_width(s_ui.label_state_sub, kInfoTextW);
+    lv_obj_set_pos(s_ui.label_state_sub, 0, s_layout.state_sub_y);
+    lv_obj_set_width(s_ui.label_state_sub, s_layout.info_text_w);
     lv_obj_set_style_text_align(s_ui.label_state_sub, LV_TEXT_ALIGN_LEFT, 0);
     lv_label_set_long_mode(s_ui.label_state_sub, LV_LABEL_LONG_WRAP);
-    apply_label_style(s_ui.label_state_sub, &lv_font_montserrat_14, kColorTextDim);
+    apply_label_style(s_ui.label_state_sub, s_layout.state_sub_font, kColorTextDim);
 
     s_ui.label_mode = lv_label_create(s_ui.info_area);
-    lv_obj_set_pos(s_ui.label_mode, 0, 56);
-    lv_obj_set_width(s_ui.label_mode, kInfoTextW);
+    lv_obj_set_pos(s_ui.label_mode, 0, s_layout.mode_y);
+    lv_obj_set_width(s_ui.label_mode, s_layout.info_text_w);
     lv_obj_set_style_text_align(s_ui.label_mode, LV_TEXT_ALIGN_LEFT, 0);
     lv_label_set_long_mode(s_ui.label_mode, LV_LABEL_LONG_WRAP);
-    apply_label_style(s_ui.label_mode, &lv_font_montserrat_14, kColorTextDim);
+    apply_label_style(s_ui.label_mode, s_layout.mode_font, kColorTextDim);
 
     s_ui.label_ready = lv_label_create(s_ui.info_area);
-    lv_obj_set_pos(s_ui.label_ready, 0, 128);
-    lv_obj_set_width(s_ui.label_ready, kInfoTextW);
+    lv_obj_set_pos(s_ui.label_ready, 0, s_layout.ready_y);
+    lv_obj_set_width(s_ui.label_ready, s_layout.info_text_w);
     lv_obj_set_style_text_align(s_ui.label_ready, LV_TEXT_ALIGN_LEFT, 0);
     lv_label_set_long_mode(s_ui.label_ready, LV_LABEL_LONG_WRAP);
-    apply_label_style(s_ui.label_ready, &lv_font_montserrat_14, kColorText);
+    apply_label_style(s_ui.label_ready, s_layout.ready_font, kColorText);
 
     s_ui.btn_rx = lv_btn_create(s_ui.info_area);
-    lv_obj_set_size(s_ui.btn_rx, 72, 22);
-    lv_obj_set_pos(s_ui.btn_rx, 0, 150);
+    lv_obj_set_size(s_ui.btn_rx, s_layout.btn_rx_w, s_layout.btn_rx_h);
+    lv_obj_set_pos(s_ui.btn_rx, s_layout.btn_rx_x, s_layout.btn_rx_y);
     lv_obj_set_style_bg_color(s_ui.btn_rx, lv_color_hex(kColorPanelBg), 0);
     lv_obj_set_style_bg_opa(s_ui.btn_rx, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.btn_rx, 1, 0);
     lv_obj_set_style_border_color(s_ui.btn_rx, lv_color_hex(kColorLine), 0);
     lv_obj_set_style_radius(s_ui.btn_rx, 6, 0);
     lv_obj_t* rx_label = lv_label_create(s_ui.btn_rx);
-    apply_label_style(rx_label, &lv_font_montserrat_16, kColorText);
+    apply_label_style(rx_label, s_layout.btn_rx_font, kColorText);
     ::ui::i18n::set_label_text(rx_label, "RX");
     lv_obj_center(rx_label);
     s_ui.btn_rx_label = rx_label;
@@ -429,8 +553,8 @@ void build_main_area(lv_obj_t* parent)
     lv_obj_add_event_cb(s_ui.btn_rx, on_rx_btn_key, LV_EVENT_KEY, nullptr);
 
     s_ui.meter_box = lv_obj_create(s_ui.info_area);
-    lv_obj_set_size(s_ui.meter_box, kMeterW, kMeterH);
-    lv_obj_set_pos(s_ui.meter_box, kMeterX, kMeterY);
+    lv_obj_set_size(s_ui.meter_box, s_layout.meter_w, s_layout.meter_h);
+    lv_obj_set_pos(s_ui.meter_box, s_layout.meter_x, s_layout.meter_y);
     lv_obj_set_style_bg_opa(s_ui.meter_box, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(s_ui.meter_box, 1, 0);
     lv_obj_set_style_border_color(s_ui.meter_box, lv_color_hex(kColorLine), 0);
@@ -441,8 +565,9 @@ void build_main_area(lv_obj_t* parent)
     for (int i = 0; i < kMeterSegments; ++i)
     {
         lv_obj_t* seg = lv_obj_create(s_ui.meter_box);
-        lv_obj_set_size(seg, kMeterW - 4, kMeterSegH);
-        lv_coord_t y = kMeterH - 2 - kMeterSegH - (i * (kMeterSegH + kMeterSegGap));
+        lv_obj_set_size(seg, s_layout.meter_w - 4, s_layout.meter_seg_h);
+        lv_coord_t y = s_layout.meter_h - 2 - s_layout.meter_seg_h -
+                       (i * (s_layout.meter_seg_h + s_layout.meter_seg_gap));
         lv_obj_set_pos(seg, 2, y);
         lv_obj_set_style_border_width(seg, 0, 0);
         lv_obj_set_style_radius(seg, 2, 0);
@@ -482,8 +607,18 @@ lv_obj_t* ui_sstv_create(lv_obj_t* parent)
         reset_ui_pointers();
     }
 
+    // Resolve a responsive layout from the actual parent/screen size. The tall
+    // portrait arrangement (P4 540x1168) is chosen only when the screen is both
+    // large and taller than wide; every other screen keeps the original 480x192
+    // landscape geometry byte-for-byte.
+    lv_obj_update_layout(parent);
+    const int parent_w = lv_obj_get_width(parent);
+    const int parent_h = lv_obj_get_height(parent);
+    const int top_bar_h = top_bar_height();
+    s_layout = resolve_layout(parent_w, parent_h, top_bar_h);
+
     s_ui.root = lv_obj_create(parent);
-    lv_obj_set_size(s_ui.root, kScreenW, screen_height());
+    lv_obj_set_size(s_ui.root, s_layout.screen_w, top_bar_height() + s_layout.main_h);
     lv_obj_set_style_bg_color(s_ui.root, lv_color_hex(kColorWarmBg), 0);
     lv_obj_set_style_bg_opa(s_ui.root, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.root, 0, 0);
@@ -493,6 +628,13 @@ lv_obj_t* ui_sstv_create(lv_obj_t* parent)
 
     build_top_bar(s_ui.root);
     build_main_area(s_ui.root);
+
+    // Keep the top bar (and its back button) above the panels so the back
+    // chevron stays tappable in every layout.
+    if (s_ui.top_bar.container)
+    {
+        lv_obj_move_foreground(s_ui.top_bar.container);
+    }
 
     ui_sstv_set_state(SSTV_STATE_WAITING);
     ui_sstv_set_mode("Auto");
