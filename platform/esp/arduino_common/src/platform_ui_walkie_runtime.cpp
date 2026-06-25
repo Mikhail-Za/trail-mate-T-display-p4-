@@ -36,6 +36,11 @@ int volume()
     return ::walkie::get_volume();
 }
 
+void set_volume(int volume)
+{
+    ::walkie::set_volume(volume);
+}
+
 Status get_status()
 {
     const ::walkie::Status source = ::walkie::get_status();

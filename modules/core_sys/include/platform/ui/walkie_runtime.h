@@ -26,6 +26,10 @@ void set_ptt(bool pressed);
 
 bool is_active();
 int volume();
+
+// Set the playback (speaker) volume, clamped 0..100. Forwards to the walkie
+// service volume setter; effective only between start() and stop().
+void set_volume(int volume);
 Status get_status();
 const char* last_error();
 

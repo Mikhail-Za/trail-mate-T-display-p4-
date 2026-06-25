@@ -27,6 +27,7 @@ constexpr const char* kForceTxEnv = "TRAIL_MATE_WALKIE_FORCE_TX";
 std::mutex s_mutex;
 bool s_active = false;
 bool s_ptt_pressed = false;
+int s_volume_override = -1; // -1 = unset; once set via set_volume(), overrides the env default
 Clock::time_point s_started_at = Clock::now();
 std::string s_last_error{};
 
@@ -155,7 +156,18 @@ bool is_active()
 
 int volume()
 {
+    std::lock_guard<std::mutex> lock(s_mutex);
+    if (s_volume_override >= 0)
+    {
+        return s_volume_override;
+    }
     return std::clamp(env_int_or_default(kVolumeEnv, 78), 0, 100);
+}
+
+void set_volume(int volume)
+{
+    std::lock_guard<std::mutex> lock(s_mutex);
+    s_volume_override = std::clamp(volume, 0, 100);
 }
 
 Status get_status()

@@ -37,6 +37,8 @@ lv_obj_t* s_left_fill = nullptr;
 lv_obj_t* s_right_fill = nullptr;
 lv_obj_t* s_volume_bar = nullptr;
 lv_obj_t* s_volume_label = nullptr;
+lv_obj_t* s_vol_minus_btn = nullptr;
+lv_obj_t* s_vol_plus_btn = nullptr;
 lv_obj_t* s_ptt_btn = nullptr;
 lv_obj_t* s_ptt_label = nullptr;
 lv_timer_t* s_timer = nullptr;
@@ -47,6 +49,8 @@ constexpr lv_coord_t kVuWidth = 12;
 constexpr lv_coord_t kVuHeight = 120;
 constexpr lv_coord_t kVolumeBarWidth = 220;
 constexpr lv_coord_t kVolumeBarHeight = 12;
+constexpr lv_coord_t kVolBtnSize = 56;   // big square touch targets for -/+
+constexpr int kVolumeStep = 10;          // per-tap volume change
 
 void request_exit()
 {
@@ -99,6 +103,49 @@ void ptt_released_cb(lv_event_t*)
     ptt_set(false);
 }
 
+// Push the current service volume into the on-screen bar + "VOL nn" label.
+void refresh_volume_ui()
+{
+    int vol = platform::ui::walkie::volume();
+    if (s_volume_bar)
+    {
+        lv_bar_set_value(s_volume_bar, vol, LV_ANIM_OFF);
+    }
+    if (s_volume_label)
+    {
+        char buf[24];
+        snprintf(buf, sizeof(buf), "%s", ::ui::i18n::format("VOL %d", vol).c_str());
+        ::ui::i18n::set_label_text_raw(s_volume_label, buf);
+    }
+}
+
+// Touch volume control: the P4 has no hardware volume keys, so on-screen -/+
+// buttons step the speaker volume (clamped 0..100) and update the bar at once.
+void volume_step(int delta)
+{
+    int vol = platform::ui::walkie::volume() + delta;
+    if (vol < 0)
+    {
+        vol = 0;
+    }
+    if (vol > 100)
+    {
+        vol = 100;
+    }
+    platform::ui::walkie::set_volume(vol);
+    refresh_volume_ui();
+}
+
+void vol_minus_cb(lv_event_t*)
+{
+    volume_step(-kVolumeStep);
+}
+
+void vol_plus_cb(lv_event_t*)
+{
+    volume_step(kVolumeStep);
+}
+
 void update_vu(lv_obj_t* fill, uint8_t level)
 {
     if (!fill)
@@ -134,18 +181,7 @@ void refresh_cb(lv_timer_t*)
     update_vu(s_left_fill, st.tx ? st.tx_level : st.rx_level);
     update_vu(s_right_fill, st.tx ? st.tx_level : st.rx_level);
 
-    if (s_volume_bar)
-    {
-        int vol = platform::ui::walkie::volume();
-        lv_bar_set_value(s_volume_bar, vol, LV_ANIM_OFF);
-    }
-    if (s_volume_label)
-    {
-        char buf[24];
-        int vol = platform::ui::walkie::volume();
-        snprintf(buf, sizeof(buf), "%s", ::ui::i18n::format("VOL %d", vol).c_str());
-        ::ui::i18n::set_label_text_raw(s_volume_label, buf);
-    }
+    refresh_volume_ui();
 }
 
 void set_freq_text(float freq_mhz)
@@ -315,12 +351,12 @@ void enter(const shell::Host* host, lv_obj_t* parent)
     lv_obj_clear_flag(s_right_fill, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t* vol_container = lv_obj_create(content);
-    lv_obj_set_size(vol_container, kVolumeBarWidth, LV_SIZE_CONTENT);
+    lv_obj_set_size(vol_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_align(vol_container, LV_ALIGN_BOTTOM_MID, 0, -14);
     lv_obj_set_style_bg_opa(vol_container, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(vol_container, 0, 0);
     lv_obj_set_style_pad_all(vol_container, 0, 0);
-    lv_obj_set_style_pad_row(vol_container, 4, 0);
+    lv_obj_set_style_pad_row(vol_container, 6, 0);
     lv_obj_set_flex_flow(vol_container, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(vol_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
@@ -331,7 +367,34 @@ void enter(const shell::Host* host, lv_obj_t* parent)
     lv_obj_set_style_text_font(s_volume_label, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_align(s_volume_label, LV_TEXT_ALIGN_CENTER, 0);
 
-    s_volume_bar = lv_bar_create(vol_container);
+    // Bar row: [ - ]  [volume bar]  [ + ]  (touch volume control, no hw keys).
+    lv_obj_t* bar_row = lv_obj_create(vol_container);
+    lv_obj_set_size(bar_row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(bar_row, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(bar_row, 0, 0);
+    lv_obj_set_style_pad_all(bar_row, 0, 0);
+    lv_obj_set_style_pad_column(bar_row, 10, 0);
+    lv_obj_set_flex_flow(bar_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(bar_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(bar_row, LV_OBJ_FLAG_SCROLLABLE);
+
+    s_vol_minus_btn = lv_btn_create(bar_row);
+    lv_obj_set_size(s_vol_minus_btn, kVolBtnSize, kVolBtnSize);
+    lv_obj_set_style_bg_color(s_vol_minus_btn, lv_color_hex(0xE9D2A1), 0);
+    lv_obj_set_style_bg_opa(s_vol_minus_btn, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(s_vol_minus_btn, 10, 0);
+    lv_obj_set_style_border_width(s_vol_minus_btn, 0, 0);
+    lv_obj_set_style_shadow_width(s_vol_minus_btn, 0, 0);
+    lv_obj_clear_flag(s_vol_minus_btn, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(s_vol_minus_btn, vol_minus_cb, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* minus_label = lv_label_create(s_vol_minus_btn);
+    ::ui::i18n::set_label_text_raw(minus_label, "-");
+    lv_obj_set_style_text_font(minus_label, &lv_font_montserrat_28, 0);
+    lv_obj_set_style_text_color(minus_label, lv_color_hex(0x5A4A2A), 0);
+    lv_obj_center(minus_label);
+
+    s_volume_bar = lv_bar_create(bar_row);
     lv_obj_set_size(s_volume_bar, kVolumeBarWidth, kVolumeBarHeight);
     lv_bar_set_range(s_volume_bar, 0, 100);
     lv_bar_set_value(s_volume_bar, platform::ui::walkie::volume(), LV_ANIM_OFF);
@@ -341,6 +404,21 @@ void enter(const shell::Host* host, lv_obj_t* parent)
     lv_obj_set_style_bg_color(s_volume_bar, lv_color_hex(0x5BAF4A), LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(s_volume_bar, LV_OPA_COVER, LV_PART_INDICATOR);
     lv_obj_set_style_radius(s_volume_bar, 4, LV_PART_INDICATOR);
+
+    s_vol_plus_btn = lv_btn_create(bar_row);
+    lv_obj_set_size(s_vol_plus_btn, kVolBtnSize, kVolBtnSize);
+    lv_obj_set_style_bg_color(s_vol_plus_btn, lv_color_hex(0xE9D2A1), 0);
+    lv_obj_set_style_bg_opa(s_vol_plus_btn, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(s_vol_plus_btn, 10, 0);
+    lv_obj_set_style_border_width(s_vol_plus_btn, 0, 0);
+    lv_obj_set_style_shadow_width(s_vol_plus_btn, 0, 0);
+    lv_obj_clear_flag(s_vol_plus_btn, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(s_vol_plus_btn, vol_plus_cb, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* plus_label = lv_label_create(s_vol_plus_btn);
+    ::ui::i18n::set_label_text_raw(plus_label, "+");
+    lv_obj_set_style_text_font(plus_label, &lv_font_montserrat_28, 0);
+    lv_obj_set_style_text_color(plus_label, lv_color_hex(0x5A4A2A), 0);
+    lv_obj_center(plus_label);
 
     platform::ui::walkie::Status st = platform::ui::walkie::get_status();
     if (st.freq_mhz > 0.0f)
@@ -425,6 +503,8 @@ void exit(lv_obj_t* parent)
     s_right_fill = nullptr;
     s_volume_bar = nullptr;
     s_volume_label = nullptr;
+    s_vol_minus_btn = nullptr;
+    s_vol_plus_btn = nullptr;
     s_ptt_btn = nullptr;
     s_ptt_label = nullptr;
     s_top_bar = {};

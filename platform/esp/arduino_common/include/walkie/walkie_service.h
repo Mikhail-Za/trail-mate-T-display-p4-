@@ -18,6 +18,7 @@ void stop();
 bool is_active();
 void set_ptt(bool pressed);
 void adjust_volume(int delta);
+void set_volume(int volume);
 int get_volume();
 void on_key_event(char key, int state);
 Status get_status();

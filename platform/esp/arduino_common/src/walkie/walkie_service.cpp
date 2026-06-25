@@ -944,6 +944,17 @@ void adjust_volume(int delta)
     std::printf("[WALKIE] volume=%u\n", static_cast<unsigned>(s_volume));
 }
 
+void set_volume(int volume)
+{
+    if (!s_active)
+    {
+        return;
+    }
+    s_volume = clamp_volume(volume);
+    walkie_runtime::codecSetVolume(&s_runtime_session, s_volume);
+    std::printf("[WALKIE] volume=%u\n", static_cast<unsigned>(s_volume));
+}
+
 int get_volume()
 {
     return s_volume;
@@ -1005,6 +1016,10 @@ void set_ptt(bool)
 }
 
 void adjust_volume(int)
+{
+}
+
+void set_volume(int)
 {
 }
 
