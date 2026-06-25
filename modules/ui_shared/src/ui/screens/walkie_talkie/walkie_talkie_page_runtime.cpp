@@ -16,6 +16,9 @@
 #if !defined(LV_FONT_MONTSERRAT_18) || !LV_FONT_MONTSERRAT_18
 #define lv_font_montserrat_18 lv_font_montserrat_14
 #endif
+#if !defined(LV_FONT_MONTSERRAT_24) || !LV_FONT_MONTSERRAT_24
+#define lv_font_montserrat_24 lv_font_montserrat_18
+#endif
 #if !defined(LV_FONT_MONTSERRAT_28) || !LV_FONT_MONTSERRAT_28
 #define lv_font_montserrat_28 lv_font_montserrat_18
 #endif
@@ -34,6 +37,8 @@ lv_obj_t* s_left_fill = nullptr;
 lv_obj_t* s_right_fill = nullptr;
 lv_obj_t* s_volume_bar = nullptr;
 lv_obj_t* s_volume_label = nullptr;
+lv_obj_t* s_ptt_btn = nullptr;
+lv_obj_t* s_ptt_label = nullptr;
 lv_timer_t* s_timer = nullptr;
 ui::widgets::TopBar s_top_bar;
 bool s_started = false;
@@ -66,6 +71,32 @@ void root_key_event_cb(lv_event_t* e)
         return;
     }
     on_back(nullptr);
+}
+
+// Touch push-to-talk: the P4 has no physical PTT key, so an on-screen button keys the
+// transmitter. Press -> transmit, release / press-lost -> back to listen.
+void ptt_set(bool pressed)
+{
+    platform::ui::walkie::set_ptt(pressed);
+    if (s_ptt_btn)
+    {
+        lv_obj_set_style_bg_color(
+            s_ptt_btn, pressed ? lv_color_hex(0xE5533D) : lv_color_hex(0x5BAF4A), 0);
+    }
+    if (s_ptt_label)
+    {
+        ::ui::i18n::set_label_text(s_ptt_label, pressed ? "TALKING" : "HOLD TO TALK");
+    }
+}
+
+void ptt_pressed_cb(lv_event_t*)
+{
+    ptt_set(true);
+}
+
+void ptt_released_cb(lv_event_t*)
+{
+    ptt_set(false);
 }
 
 void update_vu(lv_obj_t* fill, uint8_t level)
@@ -225,7 +256,7 @@ void enter(const shell::Host* host, lv_obj_t* parent)
 
     lv_obj_t* stack = lv_obj_create(content);
     lv_obj_set_size(stack, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_center(stack);
+    lv_obj_align(stack, LV_ALIGN_CENTER, 0, -150);
     lv_obj_set_style_bg_opa(stack, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(stack, 0, 0);
     lv_obj_set_style_pad_all(stack, 0, 0);
@@ -344,6 +375,26 @@ void enter(const shell::Host* host, lv_obj_t* parent)
 
     platform::ui::screen::disable_sleep();
 
+    // On-screen push-to-talk button (touch-only device has no hardware PTT key).
+    s_ptt_btn = lv_btn_create(content);
+    lv_obj_set_size(s_ptt_btn, 320, 160);
+    lv_obj_align(s_ptt_btn, LV_ALIGN_CENTER, 0, 40);
+    lv_obj_set_style_bg_color(s_ptt_btn, lv_color_hex(0x5BAF4A), 0);
+    lv_obj_set_style_bg_opa(s_ptt_btn, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(s_ptt_btn, 28, 0);
+    lv_obj_set_style_border_width(s_ptt_btn, 0, 0);
+    lv_obj_set_style_shadow_width(s_ptt_btn, 0, 0);
+    lv_obj_clear_flag(s_ptt_btn, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(s_ptt_btn, ptt_pressed_cb, LV_EVENT_PRESSED, nullptr);
+    lv_obj_add_event_cb(s_ptt_btn, ptt_released_cb, LV_EVENT_RELEASED, nullptr);
+    lv_obj_add_event_cb(s_ptt_btn, ptt_released_cb, LV_EVENT_PRESS_LOST, nullptr);
+
+    s_ptt_label = lv_label_create(s_ptt_btn);
+    ::ui::i18n::set_label_text(s_ptt_label, "HOLD TO TALK");
+    lv_obj_set_style_text_font(s_ptt_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(s_ptt_label, lv_color_white(), 0);
+    lv_obj_center(s_ptt_label);
+
     st = platform::ui::walkie::get_status();
     set_freq_text(st.freq_mhz);
 
@@ -374,9 +425,12 @@ void exit(lv_obj_t* parent)
     s_right_fill = nullptr;
     s_volume_bar = nullptr;
     s_volume_label = nullptr;
+    s_ptt_btn = nullptr;
+    s_ptt_label = nullptr;
     s_top_bar = {};
     s_started = false;
 
+    platform::ui::walkie::set_ptt(false);
     platform::ui::walkie::stop();
     platform::ui::screen::enable_sleep();
     s_host = nullptr;

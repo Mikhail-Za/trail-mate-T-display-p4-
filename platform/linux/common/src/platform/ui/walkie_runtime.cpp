@@ -26,6 +26,7 @@ constexpr const char* kForceTxEnv = "TRAIL_MATE_WALKIE_FORCE_TX";
 
 std::mutex s_mutex;
 bool s_active = false;
+bool s_ptt_pressed = false;
 Clock::time_point s_started_at = Clock::now();
 std::string s_last_error{};
 
@@ -96,7 +97,7 @@ Status current_status_locked()
     const auto elapsed =
         std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - s_started_at).count();
     const float seconds = static_cast<float>(elapsed) / 1000.0f;
-    const bool force_tx = env_flag_enabled(kForceTxEnv);
+    const bool force_tx = env_flag_enabled(kForceTxEnv) || s_ptt_pressed;
 
     status.tx = force_tx;
     if (force_tx)
@@ -138,6 +139,12 @@ void stop()
 {
     std::lock_guard<std::mutex> lock(s_mutex);
     s_active = false;
+}
+
+void set_ptt(bool pressed)
+{
+    std::lock_guard<std::mutex> lock(s_mutex);
+    s_ptt_pressed = pressed;
 }
 
 bool is_active()

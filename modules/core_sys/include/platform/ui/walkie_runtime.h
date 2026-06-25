@@ -19,6 +19,11 @@ struct Status
 bool is_supported();
 bool start();
 void stop();
+
+// Key the transmitter for push-to-talk: true = transmit (mic -> radio), false = listen.
+// Forwards to the walkie service PTT flag; effective only between start() and stop().
+void set_ptt(bool pressed);
+
 bool is_active();
 int volume();
 Status get_status();

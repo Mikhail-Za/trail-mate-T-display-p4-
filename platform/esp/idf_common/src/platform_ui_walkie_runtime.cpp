@@ -21,6 +21,11 @@ void stop()
     ::walkie::stop();
 }
 
+void set_ptt(bool pressed)
+{
+    ::walkie::set_ptt(pressed);
+}
+
 bool is_active()
 {
     return ::walkie::is_active();
