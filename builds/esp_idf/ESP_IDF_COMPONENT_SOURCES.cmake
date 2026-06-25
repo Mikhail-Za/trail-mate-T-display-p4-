@@ -563,6 +563,34 @@ set(TRAILMATE_ESP_IDF_TEAM_UI_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_styles.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_transfer_leader_action.cpp")
 
+# ---------------------------------------------------------------------------
+# SSTV receiver app (decode an incoming slow-scan-TV image from off-air audio
+# captured through the ES8311 mic and render/save it). stable_id = 'sstv'; screen
+# dir is screens/sstv. Mirrors the chat/contacts/pc_link bind: the sstv page
+# shell's enter/exit take a ui::page::Host* (sstv_page::ui::shell::Host is an alias
+# of ::ui::page::Host) as user_data and route the back request through
+# ui_request_exit_to_menu() via the menu host. The shell wraps the runtime with the
+# header-only page_shell_fallback template; placeholder_page::show/hide (non-inline)
+# is ALREADY linked via TRAILMATE_ESP_IDF_GNSS_UI_SOURCES, so it is intentionally
+# NOT repeated here (a second copy would be a duplicate-symbol link error).
+# is_available() == platform::ui::sstv::is_supported() == (has_audio && has_sdcard)
+# == true on the P4, so the live runtime is entered. The RX button (already in the
+# runtime) calls platform::ui::sstv::start(); on the P4 that drives the functional
+# capture/decode backend below. enter() only builds the page + a 120ms refresh
+# timer (no audio task spawns until RX is pressed) and exit() deletes the timer +
+# root synchronously and stops any active capture, so the boot self-test enters+
+# exits cleanly.
+#
+# Backing producer platform::ui::sstv (idf_common/platform_ui_sstv_runtime.cpp,
+# delegating to the shared ::sstv service) is added to the PLATFORM block; the
+# functional ::sstv service + c_sstv_decoder demodulator are added to the P4 board
+# source set (they reference the board ES8311 codec). The launcher icon descriptor
+# (sstv, lv_image_dsc_t, in ui/assets/sstv.c) is added to
+# TRAILMATE_ESP_IDF_UI_SHARED_SOURCES alongside Chat.c / walkie_talkie.c / team.c.
+set(TRAILMATE_ESP_IDF_SSTV_UI_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/sstv/sstv_page_shell.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/sstv/sstv_page_runtime.cpp")
+
 # Chat-screen LVGL renderers from the ux-pack common layer (modal + picker the
 # chat controller wires).
 set(TRAILMATE_ESP_IDF_CHAT_UX_PACK_SOURCES
@@ -626,7 +654,11 @@ set(TRAILMATE_ESP_IDF_UI_SHARED_SOURCES
     # Team launcher icon descriptor (team_icon, lv_image_dsc_t). Referenced as an
     # extern "C" symbol by s_team_app in esp32_lvgl_idf_app_registry.cpp; the team
     # screen TUs that use it are in TRAILMATE_ESP_IDF_TEAM_UI_SOURCES.
-    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/team.c")
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/team.c"
+    # SSTV launcher icon descriptor (sstv, lv_image_dsc_t). Referenced as an
+    # extern "C" symbol by s_sstv_app in esp32_lvgl_idf_app_registry.cpp; the sstv
+    # screen TUs that use it are in TRAILMATE_ESP_IDF_SSTV_UI_SOURCES.
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/sstv.c")
 
 set(TRAILMATE_ESP_IDF_UI_PRESENTATION_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_presentation/src/gps/gps_status_model.cpp"
@@ -673,6 +705,12 @@ set(TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_common.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_dispatcher.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_wireless_companion_runtime.cpp"
+    # SSTV capability runtime: platform::ui::sstv::start/stop/is_supported/... that
+    # the SSTV screen (TRAILMATE_ESP_IDF_SSTV_UI_SOURCES) calls. Without it the
+    # screen does not link. It delegates to the shared ::sstv service (added to the
+    # board source set below); is_supported() is (has_audio && has_sdcard), both
+    # true on the P4.
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_sstv_runtime.cpp"
     # PC Link host-bridge backend: the platform::ui::hostlink runtime (delegates
     # to the shared ::hostlink service over the IDF USB-Serial-JTAG transport)
     # plus the gps::gps_get_data() free-function compat the service needs to
@@ -708,12 +746,31 @@ set(TRAILMATE_ESP_IDF_TAB5_BOARD_SOURCES
     "${TRAILMATE_ROOT}/boards/tab5/src/tab5_board.cpp"
     ${TRAILMATE_ESP_IDF_WALKIE_SOURCES})
 
+# SSTV functional capture/decode backend, compiled per-board because the service
+# references the board's audio codec class (CodecEs8311 on the P4, the walkie
+# service is the exact precedent for adding board-specific audio sources here).
+# sstv_service.cpp's board #if now has a T-Display P4 arm (mirroring the Tab5
+# branch but with the ES8311 codec): the REAL ::sstv::start() spawns the capture
+# task and feeds samples to the c_sstv_decoder demodulator in decode_sstv.cpp.
+# c_sstv_decoder is pure C++/stdlib but links against two helper TUs in the same
+# directory -- cordic.cpp (cordic_init / cordic_rectangular_to_polar, the FM
+# discriminator's fixed-point rect->polar) and half_band_filter2.cpp
+# (half_band_filter2, the IQ decimation half-band filter) -- so both are part of
+# the decoder closure here. No Arduino/board deps. On any board NOT in the SSTV
+# gate the service compiles to the #else stub.
+set(TRAILMATE_ESP_IDF_SSTV_SERVICE_SOURCES
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/sstv/sstv_service.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/sstv/decode_sstv.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/sstv/cordic.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/sstv/half_band_filter2.cpp")
+
 set(TRAILMATE_ESP_IDF_T_DISPLAY_P4_BOARD_SOURCES
     "${TRAILMATE_ROOT}/boards/t_display_p4/src/rtc_runtime.cpp"
     "${TRAILMATE_ROOT}/boards/t_display_p4/src/runtime_support.cpp"
     "${TRAILMATE_ROOT}/boards/t_display_p4/src/codec_es8311.cpp"
     "${TRAILMATE_ROOT}/boards/t_display_p4/src/t_display_p4_board.cpp"
-    ${TRAILMATE_ESP_IDF_WALKIE_SOURCES})
+    ${TRAILMATE_ESP_IDF_WALKIE_SOURCES}
+    ${TRAILMATE_ESP_IDF_SSTV_SERVICE_SOURCES})
 
 set(TRAILMATE_ESP_IDF_FINAL_INCLUDE_DIRS
     "${TRAILMATE_ROOT}/apps/esp32_lvgl/src"

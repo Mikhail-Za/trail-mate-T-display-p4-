@@ -6,9 +6,18 @@
 
 #if (defined(ARDUINO_T_LORA_PAGER) &&                                                 \
      (defined(ARDUINO_LILYGO_LORA_SX1262) || defined(ARDUINO_LILYGO_LORA_LR1121))) || \
-    defined(TRAIL_MATE_ESP_BOARD_TAB5)
+    defined(TRAIL_MATE_ESP_BOARD_TAB5) || defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
 
-#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+// The Tab5 and the LilyGo T-Display P4 share the same pure-ESP-IDF capture/decode
+// path (FreeRTOS task + esp_codec_dev codec + IDF-common SD/BSP), differing only
+// in the audio codec class: Tab5 uses CodecCompat (Tab5CodecCompat), the P4 uses
+// the ES8311 wrapper (the walkie service is the precedent). This single macro
+// selects the shared IDF path for both boards; the codec type is chosen below.
+#if defined(TRAIL_MATE_ESP_BOARD_TAB5) || defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+#define TRAIL_MATE_SSTV_IDF_PATH 1
+#endif
+
+#if defined(TRAIL_MATE_SSTV_IDF_PATH)
 #include <cerrno>
 #include <cstdio>
 #include <string>
@@ -20,8 +29,12 @@
 #include "freertos/task.h"
 #include "platform/esp/common/shared_spi_lock.h"
 #include "platform/esp/idf_common/bsp_runtime.h"
-#include "platform/esp/idf_common/tab5_codec_compat.h"
 #include "sys/clock.h"
+#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+#include "platform/esp/idf_common/tab5_codec_compat.h"
+#else
+#include "boards/t_display_p4/codec_es8311.h"
+#endif
 #else
 #include "boards/tlora_pager/tlora_pager_board.h"
 #include "platform/esp/arduino_common/storage/sd_card_runtime.h"
@@ -39,7 +52,7 @@
 
 namespace
 {
-#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+#if defined(TRAIL_MATE_SSTV_IDF_PATH)
 class File
 {
   public:
@@ -166,7 +179,15 @@ class TLoRaPagerBoard
     {
     }
 
+#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
     platform::esp::idf_common::Tab5CodecCompat codec;
+#else
+    // T-Display P4: the ES8311 codec wrapper exposes the identical
+    // open/close/read/setGain/setMute/setOutMute/setVolume/getVolume/getOutMute
+    // surface the SSTV task drives (the walkie service is the precedent for
+    // capturing P4 mic audio through this same class).
+    ::boards::t_display_p4::CodecEs8311 codec;
+#endif
 
     struct Io
     {
@@ -337,7 +358,7 @@ const char* get_saved_path()
 
 bool ensure_sstv_dir()
 {
-#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+#if defined(TRAIL_MATE_SSTV_IDF_PATH)
     if (!SD.exists("/sstv"))
     {
         if (!SD.mkdir("/sstv"))
@@ -385,7 +406,7 @@ bool build_save_path(char* out_path, size_t out_len)
             snprintf(out_path, out_len, "/sstv/%lu_%03d.bmp",
                      static_cast<unsigned long>(millis()), i);
         }
-#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+#if defined(TRAIL_MATE_SSTV_IDF_PATH)
         if (!SD.exists(out_path))
 #else
         if (!::platform::esp::arduino_common::storage::sd_exists(out_path))
@@ -476,7 +497,7 @@ bool save_frame_to_sd()
         return false;
     }
     ::platform::esp::common::SharedSpiLockGuard guard;
-#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+#if defined(TRAIL_MATE_SSTV_IDF_PATH)
     if (SD.cardType() == CARD_NONE)
 #else
     if (!::platform::esp::arduino_common::storage::sd_card_ready())
@@ -505,7 +526,7 @@ bool save_frame_to_sd()
     const uint32_t file_size = 14 + 40 + pixel_bytes;
     const uint32_t data_offset = 14 + 40;
 
-#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+#if defined(TRAIL_MATE_SSTV_IDF_PATH)
     File f = SD.open(path, FILE_WRITE);
     if (!f)
 #else
@@ -808,7 +829,7 @@ void render_line_from_buffer(uint8_t line_rgb[320][4], e_mode mode, uint16_t lin
 
 void sstv_task(void*)
 {
-#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+#if defined(TRAIL_MATE_SSTV_IDF_PATH)
     TLoRaPagerBoard* board = TLoRaPagerBoard::getInstance();
 #else
     boards::tlora_pager::TLoRaPagerBoard* board = boards::tlora_pager::TLoRaPagerBoard::getInstance();

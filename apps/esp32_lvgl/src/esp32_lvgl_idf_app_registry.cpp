@@ -15,6 +15,7 @@
 #include "ui/screens/gps/gps_page_shell.h"
 #include "ui/screens/pc_link/pc_link_page_shell.h"
 #include "ui/screens/settings/settings_page_shell.h"
+#include "ui/screens/sstv/sstv_page_shell.h"
 #include "ui/screens/team/team_page_shell.h"
 #include "ui/screens/tracker/tracker_page_shell.h"
 #include "ui/screens/walkie_talkie/walkie_talkie_page_shell.h"
@@ -63,6 +64,10 @@ extern "C"
     // modules/ui_shared/src/ui/assets/team.c (added to the IDF UI-shared source
     // set), referenced by s_team_app below.
     extern const lv_image_dsc_t team_icon;
+    // SSTV launcher icon descriptor; defined in
+    // modules/ui_shared/src/ui/assets/sstv.c (added to the IDF UI-shared source
+    // set), referenced by s_sstv_app below.
+    extern const lv_image_dsc_t sstv;
 }
 
 struct CompanionPageState
@@ -4870,6 +4875,31 @@ ui::CallbackAppScreen s_walkie_app("walkie_talkie",
                                    walkie_page::ui::shell::exit,
                                    &s_walkie_menu_host);
 
+// SSTV (slow-scan-TV receiver: decode an off-air SSTV image from audio captured
+// through the ES8311 mic, render it live + save a BMP to the SD card).
+// stable_id = 'sstv'. Mirrors the chat/contacts/settings/pc_link binding: the
+// sstv page shell's enter/exit take a ui::page::Host* (sstv_page::ui::shell::Host
+// is an alias of ::ui::page::Host) as user_data and route the back request through
+// ui_request_exit_to_menu() via the menu host. The shell wraps the runtime with
+// the page_shell_fallback template; placeholder_page::show/hide (non-inline) is
+// ALREADY linked via TRAILMATE_ESP_IDF_GNSS_UI_SOURCES, so it is not repeated in
+// the SSTV set. runtime::is_available() == platform::ui::sstv::is_supported() ==
+// (has_audio && has_sdcard) == true on the P4, so the live runtime is entered. The
+// screen's RX button (already present in sstv_page_runtime.cpp) calls
+// platform::ui::sstv::start(), which on the P4 drives the functional capture/decode
+// backend (the un-gated ::sstv service + c_sstv_decoder, ES8311 audio). enter()
+// only builds the page + a 120ms refresh timer (no audio task spawns until RX is
+// pressed) and exit() deletes the timer + root synchronously and stops any active
+// capture, so the boot self-test enters+exits cleanly.
+ui::page::Host s_sstv_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_sstv_app("sstv",
+                                 "SSTV",
+                                 &sstv,
+                                 sstv_page::ui::shell::enter,
+                                 sstv_page::ui::shell::exit,
+                                 &s_sstv_menu_host);
+
 AppScreen* s_apps[] = {&s_chat_app,
                        &s_contacts_app,
                        &s_settings_app,
@@ -4890,7 +4920,8 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_flashlight_app,
                        &s_stopwatch_app,
                        &s_node_radar_app,
-                       &s_walkie_app};
+                       &s_walkie_app,
+                       &s_sstv_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 
