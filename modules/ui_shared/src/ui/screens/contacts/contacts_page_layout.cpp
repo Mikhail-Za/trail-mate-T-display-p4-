@@ -175,6 +175,17 @@ void create_filter_panel(lv_obj_t* parent)
     style::apply_label_primary(broadcast_label);
     lv_obj_center(broadcast_label);
 
+    // One-tap action button: broadcast this node's ID immediately so it shows up in
+    // other units' Nearby without waiting for the boot/5-minute announce.
+    g_contacts_state.broadcast_id_btn = lv_btn_create(g_contacts_state.filter_panel);
+    lv_obj_set_size(g_contacts_state.broadcast_id_btn, LV_PCT(100), profile.filter_button_height);
+    ::ui::components::two_pane_layout::make_non_scrollable(g_contacts_state.broadcast_id_btn);
+    style::apply_btn_filter(g_contacts_state.broadcast_id_btn);
+    lv_obj_t* broadcast_id_label = lv_label_create(g_contacts_state.broadcast_id_btn);
+    ::ui::i18n::set_label_text(broadcast_id_label, "Broadcast ID");
+    style::apply_label_primary(broadcast_id_label);
+    lv_obj_center(broadcast_id_label);
+
     g_contacts_state.team_btn = lv_btn_create(g_contacts_state.filter_panel);
     lv_obj_set_size(g_contacts_state.team_btn, LV_PCT(100), profile.filter_button_height);
     ::ui::components::two_pane_layout::make_non_scrollable(g_contacts_state.team_btn);

@@ -74,6 +74,7 @@ struct ContactsPageState
     lv_obj_t* broadcast_btn = nullptr;
     lv_obj_t* team_btn = nullptr;
     lv_obj_t* discover_btn = nullptr;
+    lv_obj_t* broadcast_id_btn = nullptr; // One-tap action: broadcast this node's ID now
 
     // Main list column
     lv_obj_t* list_panel = nullptr;

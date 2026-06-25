@@ -49,7 +49,11 @@ constexpr int kWide720FallbackScreenW = 1280;
 constexpr int kWide720FallbackScreenH = 720;
 
 constexpr int kMaxSats = 32;
-constexpr int kTableRows = 7;
+// Hard upper bound on table-row widgets (sizes the row array). Portrait uses the
+// full count; the landscape layouts cap themselves via SkyPlotLayout::table_row_count.
+constexpr int kTableRows = 16;
+constexpr int kTableRowsClassic = 7;
+constexpr int kTableRowsPortrait = 16;
 
 struct SkyPlotLayout
 {
@@ -80,6 +84,7 @@ struct SkyPlotLayout
     lv_coord_t table_row_start_y = 48;
     lv_coord_t table_row_h = 17;
     lv_coord_t table_row_step = 17;
+    int table_row_count = kTableRowsClassic;
 
     lv_coord_t status_toggle_btn_w = 82;
     lv_coord_t status_toggle_btn_h = 24;
@@ -361,11 +366,126 @@ SkyPlotLayout make_wide_720_layout(lv_coord_t parent_w, lv_coord_t parent_h, lv_
     return layout;
 }
 
+SkyPlotLayout make_portrait_tall_layout(lv_coord_t parent_w, lv_coord_t parent_h, lv_coord_t top_bar_h)
+{
+    SkyPlotLayout layout{};
+    layout.wide_720_layout = true;
+    layout.compact_layout = false;
+    layout.screen_w = parent_w > 0 ? parent_w : 540;
+    layout.screen_h = parent_h > 0 ? parent_h : 1168;
+
+    layout.root_radius = 0;
+    layout.panel_radius = 18;
+    layout.panel_border_width = 2;
+
+    const lv_coord_t side_margin = 10;
+    const lv_coord_t bottom_margin = 16;
+    const lv_coord_t panel_gap = 14;
+    const lv_coord_t content_top = top_bar_h + ::ui::page_profile::current().top_content_gap;
+
+    // Skyplot: large full-width square at the top, below the top bar.
+    layout.sky_panel_x = side_margin;
+    layout.sky_panel_y = content_top;
+    layout.sky_panel_w = layout.screen_w - (side_margin * 2);
+    layout.sky_panel_h = layout.sky_panel_w; // square
+
+    // Status/table: fills the remaining area beneath the skyplot.
+    layout.status_panel_x = side_margin;
+    layout.status_panel_y = layout.sky_panel_y + layout.sky_panel_h + panel_gap;
+    layout.status_panel_w = layout.screen_w - (side_margin * 2);
+    layout.status_panel_h = std::max<lv_coord_t>(120, layout.screen_h - layout.status_panel_y - bottom_margin);
+    layout.status_panel_right_margin = side_margin;
+
+    // Header + table sized so the table fills the lower panel.
+    layout.table_row_count = kTableRowsPortrait;
+    layout.status_header_h = 48;
+    layout.table_header_y = layout.status_header_h;
+    layout.table_header_h = 34;
+    layout.table_row_start_y = layout.table_header_y + layout.table_header_h;
+    {
+        const lv_coord_t avail = std::max<lv_coord_t>(
+            kTableRowsPortrait, layout.status_panel_h - layout.table_row_start_y - 6);
+        const lv_coord_t step = std::max<lv_coord_t>(20, avail / kTableRowsPortrait);
+        layout.table_row_step = step;
+        layout.table_row_h = step;
+    }
+
+    // Skyplot geometry scaled to fill the square panel (panel_w ~520 -> sky area ~480).
+    const lv_coord_t sky_inset = 20;
+    layout.sky_area_x = sky_inset;
+    layout.sky_area_y = sky_inset;
+    layout.sky_area_size = layout.sky_panel_w - (sky_inset * 2);
+    layout.sky_center = layout.sky_area_size / 2;
+    layout.sky_radius = static_cast<lv_coord_t>(layout.sky_center - 14);
+    layout.sky_radius60 = static_cast<lv_coord_t>(std::lround(layout.sky_radius * (2.0 / 3.0)));
+    layout.sky_radius30 = static_cast<lv_coord_t>(std::lround(layout.sky_radius * (1.0 / 3.0)));
+    layout.outer_ring_border_width = 4;
+    layout.inner_ring_border_width = 2;
+    layout.axis_line_width = 2;
+
+    layout.center_dot_size = 8;
+    layout.center_dot_radius = 4;
+
+    layout.dot_radius = 16;
+    layout.dot_size = 32;
+    layout.dot_border_width = 3;
+    layout.use_tag_anchor_dx = 18;
+    layout.use_tag_anchor_dy = 18;
+    layout.use_tag_radius = 10;
+    layout.use_tag_pad_h = 8;
+    layout.use_tag_pad_v = 4;
+
+    layout.label_n_top = 8;
+    layout.label_e_gap = 16;
+    layout.label_e_y_adjust = 14;
+    layout.label_w_x = 8;
+    layout.label_w_y_adjust = 14;
+    layout.horizon_offset_y = 22;
+
+    // Legend tucked into the lower-right corner of the (large) sky panel.
+    layout.legend_block_size = 18;
+    layout.legend_block_radius = 5;
+    layout.legend_block_y_offset = 10;
+    layout.legend_label_x_offset = 26;
+    layout.legend_snr_x = std::max<lv_coord_t>(
+        layout.sky_area_x, layout.sky_panel_w - 150);
+    layout.legend_snr_y = std::max<lv_coord_t>(
+        layout.sky_area_y, layout.sky_panel_h - 200);
+    layout.legend_snr_row = 30;
+    layout.legend_sys_x = layout.legend_snr_x;
+    layout.legend_sys_y = layout.legend_snr_y + (layout.legend_snr_row * 4) + 16;
+    layout.legend_sys_row = 30;
+
+    layout.top_bar_title_font = &lv_font_montserrat_20;
+    layout.compass_font = &lv_font_montserrat_20;
+    layout.ring_label_font = &lv_font_montserrat_18;
+    layout.horizon_font = &lv_font_montserrat_16;
+    layout.legend_font = &lv_font_montserrat_16;
+    layout.status_header_font = &lv_font_montserrat_18;
+    layout.table_header_font = &lv_font_montserrat_16;
+    layout.table_row_font = &lv_font_montserrat_18;
+    layout.sat_dot_font = &lv_font_montserrat_14;
+    layout.use_tag_font = &lv_font_montserrat_14;
+
+    // Table columns scaled to the full-width portrait panel (~520 px usable).
+    layout.table_col_w[0] = 70;
+    layout.table_col_w[1] = 96;
+    layout.table_col_w[2] = 110;
+    layout.table_col_w[3] = 96;
+    layout.table_col_w[4] = std::max<lv_coord_t>(96, layout.status_panel_w - 372);
+    return layout;
+}
+
 SkyPlotLayout resolve_layout(lv_coord_t parent_w, lv_coord_t parent_h, lv_coord_t top_bar_h)
 {
     if (is_wide_720_canvas(parent_w, parent_h))
     {
         return make_wide_720_layout(parent_w, parent_h, top_bar_h);
+    }
+
+    if (parent_h >= 700 && parent_h > parent_w)
+    {
+        return make_portrait_tall_layout(parent_w, parent_h, top_bar_h);
     }
 
     if (::ui::page_profile::is_dense() && parent_w > 0 && parent_w <= kCompactMaxWidth)
@@ -734,8 +854,9 @@ void update_table_rows()
             return a.elevation > b.elevation;
         }
         return a.id < b.id; });
-    const int count = std::min(count_all, kTableRows);
-    for (int row = 0; row < kTableRows; ++row)
+    const int row_count = std::min(s_layout.table_row_count, kTableRows);
+    const int count = std::min(count_all, row_count);
+    for (int row = 0; row < row_count; ++row)
     {
         TableRow& r = s_ui.table_rows[row];
         if (!r.row)
@@ -1266,7 +1387,8 @@ lv_obj_t* ui_gnss_skyplot_create(lv_obj_t* parent)
         col_x += col_w[i];
     }
 
-    for (int row = 0; row < kTableRows; ++row)
+    const int table_row_count = std::min(s_layout.table_row_count, kTableRows);
+    for (int row = 0; row < table_row_count; ++row)
     {
         TableRow& r = s_ui.table_rows[row];
         r.row = lv_obj_create(s_ui.panel_status);
@@ -1292,6 +1414,13 @@ lv_obj_t* ui_gnss_skyplot_create(lv_obj_t* parent)
             lv_obj_set_pos(r.cells[i], col_x, 0);
             col_x += col_w[i];
         }
+    }
+
+    // Safety: keep the top bar (and its back button) above the panels so it stays
+    // tappable even if a panel's bounds overlap the bar (e.g. portrait tall layout).
+    if (s_ui.header)
+    {
+        lv_obj_move_foreground(s_ui.header);
     }
 
     apply_cached_sats();

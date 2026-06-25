@@ -172,6 +172,7 @@ static void on_add_edit_cancel_clicked(lv_event_t* e);
 static void on_del_confirm_clicked(lv_event_t* e);
 static void on_del_cancel_clicked(lv_event_t* e);
 static void on_discovery_scan_done(lv_timer_t* timer);
+static void on_broadcast_id_clicked(lv_event_t* e);
 static void execute_discovery_command(uint8_t command_index);
 static void on_node_info_back_clicked(lv_event_t* e);
 static void open_chat_compose();
@@ -610,6 +611,11 @@ void create_filter_panel(lv_obj_t* parent)
     {
         lv_obj_add_event_cb(g_contacts_state.broadcast_btn, on_filter_focused, LV_EVENT_FOCUSED, nullptr);
         lv_obj_add_event_cb(g_contacts_state.broadcast_btn, on_filter_clicked, LV_EVENT_CLICKED, nullptr);
+    }
+    if (g_contacts_state.broadcast_id_btn)
+    {
+        // Action button (not a mode switch): broadcast this node's ID immediately.
+        lv_obj_add_event_cb(g_contacts_state.broadcast_id_btn, on_broadcast_id_clicked, LV_EVENT_CLICKED, nullptr);
     }
     if (g_contacts_state.team_btn)
     {
@@ -2186,6 +2192,29 @@ static void execute_discovery_command(uint8_t command_index)
                 result.failure,
                 (spec.command == DiscoveryActionCommand::SendIdLocal) ? "ID local fail" : "ID bcast fail"),
             2000);
+    }
+}
+
+static void on_broadcast_id_clicked(lv_event_t* e)
+{
+    (void)e;
+    if (!g_contacts_state.chat_service)
+    {
+        return;
+    }
+    // Reuse the existing, tested Send-ID-Broadcast discovery action so the node
+    // announces itself on demand instead of only at boot / on the 5-minute timer.
+    const chat::MeshActionResult result =
+        g_contacts_state.chat_service->triggerDiscoveryActionDetailed(
+            chat::MeshDiscoveryAction::SendIdBroadcast);
+    if (result.ok)
+    {
+        ::ui::SystemNotification::show("Broadcasting ID...", 2000);
+    }
+    else
+    {
+        ::ui::SystemNotification::show(
+            discovery_failure_message(result.failure, "Broadcast failed"), 2000);
     }
 }
 

@@ -56,6 +56,8 @@ struct MenuLayoutProfile
     lv_coord_t top_bar_text_pad = 4;
     lv_coord_t status_row_gap = 2;
     lv_coord_t status_row_offset_y = 2;
+    lv_coord_t top_safe_inset = 0;          // camera-cutout reserve above the top bar (P4)
+    lv_coord_t bottom_bar_extra_right = 0;  // extra right pad so bottom stats clear the keyboard icon (P4)
 
     lv_coord_t desc_offset = -10;
     lv_coord_t node_id_offset_x = 5;

@@ -325,7 +325,7 @@ void createTopBar()
 {
     const auto& profile = ui::menu_profile::current();
     lv_obj_t* menu_topbar = lv_obj_create(s_runtime.menu_panel);
-    lv_obj_set_size(menu_topbar, LV_PCT(100), profile.top_bar_height);
+    lv_obj_set_size(menu_topbar, LV_PCT(100), profile.top_safe_inset + profile.top_bar_height);
     lv_obj_align(menu_topbar, LV_ALIGN_TOP_MID, 0, 0);
     lv_obj_set_style_bg_color(menu_topbar, ui::theme::accent(), 0);
     lv_obj_set_style_bg_opa(menu_topbar, LV_OPA_COVER, 0);
@@ -339,7 +339,7 @@ void createTopBar()
 
     s_runtime.time_label = lv_label_create(s_runtime.menu_panel);
     lv_obj_set_width(s_runtime.time_label, LV_SIZE_CONTENT);
-    lv_obj_align(s_runtime.time_label, LV_ALIGN_TOP_LEFT, profile.top_bar_side_inset, 0);
+    lv_obj_align(s_runtime.time_label, LV_ALIGN_TOP_LEFT, profile.top_bar_side_inset, profile.top_safe_inset);
     lv_obj_set_style_text_align(s_runtime.time_label, LV_TEXT_ALIGN_LEFT, 0);
     lv_obj_set_style_text_color(s_runtime.time_label, ui::theme::text(), 0);
     lv_obj_set_style_bg_opa(s_runtime.time_label, LV_OPA_TRANSP, 0);
@@ -350,7 +350,7 @@ void createTopBar()
 
     s_runtime.battery_label = lv_label_create(s_runtime.menu_panel);
     lv_obj_set_width(s_runtime.battery_label, LV_SIZE_CONTENT);
-    lv_obj_align(s_runtime.battery_label, LV_ALIGN_TOP_RIGHT, -profile.top_bar_side_inset, 0);
+    lv_obj_align(s_runtime.battery_label, LV_ALIGN_TOP_RIGHT, -profile.top_bar_side_inset, profile.top_safe_inset);
     lv_obj_set_style_text_align(s_runtime.battery_label, LV_TEXT_ALIGN_RIGHT, 0);
     lv_obj_set_style_text_color(s_runtime.battery_label, ui::theme::text(), 0);
     lv_obj_set_style_bg_opa(s_runtime.battery_label, LV_OPA_TRANSP, 0);
@@ -371,7 +371,18 @@ void createTopBar()
     lv_obj_set_flex_flow(menu_status_row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(menu_status_row, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_add_flag(menu_status_row, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_align(menu_status_row, LV_ALIGN_TOP_MID, 0, profile.status_row_offset_y);
+    if (profile.top_safe_inset > 0)
+    {
+        // Camera-cutout device (P4): a centred status row sits directly under the lens
+        // no matter how far down it is pushed. Park it left-of-centre beside the clock,
+        // clear of the punch-out, so the status icons are always visible.
+        lv_obj_align(menu_status_row, LV_ALIGN_TOP_LEFT, 120,
+                     profile.top_safe_inset + profile.status_row_offset_y);
+    }
+    else
+    {
+        lv_obj_align(menu_status_row, LV_ALIGN_TOP_MID, 0, profile.status_row_offset_y);
+    }
     lv_obj_move_foreground(menu_status_row);
 
     lv_obj_t* menu_route_icon = nullptr;

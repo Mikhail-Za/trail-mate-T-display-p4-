@@ -29,6 +29,9 @@ struct TopBar
     lv_obj_t* right_label = nullptr;
     void (*back_cb)(void*) = nullptr;
     void* back_user_data = nullptr;
+    const lv_font_t* text_font = nullptr; // Resolved chrome font, stored at init so the
+                                          // title/right-text setters don't re-resolve from
+                                          // a not-yet-laid-out height (which reads 0 -> 14px).
 };
 
 constexpr uint16_t kTopBarHeight = 30;

@@ -21,6 +21,9 @@
 #if !defined(LV_FONT_MONTSERRAT_20) || !LV_FONT_MONTSERRAT_20
 #define lv_font_montserrat_20 lv_font_montserrat_18
 #endif
+#if !defined(LV_FONT_MONTSERRAT_24) || !LV_FONT_MONTSERRAT_24
+#define lv_font_montserrat_24 lv_font_montserrat_20
+#endif
 
 namespace ui
 {
@@ -49,6 +52,10 @@ static lv_coord_t resolve_top_bar_height(const TopBarConfig& config)
 
 static const lv_font_t* resolve_top_bar_font(lv_coord_t height)
 {
+    if (height >= 100)
+    {
+        return &lv_font_montserrat_24;
+    }
     if (height >= 60)
     {
         return &lv_font_montserrat_20;
@@ -79,19 +86,32 @@ void top_bar_init(TopBar& bar, lv_obj_t* parent, const TopBarConfig& config)
     const lv_coord_t top_inset =
         (config.height == 0 || config.height == profile.top_bar_height) ? profile.top_safe_inset : 0;
     const lv_coord_t chrome_height = resolved_height - top_inset;
+    // P4 camera-cutout pages reserve a top inset; the header below the lens is
+    // generous, so scale the controls up to fill that band (larger back button,
+    // battery and title) instead of leaving them at the default chrome size.
+    const bool tall_header = top_inset > 0;
     const bool large_touch = profile.large_touch_hitbox || chrome_height >= 56;
     const bool dense = !large_touch && chrome_height <= 24;
     const lv_coord_t side_pad = large_touch ? 18 : (dense ? 4 : (chrome_height >= 40 ? 14 : 10));
-    const lv_coord_t vertical_pad = large_touch ? 10 : (dense ? 3 : (chrome_height >= 40 ? 8 : 6));
-    const lv_coord_t back_btn_height = std::max<lv_coord_t>(
-        large_touch ? 44 : (dense ? 16 : 20),
-        chrome_height - (vertical_pad * 2));
-    const lv_coord_t back_btn_width = std::max<lv_coord_t>(
-        large_touch ? 68 : (dense ? 28 : 44),
-        back_btn_height + (large_touch ? 24 : (dense ? 10 : (chrome_height >= 40 ? 16 : 10))));
+    const lv_coord_t vertical_pad =
+        tall_header ? 6 : (large_touch ? 10 : (dense ? 3 : (chrome_height >= 40 ? 8 : 6)));
+    // The control band is the strip below the inset that the controls live in.
+    const lv_coord_t control_band = std::max<lv_coord_t>(
+        44, static_cast<lv_coord_t>(resolved_height - top_inset - (vertical_pad * 2)));
+    const lv_coord_t back_btn_height = tall_header
+        ? control_band
+        : std::max<lv_coord_t>(large_touch ? 44 : (dense ? 16 : 20),
+                               chrome_height - (vertical_pad * 2));
+    const lv_coord_t back_btn_width = tall_header
+        ? static_cast<lv_coord_t>(back_btn_height + 24)
+        : std::max<lv_coord_t>(
+              large_touch ? 68 : (dense ? 28 : 44),
+              back_btn_height + (large_touch ? 24 : (dense ? 10 : (chrome_height >= 40 ? 16 : 10))));
     const lv_coord_t back_btn_radius = std::max<lv_coord_t>(large_touch ? 16 : 10, back_btn_height / 2);
-    const lv_coord_t right_label_width = large_touch ? 156 : (dense ? 72 : (chrome_height >= 40 ? 120 : 90));
-    const lv_font_t* text_font = resolve_top_bar_font(chrome_height);
+    const lv_coord_t right_label_width =
+        tall_header ? 176 : (large_touch ? 156 : (dense ? 72 : (chrome_height >= 40 ? 120 : 90)));
+    const lv_font_t* text_font = resolve_top_bar_font(resolved_height);
+    bar.text_font = text_font;
 
     bar.container = lv_obj_create(parent);
     lv_obj_set_size(bar.container, LV_PCT(100), resolved_height);
@@ -177,7 +197,8 @@ void top_bar_set_title(TopBar& bar, const char* title)
 
     lv_label_set_text(bar.title_label, title);
     ::ui::fonts::apply_content_font(
-        bar.title_label, title, resolve_top_bar_font(lv_obj_get_height(bar.container)));
+        bar.title_label, title,
+        bar.text_font ? bar.text_font : resolve_top_bar_font(lv_obj_get_height(bar.container)));
 }
 
 void top_bar_set_right_text(TopBar& bar, const char* text)
@@ -195,7 +216,8 @@ void top_bar_set_right_text(TopBar& bar, const char* text)
 
     lv_label_set_text(bar.right_label, text);
     ::ui::fonts::apply_content_font(
-        bar.right_label, text, resolve_top_bar_font(lv_obj_get_height(bar.container)));
+        bar.right_label, text,
+        bar.text_font ? bar.text_font : resolve_top_bar_font(lv_obj_get_height(bar.container)));
 }
 
 void top_bar_set_right_text_ascii(TopBar& bar, const char* text)
@@ -213,7 +235,8 @@ void top_bar_set_right_text_ascii(TopBar& bar, const char* text)
 
     lv_label_set_text(bar.right_label, text);
     ::ui::fonts::apply_font(
-        bar.right_label, resolve_top_bar_font(lv_obj_get_height(bar.container)));
+        bar.right_label,
+        bar.text_font ? bar.text_font : resolve_top_bar_font(lv_obj_get_height(bar.container)));
 }
 
 void top_bar_set_back_callback(TopBar& bar, void (*cb)(void*), void* user_data)

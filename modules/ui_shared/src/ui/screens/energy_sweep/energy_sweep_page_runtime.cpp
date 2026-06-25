@@ -12,6 +12,7 @@
 #include "sys/clock.h"
 #include "ui/app_runtime.h"
 #include "ui/localization.h"
+#include "ui/page/page_profile.h"
 #include "ui/ui_common.h"
 #include <algorithm>
 #include <array>
@@ -48,29 +49,231 @@ void request_exit()
     ui_request_exit_to_menu();
 }
 
-constexpr int kScreenW = 480;
-constexpr int kScreenH = 222;
-constexpr int kTopBarH = 28;
+// Classic landscape geometry (tab5 / tdeck / pager) -- the original
+// 480x222 constants, now kept as the default values of SweepLayout so the
+// wide-screen path is byte-for-byte unchanged.
+constexpr int kClassicScreenW = 480;
+constexpr int kClassicScreenH = 222;
+constexpr int kClassicTopBarH = 28;
 
-constexpr int kLeftPanelX = 12;
-constexpr int kLeftPanelY = 40;
-constexpr int kLeftPanelW = 332;
-constexpr int kLeftPanelH = 170;
+// Runtime-resolved layout. Every value that used to be a layout constexpr
+// (root size, top bar, left/plot/scalebar/right panels, and the right-panel
+// readout child geometry + fonts) now lives here so the page can switch to a
+// tall portrait arrangement on the P4 (540x1168) while leaving the landscape
+// geometry exactly as it was.
+struct SweepLayout
+{
+    bool portrait = false;
 
-constexpr int kPlotX = 10;
-constexpr int kPlotY = 10;
-constexpr int kPlotW = 312;
-constexpr int kPlotH = 118;
+    int screen_w = kClassicScreenW;
+    int screen_h = kClassicScreenH;
+    int topbar_h = kClassicTopBarH;
 
-constexpr int kScaleBarX = 10;
-constexpr int kScaleBarY = 130;
-constexpr int kScaleBarW = 312;
-constexpr int kScaleBarH = 28;
+    int left_panel_x = 12;
+    int left_panel_y = 40;
+    int left_panel_w = 332;
+    int left_panel_h = 170;
 
-constexpr int kRightPanelX = 354;
-constexpr int kRightPanelY = 40;
-constexpr int kRightPanelW = 114;
-constexpr int kRightPanelH = 170;
+    int plot_x = 10;
+    int plot_y = 10;
+    int plot_w = 312;
+    int plot_h = 118;
+
+    int scalebar_x = 10;
+    int scalebar_y = 130;
+    int scalebar_w = 312;
+    int scalebar_h = 28;
+
+    int right_panel_x = 354;
+    int right_panel_y = 40;
+    int right_panel_w = 114;
+    int right_panel_h = 170;
+
+    // Top-bar inner geometry.
+    int back_btn_x = 8;
+    int back_btn_y = 4;
+    int back_btn_w = 28;
+    int back_btn_h = 20;
+    int title_x = 46;
+    int title_y = 0;
+    int mode_chip_x = 264;
+    int mode_chip_y = 5;
+    int mode_chip_w = 118;
+    int mode_chip_h = 18;
+    int cad_chip_x = 388;
+    int cad_chip_y = 5;
+    int cad_chip_w = 82;
+    int cad_chip_h = 18;
+
+    // Right (readout) panel inner geometry. Defaults reproduce the original
+    // hand-tuned 114x170 landscape layout exactly.
+    int rp_sep_y = 76;
+    int rp_title_cursor_x = 8;
+    int rp_title_cursor_y = 2;
+    int rp_cursor_freq_x = 8;
+    int rp_cursor_freq_y = 14;
+    int rp_cursor_unit_x = 84;
+    int rp_cursor_unit_y = 22;
+    int rp_rssi_x = 8;
+    int rp_rssi_y = 43;
+    int rp_noise_x = 8;
+    int rp_noise_y = 60;
+    int rp_title_best_x = 8;
+    int rp_title_best_y = 80;
+    int rp_best_freq_x = 8;
+    int rp_best_freq_y = 97;
+    int rp_best_snr_x = 8;
+    int rp_best_snr_y = 114;
+    int rp_progress_x = 8;
+    int rp_progress_y = 120;
+    int rp_progress_w = 66;
+    int rp_progress_h = 12;
+    int rp_progress_pct_x = 78;
+    int rp_progress_pct_y = 118;
+    int rp_btn_scan_x = 8;
+    int rp_btn_y = 134;
+    int rp_btn_w = 46;
+    int rp_btn_h = 28;
+    int rp_btn_auto_x = 60;
+
+    // Fonts (pointers default to the classic sizes used inline today).
+    const lv_font_t* title_font = &lv_font_montserrat_20;
+    const lv_font_t* chip_font = &lv_font_montserrat_14;
+    const lv_font_t* back_font = &lv_font_montserrat_14;
+    const lv_font_t* rp_section_font = &lv_font_montserrat_14;  // CURSOR / BEST headings
+    const lv_font_t* rp_value_big_font = &lv_font_montserrat_20; // cursor freq
+    const lv_font_t* rp_value_mid_font = &lv_font_montserrat_16; // best freq
+    const lv_font_t* rp_metric_font = &lv_font_montserrat_14;    // RSSI / NOISE
+    const lv_font_t* rp_small_font = &lv_font_montserrat_12;     // unit / snr / pct
+    const lv_font_t* rp_btn_font = &lv_font_montserrat_16;
+    const lv_font_t* scale_edge_font = &lv_font_montserrat_14;   // freq labels
+    const lv_font_t* scale_mid_font = &lv_font_montserrat_12;    // STEP|BW
+    const lv_font_t* cursor_tip_font = &lv_font_montserrat_14;
+};
+
+SweepLayout make_classic_layout()
+{
+    return SweepLayout{}; // defaults == original landscape constants
+}
+
+SweepLayout make_portrait_tall_layout(int parent_w, int parent_h, int top_bar_h)
+{
+    SweepLayout l{};
+    l.portrait = true;
+    l.screen_w = parent_w > 0 ? parent_w : 540;
+    l.screen_h = parent_h > 0 ? parent_h : 1168;
+    l.topbar_h = top_bar_h; // page_profile height already reserves the cutout
+
+    const int side_margin = 12;
+    const int panel_gap = 14;
+    const int bottom_margin = 16;
+    const int content_top = top_bar_h + ::ui::page_profile::current().top_content_gap;
+    const int content_w = l.screen_w - (side_margin * 2);
+
+    // --- Spectrum plot panel: full width, tall, directly under the top bar.
+    l.left_panel_x = side_margin;
+    l.left_panel_y = content_top;
+    l.left_panel_w = content_w;
+    // Give the plot panel a generous slice of the tall screen; leave room for
+    // the readout panel beneath it. ~55% of the available height.
+    const int avail_h = l.screen_h - content_top - bottom_margin;
+    l.left_panel_h = static_cast<int>(avail_h * 0.56f);
+
+    const int panel_pad = 12;       // inner padding inside the plot panel
+    const int scalebar_h = 40;      // taller frequency scale bar
+    l.plot_x = panel_pad;
+    l.plot_y = panel_pad;
+    l.plot_w = l.left_panel_w - (panel_pad * 2) - 4; // minus border allowance
+    l.plot_h = l.left_panel_h - (panel_pad * 2) - scalebar_h - 4;
+
+    // Scale bar sits inside the plot panel, just below the waterfall plot.
+    l.scalebar_x = panel_pad;
+    l.scalebar_y = l.plot_y + l.plot_h + 2;
+    l.scalebar_w = l.plot_w;
+    l.scalebar_h = scalebar_h;
+
+    // --- Readout panel: full width, fills the rest of the screen below.
+    l.right_panel_x = side_margin;
+    l.right_panel_y = l.left_panel_y + l.left_panel_h + panel_gap;
+    l.right_panel_w = content_w;
+    l.right_panel_h = std::max(150, l.screen_h - l.right_panel_y - bottom_margin);
+
+    // Re-flow the readout for a WIDE panel: two columns. Left column holds the
+    // cursor block + RSSI/NOISE; right column holds the BEST block + progress;
+    // the SCAN / AUTO buttons span a row near the bottom.
+    const int col_l = 16;
+    const int col_r = l.right_panel_w / 2 + 8;
+    l.rp_sep_y = l.right_panel_h - 86; // separator above the button row
+
+    l.rp_title_cursor_x = col_l;
+    l.rp_title_cursor_y = 12;
+    l.rp_cursor_freq_x = col_l;
+    l.rp_cursor_freq_y = 38;
+    l.rp_cursor_unit_x = col_l + 132;
+    l.rp_cursor_unit_y = 56;
+    l.rp_rssi_x = col_l;
+    l.rp_rssi_y = 90;
+    l.rp_noise_x = col_l;
+    l.rp_noise_y = 122;
+
+    l.rp_title_best_x = col_r;
+    l.rp_title_best_y = 12;
+    l.rp_best_freq_x = col_r;
+    l.rp_best_freq_y = 38;
+    l.rp_best_snr_x = col_r;
+    l.rp_best_snr_y = 70;
+
+    l.rp_progress_x = col_r;
+    l.rp_progress_y = 104;
+    l.rp_progress_w = (l.right_panel_w - col_r) - 70;
+    l.rp_progress_h = 18;
+    l.rp_progress_pct_x = col_r + l.rp_progress_w + 8;
+    l.rp_progress_pct_y = 104;
+
+    // Button row spans the full width near the bottom of the panel.
+    l.rp_btn_h = 56;
+    l.rp_btn_y = l.right_panel_h - l.rp_btn_h - 14;
+    l.rp_btn_w = (l.right_panel_w - 48) / 2;
+    l.rp_btn_scan_x = 16;
+    l.rp_btn_auto_x = l.right_panel_w - l.rp_btn_w - 16;
+
+    // Top bar inner geometry scaled up for the 124px-tall P4 bar; chips drop
+    // off the (narrow) portrait bar to avoid colliding with the title.
+    l.back_btn_x = 12;
+    l.back_btn_h = std::max(36, top_bar_h - 70);
+    l.back_btn_y = top_bar_h - l.back_btn_h - 8;
+    l.back_btn_w = 48;
+    l.title_x = l.back_btn_x + l.back_btn_w + 12;
+    l.title_y = l.back_btn_y + (l.back_btn_h - 26) / 2;
+    // Hide the MODE / CAD chips in portrait (place them off-screen) so the
+    // narrow bar isn't overcrowded; they are status-only.
+    l.mode_chip_x = l.screen_w + 40;
+    l.cad_chip_x = l.screen_w + 40;
+
+    // Larger fonts to fill the tall screen.
+    l.title_font = &lv_font_montserrat_20;
+    l.rp_section_font = &lv_font_montserrat_16;
+    l.rp_value_big_font = &lv_font_montserrat_20;
+    l.rp_value_mid_font = &lv_font_montserrat_20;
+    l.rp_metric_font = &lv_font_montserrat_16;
+    l.rp_small_font = &lv_font_montserrat_14;
+    l.rp_btn_font = &lv_font_montserrat_20;
+    l.scale_edge_font = &lv_font_montserrat_16;
+    l.scale_mid_font = &lv_font_montserrat_14;
+    l.cursor_tip_font = &lv_font_montserrat_16;
+    return l;
+}
+
+SweepLayout resolve_layout(int parent_w, int parent_h, int top_bar_h)
+{
+    if (parent_h >= 700 && parent_h > parent_w)
+    {
+        return make_portrait_tall_layout(parent_w, parent_h, top_bar_h);
+    }
+    return make_classic_layout();
+}
+
+SweepLayout s_layout{};
 
 constexpr float kDefaultFreqStartMhz = 433.050f;
 constexpr float kDefaultFreqEndMhz = 434.790f;
@@ -825,53 +1028,57 @@ void refresh_plot()
             t = 1.0f;
         }
 
-        const int x0 = (i * kPlotW) / bins;
-        const int x1 = ((i + 1) * kPlotW) / bins;
+        const int plot_w = s_layout.plot_w;
+        const int plot_h = s_layout.plot_h;
+        const int x0 = (i * plot_w) / bins;
+        const int x1 = ((i + 1) * plot_w) / bins;
         int w = x1 - x0 - 1;
         if (w < 2)
         {
             w = 2;
         }
-        if (x0 + w > kPlotW)
+        if (x0 + w > plot_w)
         {
-            w = kPlotW - x0;
+            w = plot_w - x0;
         }
         if (w <= 0)
         {
             w = 1;
         }
 
-        int h = static_cast<int>(std::round(t * static_cast<float>(kPlotH)));
+        int h = static_cast<int>(std::round(t * static_cast<float>(plot_h)));
         if (h < 2)
         {
             h = 2;
         }
-        if (h > kPlotH)
+        if (h > plot_h)
         {
-            h = kPlotH;
+            h = plot_h;
         }
 
-        lv_obj_set_pos(bar, x0, kPlotH - h);
+        lv_obj_set_pos(bar, x0, plot_h - h);
         lv_obj_set_size(bar, w, h);
         lv_obj_set_style_bg_color(bar,
                                   lv_color_hex(s_state.hot[i] ? kColorWarn : kColorAmber),
                                   0);
     }
 
+    const int plot_w = s_layout.plot_w;
+    const int plot_h = s_layout.plot_h;
     const int idx = clamp_index(s_state.cursor_index);
-    const int c0 = (idx * kPlotW) / bins;
-    const int c1 = ((idx + 1) * kPlotW) / bins;
+    const int c0 = (idx * plot_w) / bins;
+    const int c1 = ((idx + 1) * plot_w) / bins;
     const int cx = (c0 + c1) / 2;
 
     if (s_ui.cursor_line)
     {
         lv_obj_set_pos(s_ui.cursor_line, cx - 1, 0);
-        lv_obj_set_size(s_ui.cursor_line, 2, kPlotH);
+        lv_obj_set_size(s_ui.cursor_line, 2, plot_h);
         lv_obj_move_foreground(s_ui.cursor_line);
     }
     if (s_ui.cursor_tip)
     {
-        lv_obj_set_pos(s_ui.cursor_tip, cx - 6, kPlotH - 14);
+        lv_obj_set_pos(s_ui.cursor_tip, cx - 6, plot_h - 14);
         lv_obj_move_foreground(s_ui.cursor_tip);
     }
 }
@@ -1238,7 +1445,7 @@ void build_topbar(lv_obj_t* root)
 {
     s_ui.topbar = lv_obj_create(root);
     lv_obj_set_pos(s_ui.topbar, 0, 0);
-    lv_obj_set_size(s_ui.topbar, kScreenW, kTopBarH);
+    lv_obj_set_size(s_ui.topbar, s_layout.screen_w, s_layout.topbar_h);
     lv_obj_set_style_bg_color(s_ui.topbar, lv_color_hex(kColorPanelBg), 0);
     lv_obj_set_style_bg_opa(s_ui.topbar, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.topbar, 0, 0);
@@ -1246,8 +1453,8 @@ void build_topbar(lv_obj_t* root)
     lv_obj_clear_flag(s_ui.topbar, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t* bottom_line = lv_obj_create(s_ui.topbar);
-    lv_obj_set_pos(bottom_line, 0, kTopBarH - 2);
-    lv_obj_set_size(bottom_line, kScreenW, 2);
+    lv_obj_set_pos(bottom_line, 0, s_layout.topbar_h - 2);
+    lv_obj_set_size(bottom_line, s_layout.screen_w, 2);
     lv_obj_set_style_bg_color(bottom_line, lv_color_hex(kColorLine), 0);
     lv_obj_set_style_bg_opa(bottom_line, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(bottom_line, 0, 0);
@@ -1255,8 +1462,8 @@ void build_topbar(lv_obj_t* root)
     lv_obj_clear_flag(bottom_line, LV_OBJ_FLAG_SCROLLABLE);
 
     s_ui.back_btn = lv_btn_create(s_ui.topbar);
-    lv_obj_set_pos(s_ui.back_btn, 8, 4);
-    lv_obj_set_size(s_ui.back_btn, 28, 20);
+    lv_obj_set_pos(s_ui.back_btn, s_layout.back_btn_x, s_layout.back_btn_y);
+    lv_obj_set_size(s_ui.back_btn, s_layout.back_btn_w, s_layout.back_btn_h);
     lv_obj_set_style_bg_color(s_ui.back_btn, lv_color_hex(kColorPanelBg), 0);
     lv_obj_set_style_bg_opa(s_ui.back_btn, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.back_btn, 1, 0);
@@ -1268,19 +1475,19 @@ void build_topbar(lv_obj_t* root)
 
     lv_obj_t* back_label = lv_label_create(s_ui.back_btn);
     lv_label_set_text(back_label, LV_SYMBOL_LEFT);
-    lv_obj_set_style_text_font(back_label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(back_label, s_layout.back_font, 0);
     lv_obj_set_style_text_color(back_label, lv_color_hex(kColorText), 0);
     lv_obj_center(back_label);
 
     s_ui.title = lv_label_create(s_ui.topbar);
     ::ui::i18n::set_label_text(s_ui.title, "SUB-GHz SCAN");
-    lv_obj_set_style_text_font(s_ui.title, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(s_ui.title, s_layout.title_font, 0);
     lv_obj_set_style_text_color(s_ui.title, lv_color_hex(kColorText), 0);
-    lv_obj_set_pos(s_ui.title, 46, 0);
+    lv_obj_set_pos(s_ui.title, s_layout.title_x, s_layout.title_y);
 
     s_ui.mode_chip = lv_obj_create(s_ui.topbar);
-    lv_obj_set_pos(s_ui.mode_chip, 264, 5);
-    lv_obj_set_size(s_ui.mode_chip, 118, 18);
+    lv_obj_set_pos(s_ui.mode_chip, s_layout.mode_chip_x, s_layout.mode_chip_y);
+    lv_obj_set_size(s_ui.mode_chip, s_layout.mode_chip_w, s_layout.mode_chip_h);
     lv_obj_set_style_bg_color(s_ui.mode_chip, lv_color_hex(kColorAmber), 0);
     lv_obj_set_style_bg_opa(s_ui.mode_chip, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.mode_chip, 1, 0);
@@ -1291,13 +1498,13 @@ void build_topbar(lv_obj_t* root)
 
     s_ui.mode_chip_label = lv_label_create(s_ui.mode_chip);
     ::ui::i18n::set_label_text(s_ui.mode_chip_label, "MODE: RSSI");
-    lv_obj_set_style_text_font(s_ui.mode_chip_label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(s_ui.mode_chip_label, s_layout.chip_font, 0);
     lv_obj_set_style_text_color(s_ui.mode_chip_label, lv_color_hex(kColorText), 0);
     lv_obj_center(s_ui.mode_chip_label);
 
     s_ui.cad_chip = lv_obj_create(s_ui.topbar);
-    lv_obj_set_pos(s_ui.cad_chip, 388, 5);
-    lv_obj_set_size(s_ui.cad_chip, 82, 18);
+    lv_obj_set_pos(s_ui.cad_chip, s_layout.cad_chip_x, s_layout.cad_chip_y);
+    lv_obj_set_size(s_ui.cad_chip, s_layout.cad_chip_w, s_layout.cad_chip_h);
     lv_obj_set_style_bg_color(s_ui.cad_chip, lv_color_hex(kColorInfo), 0);
     lv_obj_set_style_bg_opa(s_ui.cad_chip, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.cad_chip, 1, 0);
@@ -1308,7 +1515,7 @@ void build_topbar(lv_obj_t* root)
 
     s_ui.cad_chip_label = lv_label_create(s_ui.cad_chip);
     ::ui::i18n::set_label_text(s_ui.cad_chip_label, "CAD");
-    lv_obj_set_style_text_font(s_ui.cad_chip_label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(s_ui.cad_chip_label, s_layout.chip_font, 0);
     lv_obj_set_style_text_color(s_ui.cad_chip_label, lv_color_white(), 0);
     lv_obj_center(s_ui.cad_chip_label);
 }
@@ -1316,8 +1523,8 @@ void build_topbar(lv_obj_t* root)
 void build_left_panel(lv_obj_t* root)
 {
     s_ui.left_panel = lv_obj_create(root);
-    lv_obj_set_pos(s_ui.left_panel, kLeftPanelX, kLeftPanelY);
-    lv_obj_set_size(s_ui.left_panel, kLeftPanelW, kLeftPanelH);
+    lv_obj_set_pos(s_ui.left_panel, s_layout.left_panel_x, s_layout.left_panel_y);
+    lv_obj_set_size(s_ui.left_panel, s_layout.left_panel_w, s_layout.left_panel_h);
     lv_obj_set_style_bg_color(s_ui.left_panel, lv_color_hex(kColorPanelBg), 0);
     lv_obj_set_style_bg_opa(s_ui.left_panel, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.left_panel, 2, 0);
@@ -1327,8 +1534,8 @@ void build_left_panel(lv_obj_t* root)
     lv_obj_clear_flag(s_ui.left_panel, LV_OBJ_FLAG_SCROLLABLE);
 
     s_ui.plot_area = lv_obj_create(s_ui.left_panel);
-    lv_obj_set_pos(s_ui.plot_area, kPlotX, kPlotY);
-    lv_obj_set_size(s_ui.plot_area, kPlotW, kPlotH);
+    lv_obj_set_pos(s_ui.plot_area, s_layout.plot_x, s_layout.plot_y);
+    lv_obj_set_size(s_ui.plot_area, s_layout.plot_w, s_layout.plot_h);
     lv_obj_set_style_bg_color(s_ui.plot_area, lv_color_hex(0xF2E4C8), 0);
     lv_obj_set_style_bg_opa(s_ui.plot_area, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.plot_area, 1, 0);
@@ -1340,8 +1547,8 @@ void build_left_panel(lv_obj_t* root)
     for (int i = 1; i <= 4; ++i)
     {
         lv_obj_t* grid = lv_obj_create(s_ui.plot_area);
-        lv_obj_set_pos(grid, 0, (i * kPlotH) / 5);
-        lv_obj_set_size(grid, kPlotW, 1);
+        lv_obj_set_pos(grid, 0, (i * s_layout.plot_h) / 5);
+        lv_obj_set_size(grid, s_layout.plot_w, 1);
         lv_obj_set_style_bg_color(grid, lv_color_hex(kColorLine), 0);
         lv_obj_set_style_bg_opa(grid, LV_OPA_50, 0);
         lv_obj_set_style_border_width(grid, 0, 0);
@@ -1362,7 +1569,7 @@ void build_left_panel(lv_obj_t* root)
     }
 
     s_ui.cursor_line = lv_obj_create(s_ui.plot_area);
-    lv_obj_set_size(s_ui.cursor_line, 2, kPlotH);
+    lv_obj_set_size(s_ui.cursor_line, 2, s_layout.plot_h);
     lv_obj_set_style_bg_color(s_ui.cursor_line, lv_color_hex(kColorInfo), 0);
     lv_obj_set_style_bg_opa(s_ui.cursor_line, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.cursor_line, 0, 0);
@@ -1371,12 +1578,12 @@ void build_left_panel(lv_obj_t* root)
 
     s_ui.cursor_tip = lv_label_create(s_ui.plot_area);
     lv_label_set_text(s_ui.cursor_tip, LV_SYMBOL_DOWN);
-    lv_obj_set_style_text_font(s_ui.cursor_tip, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(s_ui.cursor_tip, s_layout.cursor_tip_font, 0);
     lv_obj_set_style_text_color(s_ui.cursor_tip, lv_color_hex(kColorInfo), 0);
 
     lv_obj_t* scale_bar = lv_obj_create(s_ui.left_panel);
-    lv_obj_set_pos(scale_bar, kScaleBarX, kScaleBarY);
-    lv_obj_set_size(scale_bar, kScaleBarW, kScaleBarH);
+    lv_obj_set_pos(scale_bar, s_layout.scalebar_x, s_layout.scalebar_y);
+    lv_obj_set_size(scale_bar, s_layout.scalebar_w, s_layout.scalebar_h);
     lv_obj_set_style_bg_opa(scale_bar, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(scale_bar, 1, 0);
     lv_obj_set_style_border_color(scale_bar, lv_color_hex(kColorLine), 0);
@@ -1387,30 +1594,30 @@ void build_left_panel(lv_obj_t* root)
 
     s_ui.scale_left = lv_label_create(scale_bar);
     lv_label_set_text(s_ui.scale_left, "----");
-    lv_obj_set_style_text_font(s_ui.scale_left, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(s_ui.scale_left, s_layout.scale_edge_font, 0);
     lv_obj_set_style_text_color(s_ui.scale_left, lv_color_hex(kColorText), 0);
     lv_obj_set_pos(s_ui.scale_left, 2, 6);
 
     s_ui.scale_mid = lv_label_create(scale_bar);
     ::ui::i18n::set_label_text(s_ui.scale_mid, "STEP -- | BW --");
-    lv_obj_set_style_text_font(s_ui.scale_mid, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(s_ui.scale_mid, s_layout.scale_mid_font, 0);
     lv_obj_set_style_text_color(s_ui.scale_mid, lv_color_hex(kColorTextDim), 0);
     lv_obj_align(s_ui.scale_mid, LV_ALIGN_CENTER, 0, 5);
 
     s_ui.scale_right = lv_label_create(scale_bar);
     lv_label_set_text(s_ui.scale_right, "----");
-    lv_obj_set_style_text_font(s_ui.scale_right, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(s_ui.scale_right, s_layout.scale_edge_font, 0);
     lv_obj_set_style_text_color(s_ui.scale_right, lv_color_hex(kColorText), 0);
     lv_obj_set_style_text_align(s_ui.scale_right, LV_TEXT_ALIGN_RIGHT, 0);
     lv_obj_set_width(s_ui.scale_right, 84);
-    lv_obj_set_pos(s_ui.scale_right, kScaleBarW - 86, 6);
+    lv_obj_set_pos(s_ui.scale_right, s_layout.scalebar_w - 86, 6);
 }
 
 void build_right_panel(lv_obj_t* root)
 {
     s_ui.right_panel = lv_obj_create(root);
-    lv_obj_set_pos(s_ui.right_panel, kRightPanelX, kRightPanelY);
-    lv_obj_set_size(s_ui.right_panel, kRightPanelW, kRightPanelH);
+    lv_obj_set_pos(s_ui.right_panel, s_layout.right_panel_x, s_layout.right_panel_y);
+    lv_obj_set_size(s_ui.right_panel, s_layout.right_panel_w, s_layout.right_panel_h);
     lv_obj_set_style_bg_color(s_ui.right_panel, lv_color_hex(kColorPanelBg), 0);
     lv_obj_set_style_bg_opa(s_ui.right_panel, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.right_panel, 2, 0);
@@ -1420,8 +1627,8 @@ void build_right_panel(lv_obj_t* root)
     lv_obj_clear_flag(s_ui.right_panel, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t* sep1 = lv_obj_create(s_ui.right_panel);
-    lv_obj_set_pos(sep1, 0, 76);
-    lv_obj_set_size(sep1, kRightPanelW, 1);
+    lv_obj_set_pos(sep1, 0, s_layout.rp_sep_y);
+    lv_obj_set_size(sep1, s_layout.right_panel_w, 1);
     lv_obj_set_style_bg_color(sep1, lv_color_hex(kColorLine), 0);
     lv_obj_set_style_bg_opa(sep1, LV_OPA_80, 0);
     lv_obj_set_style_border_width(sep1, 0, 0);
@@ -1430,55 +1637,55 @@ void build_right_panel(lv_obj_t* root)
 
     lv_obj_t* title_cursor = lv_label_create(s_ui.right_panel);
     ::ui::i18n::set_label_text(title_cursor, "CURSOR");
-    lv_obj_set_style_text_font(title_cursor, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(title_cursor, s_layout.rp_section_font, 0);
     lv_obj_set_style_text_color(title_cursor, lv_color_hex(kColorText), 0);
-    lv_obj_set_pos(title_cursor, 8, 2);
+    lv_obj_set_pos(title_cursor, s_layout.rp_title_cursor_x, s_layout.rp_title_cursor_y);
 
     s_ui.cursor_freq = lv_label_create(s_ui.right_panel);
     lv_label_set_text(s_ui.cursor_freq, "433.550");
-    lv_obj_set_style_text_font(s_ui.cursor_freq, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(s_ui.cursor_freq, s_layout.rp_value_big_font, 0);
     lv_obj_set_style_text_color(s_ui.cursor_freq, lv_color_hex(kColorText), 0);
-    lv_obj_set_pos(s_ui.cursor_freq, 8, 14);
+    lv_obj_set_pos(s_ui.cursor_freq, s_layout.rp_cursor_freq_x, s_layout.rp_cursor_freq_y);
 
     s_ui.cursor_unit = lv_label_create(s_ui.right_panel);
     lv_label_set_text(s_ui.cursor_unit, "MHz");
-    lv_obj_set_style_text_font(s_ui.cursor_unit, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(s_ui.cursor_unit, s_layout.rp_small_font, 0);
     lv_obj_set_style_text_color(s_ui.cursor_unit, lv_color_hex(kColorTextDim), 0);
-    lv_obj_set_pos(s_ui.cursor_unit, 84, 22);
+    lv_obj_set_pos(s_ui.cursor_unit, s_layout.rp_cursor_unit_x, s_layout.rp_cursor_unit_y);
 
     s_ui.rssi_label = lv_label_create(s_ui.right_panel);
     ::ui::i18n::set_label_text(s_ui.rssi_label, "RSSI -92 dBm");
-    lv_obj_set_style_text_font(s_ui.rssi_label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(s_ui.rssi_label, s_layout.rp_metric_font, 0);
     lv_obj_set_style_text_color(s_ui.rssi_label, lv_color_hex(kColorText), 0);
-    lv_obj_set_pos(s_ui.rssi_label, 8, 43);
+    lv_obj_set_pos(s_ui.rssi_label, s_layout.rp_rssi_x, s_layout.rp_rssi_y);
 
     s_ui.noise_label = lv_label_create(s_ui.right_panel);
     ::ui::i18n::set_label_text(s_ui.noise_label, "NOISE -104 dBm");
-    lv_obj_set_style_text_font(s_ui.noise_label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(s_ui.noise_label, s_layout.rp_metric_font, 0);
     lv_obj_set_style_text_color(s_ui.noise_label, lv_color_hex(kColorTextDim), 0);
-    lv_obj_set_pos(s_ui.noise_label, 8, 60);
+    lv_obj_set_pos(s_ui.noise_label, s_layout.rp_noise_x, s_layout.rp_noise_y);
 
     lv_obj_t* title_best = lv_label_create(s_ui.right_panel);
     ::ui::i18n::set_label_text(title_best, "BEST");
-    lv_obj_set_style_text_font(title_best, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(title_best, s_layout.rp_section_font, 0);
     lv_obj_set_style_text_color(title_best, lv_color_hex(kColorText), 0);
-    lv_obj_set_pos(title_best, 8, 80);
+    lv_obj_set_pos(title_best, s_layout.rp_title_best_x, s_layout.rp_title_best_y);
 
     s_ui.best_freq = lv_label_create(s_ui.right_panel);
     lv_label_set_text(s_ui.best_freq, "434.125");
-    lv_obj_set_style_text_font(s_ui.best_freq, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(s_ui.best_freq, s_layout.rp_value_mid_font, 0);
     lv_obj_set_style_text_color(s_ui.best_freq, lv_color_hex(kColorOk), 0);
-    lv_obj_set_pos(s_ui.best_freq, 8, 97);
+    lv_obj_set_pos(s_ui.best_freq, s_layout.rp_best_freq_x, s_layout.rp_best_freq_y);
 
     s_ui.best_snr = lv_label_create(s_ui.right_panel);
     ::ui::i18n::set_label_text(s_ui.best_snr, "SNR +12");
-    lv_obj_set_style_text_font(s_ui.best_snr, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(s_ui.best_snr, s_layout.rp_small_font, 0);
     lv_obj_set_style_text_color(s_ui.best_snr, lv_color_hex(kColorTextDim), 0);
-    lv_obj_set_pos(s_ui.best_snr, 8, 114);
+    lv_obj_set_pos(s_ui.best_snr, s_layout.rp_best_snr_x, s_layout.rp_best_snr_y);
 
     s_ui.progress_bar = lv_bar_create(s_ui.right_panel);
-    lv_obj_set_pos(s_ui.progress_bar, 8, 120);
-    lv_obj_set_size(s_ui.progress_bar, 66, 12);
+    lv_obj_set_pos(s_ui.progress_bar, s_layout.rp_progress_x, s_layout.rp_progress_y);
+    lv_obj_set_size(s_ui.progress_bar, s_layout.rp_progress_w, s_layout.rp_progress_h);
     lv_bar_set_range(s_ui.progress_bar, 0, 100);
     lv_bar_set_value(s_ui.progress_bar, 0, LV_ANIM_OFF);
     lv_obj_set_style_bg_color(s_ui.progress_bar, lv_color_hex(kColorPanelBg), LV_PART_MAIN);
@@ -1492,13 +1699,13 @@ void build_right_panel(lv_obj_t* root)
 
     s_ui.progress_pct = lv_label_create(s_ui.right_panel);
     lv_label_set_text(s_ui.progress_pct, "0%");
-    lv_obj_set_style_text_font(s_ui.progress_pct, &lv_font_montserrat_12, 0);
+    lv_obj_set_style_text_font(s_ui.progress_pct, s_layout.rp_small_font, 0);
     lv_obj_set_style_text_color(s_ui.progress_pct, lv_color_hex(kColorTextDim), 0);
-    lv_obj_set_pos(s_ui.progress_pct, 78, 118);
+    lv_obj_set_pos(s_ui.progress_pct, s_layout.rp_progress_pct_x, s_layout.rp_progress_pct_y);
 
     s_ui.btn_scan = lv_btn_create(s_ui.right_panel);
-    lv_obj_set_pos(s_ui.btn_scan, 8, 134);
-    lv_obj_set_size(s_ui.btn_scan, 46, 28);
+    lv_obj_set_pos(s_ui.btn_scan, s_layout.rp_btn_scan_x, s_layout.rp_btn_y);
+    lv_obj_set_size(s_ui.btn_scan, s_layout.rp_btn_w, s_layout.rp_btn_h);
     lv_obj_set_style_bg_color(s_ui.btn_scan, lv_color_hex(kColorWarn), 0);
     lv_obj_set_style_bg_opa(s_ui.btn_scan, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.btn_scan, 1, 0);
@@ -1510,13 +1717,13 @@ void build_right_panel(lv_obj_t* root)
 
     s_ui.btn_scan_label = lv_label_create(s_ui.btn_scan);
     ::ui::i18n::set_label_text(s_ui.btn_scan_label, "STOP");
-    lv_obj_set_style_text_font(s_ui.btn_scan_label, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(s_ui.btn_scan_label, s_layout.rp_btn_font, 0);
     lv_obj_set_style_text_color(s_ui.btn_scan_label, lv_color_white(), 0);
     lv_obj_center(s_ui.btn_scan_label);
 
     s_ui.btn_auto = lv_btn_create(s_ui.right_panel);
-    lv_obj_set_pos(s_ui.btn_auto, 60, 134);
-    lv_obj_set_size(s_ui.btn_auto, 46, 28);
+    lv_obj_set_pos(s_ui.btn_auto, s_layout.rp_btn_auto_x, s_layout.rp_btn_y);
+    lv_obj_set_size(s_ui.btn_auto, s_layout.rp_btn_w, s_layout.rp_btn_h);
     lv_obj_set_style_bg_color(s_ui.btn_auto, lv_color_hex(kColorPanelBg), 0);
     lv_obj_set_style_bg_opa(s_ui.btn_auto, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.btn_auto, 1, 0);
@@ -1528,7 +1735,7 @@ void build_right_panel(lv_obj_t* root)
 
     s_ui.btn_auto_label = lv_label_create(s_ui.btn_auto);
     ::ui::i18n::set_label_text(s_ui.btn_auto_label, "AUTO");
-    lv_obj_set_style_text_font(s_ui.btn_auto_label, &lv_font_montserrat_16, 0);
+    lv_obj_set_style_text_font(s_ui.btn_auto_label, s_layout.rp_btn_font, 0);
     lv_obj_set_style_text_color(s_ui.btn_auto_label, lv_color_hex(kColorInfo), 0);
     lv_obj_center(s_ui.btn_auto_label);
 }
@@ -1552,8 +1759,18 @@ lv_obj_t* ui_energy_sweep_create(lv_obj_t* parent)
         reset_ui_state();
     }
 
+    // Resolve a responsive layout from the actual parent/screen size. Tall
+    // portrait panels (P4 540x1168) are chosen only when the screen is both
+    // large and taller than wide; every other screen keeps the original
+    // 480x222 landscape geometry byte-for-byte.
+    lv_obj_update_layout(parent);
+    const int parent_w = lv_obj_get_width(parent);
+    const int parent_h = lv_obj_get_height(parent);
+    const int top_bar_h = ::ui::page_profile::current().top_bar_height;
+    s_layout = resolve_layout(parent_w, parent_h, top_bar_h);
+
     s_ui.root = lv_obj_create(parent);
-    lv_obj_set_size(s_ui.root, kScreenW, kScreenH);
+    lv_obj_set_size(s_ui.root, s_layout.screen_w, s_layout.screen_h);
     lv_obj_set_style_bg_color(s_ui.root, lv_color_hex(kColorWarmBg), 0);
     lv_obj_set_style_bg_opa(s_ui.root, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(s_ui.root, 0, 0);
@@ -1565,6 +1782,14 @@ lv_obj_t* ui_energy_sweep_create(lv_obj_t* parent)
     build_topbar(s_ui.root);
     build_left_panel(s_ui.root);
     build_right_panel(s_ui.root);
+
+    // Keep the top bar (and its back button) above the panels so the back
+    // chevron stays tappable in every layout.
+    if (s_ui.topbar)
+    {
+        lv_obj_move_foreground(s_ui.topbar);
+    }
+
     refresh_all_ui();
 
     return s_ui.root;

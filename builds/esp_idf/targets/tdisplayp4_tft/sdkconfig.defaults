@@ -25,3 +25,9 @@ CONFIG_TRAIL_MATE_T_DISPLAY_P4_LVGL_BUFFER_LINES=80
 # fault at 0x0 on Settings->Chat. Triple the pool; it lives in internal RAM and there
 # is ~440KB of free internal heap, so this leaves ample headroom.
 CONFIG_LV_MEM_SIZE_KILOBYTES=192
+# The P4 camera-cutout header is tall, so the top-bar controls scale up to fill the
+# band below the lens. Only montserrat 14 is compiled by default, so every larger
+# font macro fell back to 14px and the header text never grew. Compile in 20 + 24 so
+# the back button, title and battery render at their intended larger size.
+CONFIG_LV_FONT_MONTSERRAT_20=y
+CONFIG_LV_FONT_MONTSERRAT_24=y

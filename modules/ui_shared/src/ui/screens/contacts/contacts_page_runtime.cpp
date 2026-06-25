@@ -150,6 +150,27 @@ void enter(const shell::Host* host, lv_obj_t* parent)
                 static_cast<unsigned>(g_contacts_state.ignored_list.size()));
     refresh_ui();
 
+    // Periodically re-query the node store so peers heard while this page is open
+    // (their periodic NodeInfo announces) appear in Nearby without re-opening it.
+    // The data path (RX -> store) was always wired; only this UI refresh was missing
+    // (refresh_timer was deleted in two lifecycle paths but never created). Rebuild
+    // the list only when a roster size actually changes, to avoid per-tick churn.
+    g_contacts_state.refresh_timer = lv_timer_create(
+        [](lv_timer_t*)
+        {
+            const size_t prev_nearby = g_contacts_state.nearby_list.size();
+            const size_t prev_contacts = g_contacts_state.contacts_list.size();
+            const size_t prev_ignored = g_contacts_state.ignored_list.size();
+            refresh_contacts_data();
+            if (g_contacts_state.nearby_list.size() != prev_nearby ||
+                g_contacts_state.contacts_list.size() != prev_contacts ||
+                g_contacts_state.ignored_list.size() != prev_ignored)
+            {
+                refresh_ui();
+            }
+        },
+        1500, nullptr);
+
     g_contacts_state.initialized = true;
     CONTACTS_LOG("[Contacts] Contacts page initialized\n");
 }

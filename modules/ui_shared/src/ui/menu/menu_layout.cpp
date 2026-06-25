@@ -1054,7 +1054,7 @@ void createAppGrid()
     lv_obj_set_style_radius(s_bottom_bar, 0, 0);
     lv_obj_set_style_shadow_width(s_bottom_bar, 0, 0);
     lv_obj_set_style_pad_left(s_bottom_bar, profile.top_bar_side_inset, 0);
-    lv_obj_set_style_pad_right(s_bottom_bar, profile.top_bar_side_inset, 0);
+    lv_obj_set_style_pad_right(s_bottom_bar, profile.top_bar_side_inset + profile.bottom_bar_extra_right, 0);
     lv_obj_set_style_pad_top(s_bottom_bar, 0, 0);
     lv_obj_set_style_pad_bottom(s_bottom_bar, 0, 0);
     lv_obj_set_style_pad_column(s_bottom_bar, 0, 0);

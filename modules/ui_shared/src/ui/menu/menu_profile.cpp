@@ -12,6 +12,14 @@
 #define lv_font_montserrat_16 lv_font_montserrat_14
 #endif
 
+#if !defined(LV_FONT_MONTSERRAT_20) || !LV_FONT_MONTSERRAT_20
+#define lv_font_montserrat_20 lv_font_montserrat_16
+#endif
+
+#if !defined(LV_FONT_MONTSERRAT_24) || !LV_FONT_MONTSERRAT_24
+#define lv_font_montserrat_24 lv_font_montserrat_20
+#endif
+
 namespace ui::menu_profile
 {
 namespace
@@ -228,7 +236,26 @@ MenuLayoutProfile make_default_profile(lv_coord_t width, lv_coord_t height)
 {
     if (width >= 700 || height >= 700)
     {
-        return make_tab5_profile();
+        // Runtime-tall display = T-Display P4. Reuse the tab5 menu layout but enlarge
+        // the top-bar chrome fonts (clock + battery) and the node-id chip so the main
+        // menu header matches the enlarged content-page headers. tab5's montserrat_16
+        // falls back to 14 in this build (only 14/20/24 are compiled), which is why the
+        // menu header still looked small after the shared top-bar fix.
+        MenuLayoutProfile profile = make_tab5_profile();
+        profile.top_bar_font = &lv_font_montserrat_24;
+        profile.node_id_font = &lv_font_montserrat_20;
+        // Reserve the camera cutout above the top bar and push the grid below the
+        // taller header so the clock/battery/status icons clear the lens.
+        profile.top_safe_inset = 60;
+        profile.grid_top_offset =
+            static_cast<lv_coord_t>(profile.top_safe_inset + profile.top_bar_height + 10);
+        // Bigger app icons so the 4-column grid fills the width (less right whitespace).
+        profile.card_width = 130;
+        profile.card_height = 152;
+        profile.icon_scale = 335;
+        // Shift the bottom memory chips left so they clear the on-screen keyboard icon.
+        profile.bottom_bar_extra_right = 52;
+        return profile;
     }
     if (width >= 400)
     {
