@@ -560,6 +560,62 @@ int Sx126xRadio::startTransmit(const uint8_t* data, size_t size)
     return tx_done ? 0 : -1;
 }
 
+int Sx126xRadio::startTransmitAsync(const uint8_t* data, size_t size)
+{
+    if (!take_mutex(mutex_))
+    {
+        return -1;
+    }
+    if (g_radio == nullptr || data == nullptr || size == 0)
+    {
+        give_mutex(mutex_);
+        return -1;
+    }
+
+    // Non-blocking launch for the half-duplex walkie path. Same modem prep as
+    // startTransmit() (RF switch -> TX, standby + wedge-recovery, clear IRQ, arm +
+    // SetTx via RadioLib's non-blocking startTransmit) but we DO NOT busy-poll TxDone
+    // and we RELEASE the mutex immediately after launch. The walkie task polls
+    // getIrqFlags() for the latched TxDone on later iterations while it keeps reading
+    // mic audio (codec I2S, not radio SPI), so the tens-of-ms TX airtime no longer
+    // drops the 20 ms codec2 frames (the cause of choppy TX). Reading IRQ status over
+    // SPI during TX airtime is a benign read-only op and does not disturb the in-flight
+    // transmit (unlike mid-RX SPI, which mangles the demod). The mesh/chat pump is held
+    // off the chip for the whole session by the exclusive-hold flag.
+    board_prepare_lora_direction(true);
+
+    int sb_st = g_radio->standby();
+    if (sb_st != RADIOLIB_ERR_NONE)
+    {
+        (void)set_board_lora_reset_asserted(true);
+        vTaskDelay(pdMS_TO_TICKS(2));
+        (void)set_board_lora_reset_asserted(false);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        board_prepare_lora_direction(true);
+        const bool re = begin_lora_locked();
+        sb_st = g_radio->standby();
+        if (tx_diag_count_ < 4)
+        {
+            printf("idf-mc: txrecover(async) rebegin=%d standby=%d\n", re ? 1 : 0, sb_st);
+        }
+    }
+    (void)g_radio->clearIrqFlags(RADIOLIB_SX126X_IRQ_ALL);
+
+    const int st = g_radio->startTransmit(data, size);
+    if (tx_diag_count_ < 4)
+    {
+        ESP_LOGI(kTag, "SX1262(RadioLib) TXasync[%lu]: start_state=%d len=%u",
+                 static_cast<unsigned long>(tx_diag_count_), st, static_cast<unsigned>(size));
+        ++tx_diag_count_;
+    }
+
+    // Leave the chip in TX (it auto-falls to standby on TxDone); the next packet's
+    // standby() re-stabilizes it and the PTT-release path re-arms RX. The walkie task
+    // owns clearing the latched TxDone.
+    give_mutex(mutex_);
+    return (st == RADIOLIB_ERR_NONE) ? 0 : -1;
+}
+
 uint32_t Sx126xRadio::getIrqFlags()
 {
     if (!take_mutex(mutex_))

@@ -260,7 +260,9 @@ void standby(Session* session)
 
 int startTransmit(Session* session, const uint8_t* data, size_t size)
 {
-    return resolve_state(session) ? radio().startTransmit(data, size) : -1;
+    // Non-blocking launch so the walkie task keeps capturing mic frames during TX
+    // airtime (smoother TX). MeshCore keeps the blocking radio().startTransmit().
+    return resolve_state(session) ? radio().startTransmitAsync(data, size) : -1;
 }
 
 int startReceive(Session* session)

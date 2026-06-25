@@ -71,6 +71,15 @@ class Sx126xRadio
     // Returns 0 (RADIOLIB_ERR_NONE) on success, -1 on failure.
     int startTransmit(const uint8_t* data, size_t size);
 
+    // Non-blocking transmit launch for the half-duplex walkie path: same modem prep
+    // as startTransmit() but issues SetTx and returns immediately (releasing the
+    // mutex) instead of busy-polling TxDone through the airtime. The caller observes
+    // the latched TxDone via getIrqFlags() on later iterations, so it keeps capturing
+    // mic audio during TX (no codec2-frame starvation -> smoother TX). Only safe while
+    // the exclusive-hold keeps the mesh pump off the chip. Returns 0 on launch, -1 on
+    // failure.
+    int startTransmitAsync(const uint8_t* data, size_t size);
+
     // RX poll surface used by the MeshCore adapter. getIrqFlags() returns the raw
     // SX126x IRQ word (RxDone=0x0002, TxDone=0x0001, CrcErr=0x0040, HeaderErr=0x0020,
     // Timeout=0x0200) read over SPI via RadioLib.
