@@ -43,6 +43,13 @@ namespace
 // peer to "stale", while staying light on LoRa airtime (a status frame is tiny).
 constexpr uint32_t kTeamPresenceIntervalMs = 25000U;
 
+// Throttle the team SystemTick to ~1 Hz. pumpMeshAndDrainEvents runs many times a
+// second; publishing a SystemTick (and routing it through the team page handler)
+// every iteration floods the main loop and starves LVGL/touch -- the pairing screen
+// went unresponsive. 1 Hz is ample to drive the team page's scheduled status-
+// rebroadcast / keydist-retry work (the Linux facade ticks at a controlled rate too).
+constexpr uint32_t kTeamSystemTickIntervalMs = 1000U;
+
 // True for the team runtime events the team page handler owns, plus SystemTick
 // (which the team page uses to drive periodic status/keydist work). Mirrors
 // app_event_runtime_support.cpp::isTeamRuntimeEvent on the Arduino path.
@@ -802,7 +809,15 @@ void IdfChatFacade::publishTeamSystemTick()
     // SystemTick on IDF (the Linux facade did, in tickEventRuntime()). Published
     // unconditionally and cheaply; the team page early-outs when there is no
     // pending status/keydist work. routeTeamEvent() (in the same pump tick's drain)
-    // will deliver it to the team page.
+    // will deliver it to the team page. THROTTLED to ~1 Hz (kTeamSystemTickIntervalMs):
+    // the pump runs many times a second, and a SystemTick every iteration floods the
+    // main loop + the team page handler, freezing LVGL/touch on the pairing screen.
+    const uint32_t now_ms = team_runtime_.nowMillis();
+    if (team_systick_last_ms_ != 0 && (now_ms - team_systick_last_ms_) < kTeamSystemTickIntervalMs)
+    {
+        return;
+    }
+    team_systick_last_ms_ = now_ms;
     ::sys::EventBus::publish(new ::sys::Event(::sys::EventType::SystemTick), 0);
 }
 

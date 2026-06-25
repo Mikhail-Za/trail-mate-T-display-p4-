@@ -220,6 +220,10 @@ class IdfChatFacade final : public ::app::IAppFacade
     // after keys are established (rather than waiting a full interval), and so the
     // timer resets when a team is left.
     bool team_presence_had_keys_ = false;
+    // Throttle for publishTeamSystemTick(): last time (ms) a SystemTick was published.
+    // The pump would otherwise publish one every iteration, flooding the main loop and
+    // freezing touch on the pairing screen; gated to ~1 Hz (kTeamSystemTickIntervalMs).
+    uint32_t team_systick_last_ms_ = 0;
 };
 
 } // namespace platform::esp::idf_common
