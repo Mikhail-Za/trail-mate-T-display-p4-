@@ -3155,6 +3155,162 @@ void g2048_exit(void* user_data, lv_obj_t* parent)
 ui::CallbackAppScreen s_g2048_app("g2048", "2048", &Chat, g2048_enter, g2048_exit, &s_g2048_state);
 
 // ---------------------------------------------------------------------------
+// Games folder: ONE launcher app that consolidates Snake, Tetris, and 2048
+// behind a single home-screen icon (declutter). enter() shows a selection
+// submenu; tapping a game tears down the submenu and runs that game's EXISTING
+// enter() on this app's root (each game draws its own full-screen UI + Back
+// button). A game's Back calls ui_request_exit_to_menu(), which the framework
+// routes to THIS app's exit() (Games is the active app, the individual games are
+// no longer in s_apps[]) -> games_exit tears the active game down FIRST (deleting
+// its repeating timer -- critical so snake/tetris ticks can't fire on freed
+// memory) and only then deletes the root. The boot self-test's bare enter->exit
+// (no game launched) is therefore clean and logs appselftest:games:ok. Back from
+// a game returns to the home menu; re-open Games to pick another.
+struct GamesPageState
+{
+    lv_obj_t* root = nullptr;
+    lv_obj_t* menu = nullptr;
+    int active = -1; // -1 = submenu shown; 0=Snake, 1=Tetris, 2=2048
+};
+GamesPageState s_games_state;
+
+void games_teardown_active(GamesPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    switch (st->active)
+    {
+    case 0:
+        snake_exit(&s_snake_state, st->root);
+        break;
+    case 1:
+        tetris_exit(&s_tetris_state, st->root);
+        break;
+    case 2:
+        g2048_exit(&s_g2048_state, st->root);
+        break;
+    default:
+        break;
+    }
+    st->active = -1;
+}
+
+void games_launch(int which)
+{
+    GamesPageState* st = &s_games_state;
+    if (!st->root || !lv_obj_is_valid(st->root))
+    {
+        return;
+    }
+    if (st->menu && lv_obj_is_valid(st->menu))
+    {
+        lv_obj_del(st->menu);
+    }
+    st->menu = nullptr;
+    st->active = which;
+    switch (which)
+    {
+    case 0:
+        snake_enter(&s_snake_state, st->root);
+        break;
+    case 1:
+        tetris_enter(&s_tetris_state, st->root);
+        break;
+    case 2:
+        g2048_enter(&s_g2048_state, st->root);
+        break;
+    default:
+        st->active = -1;
+        break;
+    }
+}
+
+lv_obj_t* games_make_tile(lv_obj_t* parent, const char* name, lv_event_cb_t cb)
+{
+    lv_obj_t* btn = lv_button_create(parent);
+    lv_obj_set_size(btn, 380, 104);
+    lv_obj_set_style_radius(btn, 18, 0);
+    lv_obj_set_style_bg_color(btn, ui::theme::accent(), 0);
+    lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, 0);
+    lv_obj_t* lbl = lv_label_create(btn);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(lbl, ui::theme::white(), 0);
+    lv_label_set_text(lbl, name);
+    lv_obj_center(lbl);
+    lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, nullptr);
+    return btn;
+}
+
+void games_enter(void* user_data, lv_obj_t* parent)
+{
+    auto* st = static_cast<GamesPageState*>(user_data);
+    if (!st || !parent || (st->root && lv_obj_is_valid(st->root)))
+    {
+        return;
+    }
+    st->active = -1;
+    st->root = lv_obj_create(parent);
+    lv_obj_set_size(st->root, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(st->root, ui::theme::white(), 0);
+    lv_obj_set_style_bg_opa(st->root, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(st->root, 0, 0);
+    lv_obj_set_style_radius(st->root, 0, 0);
+    lv_obj_set_style_pad_all(st->root, 0, 0);
+    lv_obj_clear_flag(st->root, LV_OBJ_FLAG_SCROLLABLE);
+
+    st->menu = lv_obj_create(st->root);
+    lv_obj_set_size(st->menu, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_opa(st->menu, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(st->menu, 0, 0);
+    lv_obj_set_style_pad_all(st->menu, 20, 0);
+    lv_obj_set_style_pad_row(st->menu, 18, 0);
+    lv_obj_set_flex_flow(st->menu, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(st->menu, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
+    lv_obj_clear_flag(st->menu, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* back_btn = lv_button_create(st->menu);
+    lv_obj_t* back_lbl = lv_label_create(back_btn);
+    lv_obj_set_style_text_font(back_lbl, &lv_font_montserrat_20, 0);
+    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(
+        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+
+    lv_obj_t* title = lv_label_create(st->menu);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(title, ui::theme::text(), 0);
+    lv_label_set_text(title, "Games");
+
+    games_make_tile(st->menu, "Snake", [](lv_event_t*) { games_launch(0); });
+    games_make_tile(st->menu, "Tetris", [](lv_event_t*) { games_launch(1); });
+    games_make_tile(st->menu, "2048", [](lv_event_t*) { games_launch(2); });
+}
+
+void games_exit(void* user_data, lv_obj_t* parent)
+{
+    (void)parent;
+    auto* st = static_cast<GamesPageState*>(user_data);
+    if (!st)
+    {
+        return;
+    }
+    // Tear down any active game FIRST (deletes its repeating timer) before deleting
+    // our root, so a snake/tetris tick can never fire on freed memory.
+    games_teardown_active(st);
+    if (st->root && lv_obj_is_valid(st->root))
+    {
+        lv_obj_del(st->root);
+    }
+    st->root = nullptr;
+    st->menu = nullptr;
+    st->active = -1;
+}
+
+ui::CallbackAppScreen s_games_app("games", "Games", &Chat, games_enter, games_exit, &s_games_state);
+
+// ---------------------------------------------------------------------------
 // Flashlight / SOS: a fully self-contained touch-only flashlight, built inline
 // the same way as the C6 Companion / Snake / Tetris / 2048 apps above (file-
 // static state, enter()/exit() that build/tear-down a root sized LV_PCT(100),
@@ -4911,12 +5067,10 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_pc_link_app,
                        &s_team_app,
                        &s_companion_app,
-                       &s_snake_app,
-                       &s_tetris_app,
+                       &s_games_app,
                        &s_help_app,
                        &s_systest_app,
                        &s_gps_position_app,
-                       &s_g2048_app,
                        &s_flashlight_app,
                        &s_stopwatch_app,
                        &s_node_radar_app,
