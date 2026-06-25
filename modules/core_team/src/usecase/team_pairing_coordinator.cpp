@@ -11,7 +11,12 @@ namespace
 {
 constexpr uint32_t kLeaderWindowMs = 120000;
 constexpr uint32_t kMemberTimeoutMs = 30000;
-constexpr uint32_t kBeaconIntervalMs = 600;
+// Leader beacon cadence. Kept deliberately slow: each beacon transmits through the
+// BLOCKING Sx126xRadio::startTransmit() on the app-loop task (which also pumps the UI),
+// so a fast cadence starved LVGL/touch and froze the leader's pairing screen. 2 s also
+// respects LoRa duty-cycle limits. The member's 30 s scan window (kMemberTimeoutMs)
+// still catches ~15 beacons, so pairing stays prompt.
+constexpr uint32_t kBeaconIntervalMs = 2000;
 constexpr uint32_t kJoinRetryMs = 1500;
 constexpr uint8_t kJoinRetryMax = 6;
 constexpr uint32_t kJoinSentHoldMs = 800;

@@ -797,8 +797,26 @@ bool IdfChatFacade::routeTeamEvent(::sys::Event* event)
     // take ownership of the event, so we delete it here (matches the Arduino
     // handleUiEvent team branch). Safe even when the team screen is closed: the
     // handler updates the snapshot/controller and only repaints if active.
-    (void)::team::ui::shell::handle_event(nullptr, event);
-    delete event;
+    //
+    // THREAD SAFETY: handle_event repaints the team page (render_page -> lv_obj_clean
+    // + rebuild), and the LVGL render task (taskLVGL) runs separately. This MUST be
+    // serialized against it with the display lock -- exactly like the chat UI feed in
+    // the drain loop above (see kUiLockTimeoutMs there). Without it, the app-loop
+    // repaint raced taskLVGL on the same widgets (interleaved lv_obj_clean/rebuild)
+    // and duplicated/churned the pairing screen's Retry/Cancel buttons. On lock
+    // contention, defer (re-publish) rather than drop, so a pairing/keydist state
+    // transition is never lost.
+    constexpr uint32_t kTeamUiLockTimeoutMs = 150U;
+    if (::platform::esp::boards::lockDisplay(kTeamUiLockTimeoutMs))
+    {
+        (void)::team::ui::shell::handle_event(nullptr, event);
+        ::platform::esp::boards::unlockDisplay();
+        delete event;
+    }
+    else
+    {
+        ::sys::EventBus::publish(event, 0U);
+    }
     return true;
 }
 
