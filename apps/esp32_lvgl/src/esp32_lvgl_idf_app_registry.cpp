@@ -28,13 +28,22 @@
 #include "sys/clock.h"
 
 #include "esp_heap_caps.h"
+#include "esp_log.h"
 #include "esp_system.h"
+
+// System Test audio tiles + boot-time ES8311 presence probe (T-Display P4 only).
+// The codec wrapper lives in the t_display_p4 board sources, which are compiled
+// for the P4 IDF targets; guard the include + all audio code on the P4 board.
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+#include "boards/t_display_p4/codec_es8311.h"
+#endif
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <new>
 #include <vector>
 
 namespace
@@ -1531,6 +1540,19 @@ struct SystestPageState
     int32_t last_x = 0;
     int32_t last_y = 0;
     bool have_last = false;
+
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+    // Audio tests (Speaker / Microphone). The codec is opened only while one of
+    // these sub-views is active and is torn down on close/exit; a repeating
+    // lv_timer drives the speaker tone and the mic level meter. The boot
+    // self-test only enters/exits the menu (these are never opened by it), so
+    // the codec is not touched during the self-test.
+    boards::t_display_p4::CodecEs8311* audio_codec = nullptr;
+    lv_timer_t* audio_timer = nullptr;
+    lv_obj_t* mic_bar = nullptr;
+    lv_obj_t* mic_value_label = nullptr;
+    double sine_phase = 0.0;
+#endif
 };
 
 SystestPageState s_systest_state;
@@ -1552,6 +1574,107 @@ void systest_free_canvas(SystestPageState* st)
         st->canvas_buf = nullptr;
     }
 }
+
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+constexpr const char* kSystestAudioTag = "systest";
+// Audio test parameters: 8 kHz mono frames (the same rate the walkie path uses),
+// a ~1 kHz output tone, and a 20 ms timer tick.
+constexpr uint32_t kAudioSampleRate = 8000;
+constexpr float kAudioToneHz = 1000.0f;
+constexpr uint32_t kAudioTimerPeriodMs = 20;
+constexpr int kAudioFramesPerTick = kAudioSampleRate * kAudioTimerPeriodMs / 1000;  // 160
+
+// Stop the audio test timer, close + destroy the codec, and clear the widget
+// pointers (the widgets themselves are owned by the sub-view tree). Safe to call
+// repeatedly; called from the audio sub-view close handler, systest_close_sub_view
+// and systest_exit so the codec can never leak.
+void systest_audio_close(SystestPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    if (st->audio_timer)
+    {
+        lv_timer_del(st->audio_timer);
+        st->audio_timer = nullptr;
+    }
+    if (st->audio_codec)
+    {
+        st->audio_codec->close();
+        delete st->audio_codec;
+        st->audio_codec = nullptr;
+    }
+    st->mic_bar = nullptr;
+    st->mic_value_label = nullptr;
+    st->sine_phase = 0.0;
+}
+
+// Speaker test tick: synthesize a block of ~1 kHz mono sine and write it to the
+// codec. A failed write tears the timer down so a disconnected/again-absent codec
+// cannot spin.
+void systest_speaker_tick(lv_timer_t* timer)
+{
+    auto* st = static_cast<SystestPageState*>(lv_timer_get_user_data(timer));
+    if (!st || !st->audio_codec)
+    {
+        return;
+    }
+    int16_t samples[kAudioFramesPerTick];
+    const double step = 2.0 * M_PI * kAudioToneHz / static_cast<double>(kAudioSampleRate);
+    for (int i = 0; i < kAudioFramesPerTick; ++i)
+    {
+        samples[i] = static_cast<int16_t>(std::sin(st->sine_phase) * 9000.0);
+        st->sine_phase += step;
+        if (st->sine_phase >= 2.0 * M_PI)
+        {
+            st->sine_phase -= 2.0 * M_PI;
+        }
+    }
+    const int rc = st->audio_codec->write(reinterpret_cast<uint8_t*>(samples), sizeof(samples));
+    if (rc < 0)
+    {
+        lv_timer_pause(timer);
+    }
+}
+
+// Microphone test tick: read a block of mono samples, compute a peak level, and
+// drive the level bar + numeric label.
+void systest_mic_tick(lv_timer_t* timer)
+{
+    auto* st = static_cast<SystestPageState*>(lv_timer_get_user_data(timer));
+    if (!st || !st->audio_codec)
+    {
+        return;
+    }
+    int16_t samples[kAudioFramesPerTick];
+    const int rc = st->audio_codec->read(reinterpret_cast<uint8_t*>(samples), sizeof(samples));
+    if (rc < 0)
+    {
+        return;
+    }
+    int32_t peak = 0;
+    for (int i = 0; i < kAudioFramesPerTick; ++i)
+    {
+        const int32_t a = samples[i] < 0 ? -static_cast<int32_t>(samples[i]) : samples[i];
+        if (a > peak)
+        {
+            peak = a;
+        }
+    }
+    const int level = static_cast<int>((peak * 100) / 32768);
+    if (st->mic_bar && lv_obj_is_valid(st->mic_bar))
+    {
+        lv_bar_set_value(st->mic_bar, level, LV_ANIM_OFF);
+    }
+    if (st->mic_value_label && lv_obj_is_valid(st->mic_value_label))
+    {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "Level: %d%%", level);
+        lv_label_set_text(st->mic_value_label, buf);
+    }
+}
+#endif  // TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4
 
 // ---- Color test -----------------------------------------------------------
 // Six steps: Red, Green, Blue, White, Black, then a vertical Black->White
@@ -1708,6 +1831,10 @@ void systest_close_sub_view(SystestPageState* st)
     // Free the canvas buffer first (if this was the touch view) so closing it can
     // never leak, then delete the sub-view tree and re-show the test menu.
     systest_free_canvas(st);
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+    // Tear down the audio codec + timer if this was a Speaker/Microphone view.
+    systest_audio_close(st);
+#endif
     if (st->sub_view)
     {
         if (lv_obj_is_valid(st->sub_view))
@@ -1893,6 +2020,91 @@ void systest_open_info(SystestPageState* st)
     add_status_line(panel, "Display", "HI8561 540x1168 RGB565");
 }
 
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+// ---- Speaker test ---------------------------------------------------------
+// Open the ES8311 codec and play a continuous ~1 kHz sine through the speaker
+// via a repeating timer. On open failure (codec absent) show a label instead of
+// spinning. The sub-view's Back button (systest_close_sub_view) stops the tone
+// and tears the codec down.
+void systest_open_speaker(SystestPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    lv_obj_t* sub = systest_make_sub_view(st);
+    if (!sub)
+    {
+        return;
+    }
+    systest_sub_view_bar(st, sub, "Speaker");
+
+    auto* codec = new (std::nothrow) boards::t_display_p4::CodecEs8311();
+    if (codec == nullptr || codec->open(16, 1, kAudioSampleRate) != 0)
+    {
+        delete codec;
+        lv_obj_t* err = lv_label_create(sub);
+        lv_obj_set_style_text_color(err, ui::theme::error(), 0);
+        lv_obj_set_style_text_font(err, &lv_font_montserrat_14, 0);
+        lv_label_set_text(err, "Speaker test: codec open failed (ES8311 absent?)");
+        return;
+    }
+    st->audio_codec = codec;
+    st->sine_phase = 0.0;
+    codec->setOutMute(false);
+    codec->setVolume(80);
+
+    add_label(sub, "Playing ~1 kHz test tone...", &lv_font_montserrat_14, ui::theme::text());
+    st->audio_timer = lv_timer_create(systest_speaker_tick, kAudioTimerPeriodMs, st);
+}
+
+// ---- Microphone test ------------------------------------------------------
+// Open the ES8311 codec and show a live capture level meter driven by a
+// repeating timer. On open failure show a label. The sub-view's Back button
+// stops capture and tears the codec down.
+void systest_open_microphone(SystestPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    lv_obj_t* sub = systest_make_sub_view(st);
+    if (!sub)
+    {
+        return;
+    }
+    systest_sub_view_bar(st, sub, "Microphone");
+
+    auto* codec = new (std::nothrow) boards::t_display_p4::CodecEs8311();
+    if (codec == nullptr || codec->open(16, 1, kAudioSampleRate) != 0)
+    {
+        delete codec;
+        lv_obj_t* err = lv_label_create(sub);
+        lv_obj_set_style_text_color(err, ui::theme::error(), 0);
+        lv_obj_set_style_text_font(err, &lv_font_montserrat_14, 0);
+        lv_label_set_text(err, "Mic test: codec open failed (ES8311 absent?)");
+        return;
+    }
+    st->audio_codec = codec;
+    codec->setGain(30.0f);
+
+    add_label(sub, "Live microphone level:", &lv_font_montserrat_14, ui::theme::text());
+
+    st->mic_bar = lv_bar_create(sub);
+    lv_obj_set_size(st->mic_bar, LV_PCT(90), 28);
+    lv_bar_set_range(st->mic_bar, 0, 100);
+    lv_bar_set_value(st->mic_bar, 0, LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(st->mic_bar, ui::theme::status_green(), LV_PART_INDICATOR);
+
+    st->mic_value_label = lv_label_create(sub);
+    lv_obj_set_style_text_color(st->mic_value_label, ui::theme::text(), 0);
+    lv_obj_set_style_text_font(st->mic_value_label, &lv_font_montserrat_14, 0);
+    lv_label_set_text(st->mic_value_label, "Level: 0%");
+
+    st->audio_timer = lv_timer_create(systest_mic_tick, kAudioTimerPeriodMs, st);
+}
+#endif  // TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4
+
 // ---- Test menu ------------------------------------------------------------
 lv_obj_t* systest_make_tile(lv_obj_t* parent,
                             SystestPageState* st,
@@ -1928,6 +2140,36 @@ void systest_enter(void* user_data, lv_obj_t* parent)
     state->canvas = nullptr;
     state->canvas_buf = nullptr;
     state->have_last = false;
+
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+    state->audio_codec = nullptr;
+    state->audio_timer = nullptr;
+    state->mic_bar = nullptr;
+    state->mic_value_label = nullptr;
+    state->sine_phase = 0.0;
+
+    // Boot-time ES8311 presence probe. The board self-test enters+exits this app
+    // once at boot (after board init has brought up the external I2C bus + the
+    // XL9535 expander), so this runs there: enable the audio supply (VCCA) and
+    // raw-read the ES8311 chip-ID registers (0xFD/0xFE) at 7-bit addr 0x18 over
+    // the external bus, through CodecEs8311. Logs the real chip-ID on success
+    // (a present ES8311 reports 0x83,0x11) or "absent" if it does not respond.
+    // The temporary I2C device is removed inside probeChipId, so this leaves no
+    // state behind and stays crash-free.
+    {
+        boards::t_display_p4::CodecEs8311 probe;
+        uint8_t id1 = 0;
+        uint8_t id2 = 0;
+        if (probe.probeChipId(&id1, &id2))
+        {
+            ESP_LOGI(kSystestAudioTag, "systest:audio:es8311 id=0x%02x,0x%02x", id1, id2);
+        }
+        else
+        {
+            ESP_LOGI(kSystestAudioTag, "systest:audio:es8311 absent");
+        }
+    }
+#endif
 
     state->root = lv_obj_create(parent);
     lv_obj_set_size(state->root, LV_PCT(100), LV_PCT(100));
@@ -1981,6 +2223,16 @@ void systest_enter(void* user_data, lv_obj_t* parent)
         state->root, state, "Info Readout",
         [](lv_event_t* e)
         { systest_open_info(static_cast<SystestPageState*>(lv_event_get_user_data(e))); });
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+    systest_make_tile(
+        state->root, state, "Speaker Test (1 kHz tone)",
+        [](lv_event_t* e)
+        { systest_open_speaker(static_cast<SystestPageState*>(lv_event_get_user_data(e))); });
+    systest_make_tile(
+        state->root, state, "Microphone Test (live level)",
+        [](lv_event_t* e)
+        { systest_open_microphone(static_cast<SystestPageState*>(lv_event_get_user_data(e))); });
+#endif
 }
 
 void systest_exit(void* user_data, lv_obj_t* parent)
@@ -1997,6 +2249,10 @@ void systest_exit(void* user_data, lv_obj_t* parent)
     // the touch view's own Back, so this covers enter->open-touch->exit and the
     // boot self-test's bare enter->exit).
     systest_free_canvas(state);
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+    // Stop + tear down the audio codec/timer if a Speaker/Microphone test is open.
+    systest_audio_close(state);
+#endif
     // Delete any open sub-view (child of parent, a sibling of root).
     if (state->sub_view)
     {

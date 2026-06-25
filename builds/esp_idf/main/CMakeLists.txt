@@ -49,6 +49,8 @@ idf_component_register(
     REQUIRES
         driver
         esp_app_format
+        esp_codec_dev
+        esp_driver_i2s
         esp_http_client
         esp_lcd
         esp_lvgl_port

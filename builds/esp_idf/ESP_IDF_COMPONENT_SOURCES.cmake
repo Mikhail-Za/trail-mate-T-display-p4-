@@ -622,6 +622,7 @@ set(TRAILMATE_ESP_IDF_TAB5_BOARD_SOURCES
 set(TRAILMATE_ESP_IDF_T_DISPLAY_P4_BOARD_SOURCES
     "${TRAILMATE_ROOT}/boards/t_display_p4/src/rtc_runtime.cpp"
     "${TRAILMATE_ROOT}/boards/t_display_p4/src/runtime_support.cpp"
+    "${TRAILMATE_ROOT}/boards/t_display_p4/src/codec_es8311.cpp"
     "${TRAILMATE_ROOT}/boards/t_display_p4/src/t_display_p4_board.cpp")
 
 set(TRAILMATE_ESP_IDF_FINAL_INCLUDE_DIRS

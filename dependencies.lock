@@ -157,6 +157,6 @@ direct_dependencies:
 - espressif/esp_serial_slave_link
 - espressif/usb_host_hid
 - idf
-manifest_hash: 494230f4f62e4af99b62d8b0a3baaab488edc4bbdf31ded1de2e17c3e49d2c85
+manifest_hash: 7e1632efd1a399dca2731e147df4115a0599253b6af2773fa24ac89e930b23ac
 target: esp32p4
 version: 2.0.0
