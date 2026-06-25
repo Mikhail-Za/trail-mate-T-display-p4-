@@ -1320,21 +1320,38 @@ HelpPageState s_help_state;
 
 void help_add_title(lv_obj_t* parent, const char* text)
 {
-    // Section heading: same compiled montserrat-14 font the rest of the file
-    // uses, in the accent/link color so it reads as a header above its body text.
+    // Section heading: the large montserrat-24 font (same size the menu uses for
+    // the battery percentage; compiled into this build) in the theme accent color,
+    // with extra top spacing so each section reads as a titled block above its
+    // body text rather than as one continuous wall of words.
     lv_obj_t* label = lv_label_create(parent);
     lv_label_set_text(label, text ? text : "");
     lv_obj_set_width(label, LV_PCT(100));
     lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(label, ui::theme::accent(), 0);
-    lv_obj_set_style_pad_top(label, 6, 0);
+    lv_obj_set_style_pad_top(label, 18, 0);
 }
 
 void help_add_body(lv_obj_t* parent, const char* text)
 {
-    // Body paragraph: word-wrapped at ~100% width in the standard text color.
-    add_label(parent, text, &lv_font_montserrat_14, ui::theme::text());
+    // Body paragraph: word-wrapped at ~100% width, in the standard text color, at
+    // the same large montserrat-24 size as the headings so the whole page is easy
+    // to read at arm's length on the device.
+    add_label(parent, text, &lv_font_montserrat_24, ui::theme::text());
+}
+
+void help_add_page_title(lv_obj_t* parent, const char* text)
+{
+    // Page title: same large montserrat-24 accent styling as a section heading but
+    // without the section's big top-pad, since it sits directly under the Back
+    // button at the very top of the scroll view.
+    lv_obj_t* label = lv_label_create(parent);
+    lv_label_set_text(label, text ? text : "");
+    lv_obj_set_width(label, LV_PCT(100));
+    lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(label, ui::theme::accent(), 0);
 }
 
 void help_enter(void* user_data, lv_obj_t* parent)
@@ -1372,64 +1389,56 @@ void help_enter(void* user_data, lv_obj_t* parent)
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
 
-    // Page heading.
-    help_add_title(state->root, "Trail Mate Help");
+    // Page title.
+    help_add_page_title(state->root, "Trail Mate Help");
 
-    // (1) Welcome.
-    help_add_title(state->root, "Welcome");
+    // (1) Quick start.
+    help_add_title(state->root, "Quick start");
     help_add_body(state->root,
-                  "This is a LilyGo T-Display P4 touchscreen running the Trail Mate launcher, "
-                  "a dual-boot Meshtastic / MeshCore off-grid mesh communicator and toolkit. "
-                  "Everything is driven by touch: tap buttons and drag to scroll. The Back "
-                  "button on any page returns you to the main menu.");
+                  "Power on and the menu shows the apps. Open Chat to message, Contacts to see "
+                  "nearby nodes, and Settings to set your channel. Tap Back on any page to "
+                  "return to the menu.");
 
-    // (2) How this is different from the original TrailMate software.
-    help_add_title(state->root, "How this differs from the original TrailMate");
+    // (2) What this device is.
+    help_add_title(state->root, "What this device is");
     help_add_body(state->root,
-                  "This is the on-device firmware and launcher running on dedicated hardware "
-                  "and driving the LoRa radios directly. It is not the companion phone app: the "
-                  "device itself is the radio and the mesh node, so it keeps working off-grid "
-                  "with no phone, cloud, or internet connection.");
+                  "A LilyGo T-Display P4 touchscreen running the Trail Mate launcher, a "
+                  "dual-boot Meshtastic / MeshCore off-grid mesh communicator and toolkit. It "
+                  "drives the LoRa radios directly; it is not the original TrailMate phone app.");
 
-    // (3) The apps, one short paragraph each.
+    // (3) The apps, one tight line each.
     help_add_title(state->root, "The apps");
+    help_add_body(state->root, "Chat: mesh messages.");
     help_add_body(state->root,
-                  "Chat: send and receive mesh text messages with the other nodes on your "
-                  "channel.");
+                  "Contacts: nearby nodes. Nearby auto-updates; Broadcast ID announces you "
+                  "instantly.");
     help_add_body(state->root,
-                  "Contacts: your mesh node list. Nearby updates automatically as units are "
-                  "heard, and the Broadcast ID button announces this node so it appears on "
-                  "other units instantly.");
-    help_add_body(state->root,
-                  "Settings: device, radio, channel, and GPS configuration. Channel keys accept "
-                  "a passphrase that is hashed into the key, so you do not have to type raw hex.");
-    help_add_body(state->root,
-                  "Satellites: a GNSS sky-plot of the satellites in view plus a per-satellite "
-                  "signal-strength table.");
-    help_add_body(state->root,
-                  "Tracker: record and review GPS tracks, saved to the SD card.");
-    help_add_body(state->root,
-                  "Sub-GHz Scan: a LoRa RSSI spectrum sweep across the band so you can see "
-                  "where there is activity.");
-    help_add_body(state->root,
-                  "PC Link: a USB bridge to a computer that can act as a KISS modem.");
-    help_add_body(state->root,
-                  "Extensions: Wi-Fi companion features and downloadable language packs.");
-    help_add_body(state->root,
-                  "C6 Companion: status of the ESP32-C6 wireless companion radio.");
-    help_add_body(state->root,
-                  "Games: Snake and Tetris, played entirely with the on-screen touch controls.");
+                  "Settings: device, radio, channel, GPS. Channel keys accept a passphrase.");
+    help_add_body(state->root, "Satellites: GNSS sky-plot.");
+    help_add_body(state->root, "Tracker: GPS tracks to SD.");
+    help_add_body(state->root, "Sub-GHz Scan: LoRa spectrum sweep.");
+    help_add_body(state->root, "PC Link: USB / KISS modem.");
+    help_add_body(state->root, "Extensions: Wi-Fi / language packs.");
+    help_add_body(state->root, "C6 Companion: ESP32-C6 status.");
+    help_add_body(state->root, "Games: Snake, Tetris.");
 
-    // (4) Tips and tricks.
+    // (4) Switching Meshtastic and MeshCore. Deliberately general about the boot
+    // launcher: do not invent specific button/key sequences here.
+    help_add_title(state->root, "Switching Meshtastic and MeshCore");
+    help_add_body(state->root,
+                  "This device is dual-boot. It runs Meshtastic (this Trail Mate firmware, what "
+                  "you are using now) or MeshCore, which is installed as a separate firmware. "
+                  "Switch between them from the device's DualMesh boot launcher, which lets you "
+                  "choose which one to start. The MeshCore side is lock-protected by default.");
+
+    // (5) Tips and tricks.
     help_add_title(state->root, "Tips and tricks");
     help_add_body(state->root,
-                  "Type a memorable passphrase instead of a raw hex channel key; it is hashed "
-                  "into the key for you.");
+                  "Use a memorable passphrase instead of a raw hex channel key.");
     help_add_body(state->root,
-                  "Tap Broadcast ID on the Contacts page to appear on a nearby unit "
-                  "immediately.");
+                  "Tap Broadcast ID on Contacts to appear on a nearby unit immediately.");
     help_add_body(state->root,
-                  "The Back button on any page returns you to this menu.");
+                  "The Back button returns you to the menu from anywhere.");
 }
 
 void help_exit(void* user_data, lv_obj_t* parent)
