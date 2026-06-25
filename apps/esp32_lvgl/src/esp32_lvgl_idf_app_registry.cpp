@@ -167,8 +167,18 @@ struct SnakePageState
 {
     static constexpr int kCols = 16;
     static constexpr int kRows = 20;
-    static constexpr int kCellPx = 30;
+    // Cell size derived from the usable width: the 540px portrait panel minus the
+    // root's 2*kRootPad side margins, divided by the column count. 16 cols over
+    // (540 - 2*10) = 520px -> 32px cells, so the board fills the screen width.
+    static constexpr int kRootPad = 10;
+    static constexpr int kScreenW = 540;
+    static constexpr int kCellPx = (kScreenW - 2 * kRootPad) / kCols;  // = 32
     static constexpr int kCellCount = kCols * kRows;
+    // Step pacing: start at a comfortable 220ms and ease 6ms faster per point of
+    // score, but never quicker than 120ms so a long snake never becomes frantic.
+    static constexpr uint32_t kBasePeriodMs = 220;
+    static constexpr uint32_t kMinPeriodMs = 120;
+    static constexpr uint32_t kSpeedupPerPointMs = 6;
 
     lv_obj_t* root = nullptr;
     lv_obj_t* score_label = nullptr;
@@ -328,6 +338,7 @@ void snake_reset(SnakePageState* st)
     }
     if (st->timer)
     {
+        lv_timer_set_period(st->timer, SnakePageState::kBasePeriodMs);
         lv_timer_resume(st->timer);
     }
     snake_render(st);
@@ -399,6 +410,22 @@ void snake_tick(lv_timer_t* timer)
         st->score += 1;
         snake_update_score(st);
         snake_place_food(st);
+        // Ease the step interval faster as the score climbs (clamped so it never
+        // drops below kMinPeriodMs). Applied only when the score changes.
+        if (st->timer)
+        {
+            uint32_t period = SnakePageState::kBasePeriodMs;
+            const uint32_t speedup = st->score * SnakePageState::kSpeedupPerPointMs;
+            if (speedup < period - SnakePageState::kMinPeriodMs)
+            {
+                period -= speedup;
+            }
+            else
+            {
+                period = SnakePageState::kMinPeriodMs;
+            }
+            lv_timer_set_period(st->timer, period);
+        }
     }
 
     snake_render(st);
@@ -425,12 +452,16 @@ lv_obj_t* snake_make_dpad_button(lv_obj_t* parent,
                                  const char* text,
                                  lv_event_cb_t cb)
 {
+    // Large touch target (96x88) with the callback bound to PRESSED so the
+    // direction is captured the instant the finger lands, not on release. The
+    // hitbox is the whole button, not just the glyph, so taps register reliably.
     lv_obj_t* btn = lv_button_create(parent);
-    lv_obj_set_size(btn, 84, 64);
+    lv_obj_set_size(btn, 96, 88);
     lv_obj_t* lbl = lv_label_create(btn);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, 0);
     lv_label_set_text(lbl, text);
     lv_obj_center(lbl);
-    lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, st);
+    lv_obj_add_event_cb(btn, cb, LV_EVENT_PRESSED, st);
     return btn;
 }
 
@@ -448,11 +479,16 @@ void snake_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_style_bg_opa(state->root, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(state->root, 0, 0);
     lv_obj_set_style_radius(state->root, 0, 0);
-    lv_obj_set_style_pad_all(state->root, 10, 0);
+    lv_obj_set_style_pad_all(state->root, SnakePageState::kRootPad, 0);
     lv_obj_set_flex_flow(state->root, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(state->root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_row(state->root, 8, 0);
+    // Vertically scrollable as a safety net: if the board + controls ever exceed
+    // the 1168px height, the page can be dragged so no control is unreachable
+    // (same pattern as the Help page).
+    lv_obj_set_scroll_dir(state->root, LV_DIR_VER);
+    lv_obj_add_flag(state->root, LV_OBJ_FLAG_SCROLLABLE);
 
     // Top row: Back button + score label.
     lv_obj_t* top = lv_obj_create(state->root);
@@ -559,8 +595,10 @@ void snake_enter(void* user_data, lv_obj_t* parent)
         LV_EVENT_CLICKED, state);
 
     // Seed the LCG from the tick counter, then start the game and the tick timer.
+    // ~220ms/step is a comfortable touchscreen pace (eased faster as the score
+    // climbs in snake_tick, but never below kMinPeriodMs so it never feels frantic).
     state->rng = lv_tick_get() ^ 0x9E3779B9u;
-    state->timer = lv_timer_create(snake_tick, 180, state);
+    state->timer = lv_timer_create(snake_tick, SnakePageState::kBasePeriodMs, state);
     snake_reset(state);
 }
 
@@ -615,9 +653,26 @@ struct TetrisPageState
 {
     static constexpr int kCols = 10;
     static constexpr int kRows = 20;
-    static constexpr int kCellPx = 22;  // 10*22 = 220px board width (portrait-safe)
+    // Cell size derived from the real usable area. By width: (540 - 2*10)/10 = 52px,
+    // but 20 rows * 52 = 1040px would crowd out the controls on the 1168px panel.
+    // So also bound the cell by a board-height budget (kBoardHBudget) that leaves
+    // room for the header + the bottom control pad, and take the smaller of the
+    // two. 44px wins -> a 440x880 board: far larger than the old 220px-wide board,
+    // fills most of the width, and still leaves room for big controls below (with
+    // the scrollable root as a safety net). Recomputed positions/sizes follow.
+    static constexpr int kRootPad = 10;
+    static constexpr int kScreenW = 540;
+    static constexpr int kScreenH = 1168;
+    static constexpr int kBoardHBudget = 880;  // px reserved for the board itself
+    static constexpr int kCellByW = (kScreenW - 2 * kRootPad) / kCols;  // = 52
+    static constexpr int kCellByH = kBoardHBudget / kRows;              // = 44
+    static constexpr int kCellPx = (kCellByW < kCellByH) ? kCellByW : kCellByH;  // = 44
     static constexpr int kCellCount = kCols * kRows;
     static constexpr int kEmpty = -1;
+    // Gravity pacing: ~550ms per row. Soft-drop is immediate on tap (and the timer
+    // also speeds up while Down is held, restored on release).
+    static constexpr uint32_t kBasePeriodMs = 550;
+    static constexpr uint32_t kSoftDropPeriodMs = 60;
 
     lv_obj_t* root = nullptr;
     lv_obj_t* score_label = nullptr;
@@ -996,6 +1051,7 @@ void tetris_reset(TetrisPageState* st)
     }
     if (st->timer)
     {
+        lv_timer_set_period(st->timer, TetrisPageState::kBasePeriodMs);
         lv_timer_resume(st->timer);
     }
     tetris_render(st);
@@ -1006,12 +1062,16 @@ lv_obj_t* tetris_make_button(lv_obj_t* parent,
                              const char* text,
                              lv_event_cb_t cb)
 {
+    // Large touch target (84x72) bound to PRESSED so Left/Right/Rotate/Drop act
+    // the instant the finger lands and repaint at once (gravity stays on the
+    // timer). The whole button is the hitbox, not just the glyph.
     lv_obj_t* btn = lv_button_create(parent);
-    lv_obj_set_size(btn, 66, 56);
+    lv_obj_set_size(btn, 84, 72);
     lv_obj_t* lbl = lv_label_create(btn);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, 0);
     lv_label_set_text(lbl, text);
     lv_obj_center(lbl);
-    lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, st);
+    lv_obj_add_event_cb(btn, cb, LV_EVENT_PRESSED, st);
     return btn;
 }
 
@@ -1029,11 +1089,16 @@ void tetris_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_style_bg_opa(state->root, LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(state->root, 0, 0);
     lv_obj_set_style_radius(state->root, 0, 0);
-    lv_obj_set_style_pad_all(state->root, 10, 0);
+    lv_obj_set_style_pad_all(state->root, TetrisPageState::kRootPad, 0);
     lv_obj_set_flex_flow(state->root, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(state->root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_row(state->root, 8, 0);
+    // Vertically scrollable as a safety net: the 880px board plus the control pad
+    // can exceed the 1168px height, so allow the page to be dragged on Y to keep
+    // every control reachable (same pattern as the Help page).
+    lv_obj_set_scroll_dir(state->root, LV_DIR_VER);
+    lv_obj_add_flag(state->root, LV_OBJ_FLAG_SCROLLABLE);
 
     // Top row: Back button + score/lines label.
     lv_obj_t* top = lv_obj_create(state->root);
@@ -1093,7 +1158,8 @@ void tetris_enter(void* user_data, lv_obj_t* parent)
         }
     }
 
-    // Controls row 1: Left, Rotate, Right.
+    // Controls row 1: Left, Rotate, Right. All act immediately on PRESSED and
+    // repaint at once (see tetris_make_button); only gravity is on the timer.
     lv_obj_t* row1 = lv_obj_create(state->root);
     lv_obj_set_size(row1, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_bg_opa(row1, LV_OPA_TRANSP, 0);
@@ -1102,7 +1168,7 @@ void tetris_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_flex_flow(row1, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row1, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(row1, 10, 0);
+    lv_obj_set_style_pad_column(row1, 12, 0);
     tetris_make_button(
         row1, state, LV_SYMBOL_LEFT,
         [](lv_event_t* e)
@@ -1116,7 +1182,10 @@ void tetris_enter(void* user_data, lv_obj_t* parent)
         [](lv_event_t* e)
         { tetris_move(static_cast<TetrisPageState*>(lv_event_get_user_data(e)), 1); });
 
-    // Controls row 2: Soft drop (Down), Hard drop.
+    // Controls row 2: Soft drop (Down) and Hard drop. The Down button soft-drops
+    // one row instantly on PRESSED and ALSO speeds gravity to kSoftDropPeriodMs
+    // while held; RELEASED restores the base gravity so it behaves like a real
+    // "hold to drop faster" key. Hard drop slams the piece down and locks it.
     lv_obj_t* row2 = lv_obj_create(state->root);
     lv_obj_set_size(row2, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_bg_opa(row2, LV_OPA_TRANSP, 0);
@@ -1125,11 +1194,52 @@ void tetris_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_flex_flow(row2, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row2, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(row2, 10, 0);
-    tetris_make_button(
-        row2, state, LV_SYMBOL_DOWN,
+    lv_obj_set_style_pad_column(row2, 12, 0);
+
+    // Down (soft-drop): immediate drop on press + faster gravity while held.
+    lv_obj_t* down_btn = lv_button_create(row2);
+    lv_obj_set_size(down_btn, 84, 72);
+    lv_obj_t* down_lbl = lv_label_create(down_btn);
+    lv_obj_set_style_text_font(down_lbl, &lv_font_montserrat_14, 0);
+    lv_label_set_text(down_lbl, LV_SYMBOL_DOWN);
+    lv_obj_center(down_lbl);
+    lv_obj_add_event_cb(
+        down_btn,
         [](lv_event_t* e)
-        { tetris_soft_drop(static_cast<TetrisPageState*>(lv_event_get_user_data(e))); });
+        {
+            auto* st = static_cast<TetrisPageState*>(lv_event_get_user_data(e));
+            if (st && st->timer && !st->game_over)
+            {
+                lv_timer_set_period(st->timer, TetrisPageState::kSoftDropPeriodMs);
+            }
+            tetris_soft_drop(st);
+        },
+        LV_EVENT_PRESSED, state);
+    lv_obj_add_event_cb(
+        down_btn,
+        [](lv_event_t* e)
+        {
+            auto* st = static_cast<TetrisPageState*>(lv_event_get_user_data(e));
+            if (st && st->timer)
+            {
+                lv_timer_set_period(st->timer, TetrisPageState::kBasePeriodMs);
+            }
+        },
+        LV_EVENT_RELEASED, state);
+    // Also restore base gravity if the press is lost (finger slides off / scroll
+    // steals the gesture) so gravity can never get stuck at the fast soft-drop rate.
+    lv_obj_add_event_cb(
+        down_btn,
+        [](lv_event_t* e)
+        {
+            auto* st = static_cast<TetrisPageState*>(lv_event_get_user_data(e));
+            if (st && st->timer)
+            {
+                lv_timer_set_period(st->timer, TetrisPageState::kBasePeriodMs);
+            }
+        },
+        LV_EVENT_PRESS_LOST, state);
+
     tetris_make_button(
         row2, state, LV_SYMBOL_DOWNLOAD,
         [](lv_event_t* e)
@@ -1147,8 +1257,10 @@ void tetris_enter(void* user_data, lv_obj_t* parent)
         LV_EVENT_CLICKED, state);
 
     // Seed the LCG from the tick counter, then start the game and the drop timer.
+    // ~550ms/row gravity; the Down button does an immediate soft-drop and speeds
+    // this up while held (restored on release).
     state->rng = lv_tick_get() ^ 0x2545F491u;
-    state->timer = lv_timer_create(tetris_tick, 600, state);
+    state->timer = lv_timer_create(tetris_tick, TetrisPageState::kBasePeriodMs, state);
     tetris_reset(state);
 }
 
