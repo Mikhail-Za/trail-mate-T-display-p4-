@@ -1189,6 +1189,155 @@ void tetris_exit(void* user_data, lv_obj_t* parent)
 ui::CallbackAppScreen s_tetris_app("tetris", "Tetris", &Chat, tetris_enter, tetris_exit,
                                    &s_tetris_state);
 
+// ---------------------------------------------------------------------------
+// Help: a fully self-contained how-to / Help guide, built inline the same way as
+// the C6 Companion app above (file-static state, enter()/exit() that build/tear-
+// down a root sized LV_PCT(100), and a CallbackAppScreen added to s_apps[]). It
+// holds no timer and no game state -- just a vertically scrollable flex-column
+// page of clearly-titled, word-wrapped text sections describing the launcher and
+// every app. The boot self-test enters then immediately exits this screen once;
+// help_exit therefore just deletes the root with the same null/validity guards
+// companion_exit uses so enter-then-exit is clean and leak-free.
+// ---------------------------------------------------------------------------
+struct HelpPageState
+{
+    lv_obj_t* root = nullptr;
+};
+
+HelpPageState s_help_state;
+
+void help_add_title(lv_obj_t* parent, const char* text)
+{
+    // Section heading: same compiled montserrat-14 font the rest of the file
+    // uses, in the accent/link color so it reads as a header above its body text.
+    lv_obj_t* label = lv_label_create(parent);
+    lv_label_set_text(label, text ? text : "");
+    lv_obj_set_width(label, LV_PCT(100));
+    lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(label, ui::theme::accent(), 0);
+    lv_obj_set_style_pad_top(label, 6, 0);
+}
+
+void help_add_body(lv_obj_t* parent, const char* text)
+{
+    // Body paragraph: word-wrapped at ~100% width in the standard text color.
+    add_label(parent, text, &lv_font_montserrat_14, ui::theme::text());
+}
+
+void help_enter(void* user_data, lv_obj_t* parent)
+{
+    auto* state = static_cast<HelpPageState*>(user_data);
+    if (!state || !parent || (state->root && lv_obj_is_valid(state->root)))
+    {
+        return;
+    }
+
+    state->root = lv_obj_create(parent);
+    lv_obj_set_size(state->root, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(state->root, ui::theme::white(), 0);
+    lv_obj_set_style_bg_opa(state->root, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(state->root, 0, 0);
+    lv_obj_set_style_radius(state->root, 0, 0);
+    lv_obj_set_style_pad_left(state->root, 18, 0);
+    lv_obj_set_style_pad_right(state->root, 18, 0);
+    lv_obj_set_style_pad_top(state->root, 18, 0);
+    lv_obj_set_style_pad_bottom(state->root, 18, 0);
+    lv_obj_set_flex_flow(state->root, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(state->root, 8, 0);
+    // Vertically scrollable: the content is taller than the screen, so allow the
+    // page to scroll on the Y axis (touch drag) and keep it within the X bound.
+    lv_obj_set_scroll_dir(state->root, LV_DIR_VER);
+    lv_obj_add_flag(state->root, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Back button: routes to the launcher menu via the same exit the Chat app
+    // uses (exactly like companion_enter's back button).
+    lv_obj_t* back_btn = lv_button_create(state->root);
+    lv_obj_set_width(back_btn, LV_PCT(45));
+    lv_obj_t* back_lbl = lv_label_create(back_btn);
+    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(
+        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+
+    // Page heading.
+    help_add_title(state->root, "Trail Mate Help");
+
+    // (1) Welcome.
+    help_add_title(state->root, "Welcome");
+    help_add_body(state->root,
+                  "This is a LilyGo T-Display P4 touchscreen running the Trail Mate launcher, "
+                  "a dual-boot Meshtastic / MeshCore off-grid mesh communicator and toolkit. "
+                  "Everything is driven by touch: tap buttons and drag to scroll. The Back "
+                  "button on any page returns you to the main menu.");
+
+    // (2) How this is different from the original TrailMate software.
+    help_add_title(state->root, "How this differs from the original TrailMate");
+    help_add_body(state->root,
+                  "This is the on-device firmware and launcher running on dedicated hardware "
+                  "and driving the LoRa radios directly. It is not the companion phone app: the "
+                  "device itself is the radio and the mesh node, so it keeps working off-grid "
+                  "with no phone, cloud, or internet connection.");
+
+    // (3) The apps, one short paragraph each.
+    help_add_title(state->root, "The apps");
+    help_add_body(state->root,
+                  "Chat: send and receive mesh text messages with the other nodes on your "
+                  "channel.");
+    help_add_body(state->root,
+                  "Contacts: your mesh node list. Nearby updates automatically as units are "
+                  "heard, and the Broadcast ID button announces this node so it appears on "
+                  "other units instantly.");
+    help_add_body(state->root,
+                  "Settings: device, radio, channel, and GPS configuration. Channel keys accept "
+                  "a passphrase that is hashed into the key, so you do not have to type raw hex.");
+    help_add_body(state->root,
+                  "Satellites: a GNSS sky-plot of the satellites in view plus a per-satellite "
+                  "signal-strength table.");
+    help_add_body(state->root,
+                  "Tracker: record and review GPS tracks, saved to the SD card.");
+    help_add_body(state->root,
+                  "Sub-GHz Scan: a LoRa RSSI spectrum sweep across the band so you can see "
+                  "where there is activity.");
+    help_add_body(state->root,
+                  "PC Link: a USB bridge to a computer that can act as a KISS modem.");
+    help_add_body(state->root,
+                  "Extensions: Wi-Fi companion features and downloadable language packs.");
+    help_add_body(state->root,
+                  "C6 Companion: status of the ESP32-C6 wireless companion radio.");
+    help_add_body(state->root,
+                  "Games: Snake and Tetris, played entirely with the on-screen touch controls.");
+
+    // (4) Tips and tricks.
+    help_add_title(state->root, "Tips and tricks");
+    help_add_body(state->root,
+                  "Type a memorable passphrase instead of a raw hex channel key; it is hashed "
+                  "into the key for you.");
+    help_add_body(state->root,
+                  "Tap Broadcast ID on the Contacts page to appear on a nearby unit "
+                  "immediately.");
+    help_add_body(state->root,
+                  "The Back button on any page returns you to this menu.");
+}
+
+void help_exit(void* user_data, lv_obj_t* parent)
+{
+    (void)parent;
+    auto* state = static_cast<HelpPageState*>(user_data);
+    if (!state || !state->root || !lv_obj_is_valid(state->root))
+    {
+        if (state)
+        {
+            state->root = nullptr;
+        }
+        return;
+    }
+    lv_obj_del(state->root);
+    state->root = nullptr;
+}
+
+ui::CallbackAppScreen s_help_app("help", "Help", &Setting, help_enter, help_exit, &s_help_state);
+
 // Chat shell entry. Mirrors modules/ui_shared/src/ui/app_catalog_builder.cpp:
 // the chat page shell's enter/exit take a ui::page::Host* as user_data, and the
 // menu host routes the page's back/exit request to ui_request_exit_to_menu().
@@ -1365,7 +1514,8 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_pc_link_app,
                        &s_companion_app,
                        &s_snake_app,
-                       &s_tetris_app};
+                       &s_tetris_app,
+                       &s_help_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 
