@@ -3223,6 +3223,594 @@ void flashlight_exit(void* user_data, lv_obj_t* parent)
 ui::CallbackAppScreen s_flashlight_app("flashlight", "Flashlight", &Setting, flashlight_enter,
                                        flashlight_exit, &s_flashlight_state);
 
+// ---------------------------------------------------------------------------
+// Stopwatch + Timer: a fully self-contained touch-only stopwatch and count-down
+// timer, built inline the same way as the C6 Companion / Snake / Tetris / 2048 /
+// Flashlight apps above (file-static state, enter()/exit() that build/tear-down a
+// root sized LV_PCT(100), and a CallbackAppScreen added to s_apps[]). stable_id =
+// "stopwatch" so the boot self-test logs appselftest:stopwatch:ok when it enters
+// then immediately exits this screen once.
+//
+// TIME SOURCE: the device wall-clock is deliberately NOT used. All elapsed time is
+// measured from LVGL's monotonic millisecond tick (lv_tick_get() captures a start
+// stamp; lv_tick_elaps(stamp) returns the ms since, handling the 32-bit wrap). A
+// ~50 ms lv_timer (stopwatch_tick) only repaints the HH:MM:SS.cs label from the
+// computed elapsed value -- it never accumulates time itself, so a missed/late tick
+// never drifts the clock. Accuracy across Start/Stop is preserved by folding each
+// running span into accum_ms on Stop: while running, elapsed = accum_ms +
+// lv_tick_elaps(start_tick); while stopped, elapsed = accum_ms exactly.
+//
+// Two modes share that one elapsed value:
+//   * Stopwatch (default): counts UP from 0; the big label shows the elapsed time
+//     and Lap appends the current elapsed split to a scrollable lap list.
+//   * Timer: counts DOWN from a target the user dials in with +/- (minutes and
+//     seconds). remaining = target_ms - elapsed, clamped at 0; on reaching 0 the
+//     run auto-stops and the status line reads "Time's up".
+// Start/Stop toggles the run; Reset zeroes the elapsed value (and clears laps);
+// Mode toggles Stopwatch<->Timer (only while stopped, to keep the math obvious).
+// A Back button routes to the launcher menu via ::ui_request_exit_to_menu().
+//
+// stopwatch_exit deletes the repaint timer and lv_obj_del the root with the same
+// null/validity guards companion_exit/snake_exit use, so the boot self-test's bare
+// enter->exit (which never starts the run) leaves nothing dangling.
+// ---------------------------------------------------------------------------
+struct StopwatchPageState
+{
+    // ~50 ms repaint cadence: smooth centisecond digits without burdening the UI
+    // thread. The label resolution is centiseconds (1/100 s) so 50 ms is ample.
+    static constexpr uint32_t kTickMs = 50;
+    // Lap list cap: a generous fixed ring so a long session cannot grow unbounded
+    // memory; once full, the oldest laps scroll out of the list (newest kept).
+    static constexpr int kMaxLaps = 64;
+    // Timer-mode dial bounds: 0..99 minutes, 0..59 seconds.
+    static constexpr int kMaxMinutes = 99;
+
+    lv_obj_t* root = nullptr;
+    lv_obj_t* time_label = nullptr;    // the big HH:MM:SS.cs read-out
+    lv_obj_t* status_label = nullptr;  // mode / "Time's up" line
+    lv_obj_t* start_label = nullptr;   // text on the Start/Stop button
+    lv_obj_t* lap_list = nullptr;      // scrollable container of lap rows
+    lv_obj_t* dial_row = nullptr;      // the +/- minute/second dial (Timer mode)
+    lv_obj_t* dial_label = nullptr;    // shows the dialed-in target MM:SS
+    lv_obj_t* lap_btn = nullptr;       // Lap button (Stopwatch mode only)
+    lv_timer_t* timer = nullptr;
+
+    bool running = false;        // is the clock currently advancing?
+    bool countdown = false;      // false = stopwatch (up), true = timer (down)
+    bool expired = false;        // timer mode reached zero
+    uint32_t accum_ms = 0;       // elapsed ms banked from prior running spans
+    uint32_t start_tick = 0;     // lv_tick_get() at the most recent Start
+    uint32_t target_ms = 60000;  // timer-mode count-down target (default 1:00)
+    int lap_count = 0;           // number of laps recorded this session
+};
+
+StopwatchPageState s_stopwatch_state;
+
+// Total elapsed ms since the last Reset, summed across every Start/Stop span.
+// While running, add the live span (lv_tick_elaps handles the 32-bit tick wrap);
+// while stopped, accum_ms already holds the exact total.
+uint32_t stopwatch_elapsed_ms(StopwatchPageState* st)
+{
+    if (!st)
+    {
+        return 0;
+    }
+    uint32_t ms = st->accum_ms;
+    if (st->running)
+    {
+        ms += lv_tick_elaps(st->start_tick);
+    }
+    return ms;
+}
+
+// Format a millisecond count as HH:MM:SS.cs into buf (centiseconds = 1/100 s).
+void stopwatch_format(uint32_t ms, char* buf, size_t buf_len)
+{
+    const uint32_t total_cs = ms / 10u;       // centiseconds
+    const uint32_t cs = total_cs % 100u;
+    const uint32_t total_s = total_cs / 100u;
+    const uint32_t s = total_s % 60u;
+    const uint32_t total_m = total_s / 60u;
+    const uint32_t m = total_m % 60u;
+    const uint32_t h = total_m / 60u;
+    std::snprintf(buf, buf_len, "%02lu:%02lu:%02lu.%02lu",
+                  static_cast<unsigned long>(h), static_cast<unsigned long>(m),
+                  static_cast<unsigned long>(s), static_cast<unsigned long>(cs));
+}
+
+// Repaint the big read-out + status line from the current elapsed value. In timer
+// mode this shows the remaining time (target - elapsed, floored at 0) and auto-
+// stops the run the moment it hits zero.
+void stopwatch_refresh(StopwatchPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    const uint32_t elapsed = stopwatch_elapsed_ms(st);
+
+    uint32_t shown = elapsed;
+    if (st->countdown)
+    {
+        if (elapsed >= st->target_ms)
+        {
+            shown = 0;
+            // First crossing of zero while running: latch expired, stop the clock,
+            // and bank the full target so a subsequent Start does not re-trigger.
+            if (st->running && !st->expired)
+            {
+                st->expired = true;
+                st->running = false;
+                st->accum_ms = st->target_ms;
+                if (st->start_label && lv_obj_is_valid(st->start_label))
+                {
+                    lv_label_set_text(st->start_label, LV_SYMBOL_PLAY " Start");
+                }
+            }
+        }
+        else
+        {
+            shown = st->target_ms - elapsed;
+        }
+    }
+
+    if (st->time_label && lv_obj_is_valid(st->time_label))
+    {
+        char buf[24];
+        stopwatch_format(shown, buf, sizeof(buf));
+        lv_label_set_text(st->time_label, buf);
+    }
+
+    if (st->status_label && lv_obj_is_valid(st->status_label))
+    {
+        if (st->countdown && st->expired)
+        {
+            lv_label_set_text(st->status_label, "Timer - Time's up");
+        }
+        else if (st->countdown)
+        {
+            lv_label_set_text(st->status_label, st->running ? "Timer - running" : "Timer");
+        }
+        else
+        {
+            lv_label_set_text(st->status_label,
+                              st->running ? "Stopwatch - running" : "Stopwatch");
+        }
+    }
+}
+
+void stopwatch_tick(lv_timer_t* timer)
+{
+    auto* st = static_cast<StopwatchPageState*>(lv_timer_get_user_data(timer));
+    stopwatch_refresh(st);
+}
+
+// Reflect the dialed-in timer target into its label (MM:SS).
+void stopwatch_update_dial(StopwatchPageState* st)
+{
+    if (!st || !st->dial_label || !lv_obj_is_valid(st->dial_label))
+    {
+        return;
+    }
+    const uint32_t total_s = st->target_ms / 1000u;
+    char buf[16];
+    std::snprintf(buf, sizeof(buf), "%02lu:%02lu",
+                  static_cast<unsigned long>(total_s / 60u),
+                  static_cast<unsigned long>(total_s % 60u));
+    lv_label_set_text(st->dial_label, buf);
+}
+
+// Show/hide the Timer dial row and the Lap button depending on the mode: the dial
+// is only meaningful for the count-down timer; Lap splits only make sense for the
+// count-up stopwatch.
+void stopwatch_apply_mode_visibility(StopwatchPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    if (st->dial_row && lv_obj_is_valid(st->dial_row))
+    {
+        if (st->countdown)
+        {
+            lv_obj_clear_flag(st->dial_row, LV_OBJ_FLAG_HIDDEN);
+        }
+        else
+        {
+            lv_obj_add_flag(st->dial_row, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+    if (st->lap_btn && lv_obj_is_valid(st->lap_btn))
+    {
+        if (st->countdown)
+        {
+            lv_obj_add_flag(st->lap_btn, LV_OBJ_FLAG_HIDDEN);
+        }
+        else
+        {
+            lv_obj_clear_flag(st->lap_btn, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+}
+
+// Start/Stop toggle. On Start, stamp the tick so the live span is measured from
+// now; on Stop, fold the just-finished span into accum_ms so the total stays exact.
+void stopwatch_toggle_run(StopwatchPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    if (st->running)
+    {
+        // Stop: bank the live span, then hold.
+        st->accum_ms += lv_tick_elaps(st->start_tick);
+        st->running = false;
+    }
+    else
+    {
+        // In timer mode, a Start after expiry first rewinds to a fresh target.
+        if (st->countdown && (st->expired || st->accum_ms >= st->target_ms))
+        {
+            st->accum_ms = 0;
+            st->expired = false;
+        }
+        st->start_tick = lv_tick_get();
+        st->running = true;
+    }
+    if (st->start_label && lv_obj_is_valid(st->start_label))
+    {
+        lv_label_set_text(st->start_label,
+                          st->running ? (LV_SYMBOL_PAUSE " Stop") : (LV_SYMBOL_PLAY " Start"));
+    }
+    stopwatch_refresh(st);
+}
+
+// Reset: zero the elapsed total, clear the running state and every recorded lap.
+void stopwatch_reset(StopwatchPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    st->running = false;
+    st->expired = false;
+    st->accum_ms = 0;
+    st->start_tick = lv_tick_get();
+    st->lap_count = 0;
+    if (st->lap_list && lv_obj_is_valid(st->lap_list))
+    {
+        lv_obj_clean(st->lap_list);  // delete all lap rows
+    }
+    if (st->start_label && lv_obj_is_valid(st->start_label))
+    {
+        lv_label_set_text(st->start_label, LV_SYMBOL_PLAY " Start");
+    }
+    stopwatch_refresh(st);
+}
+
+// Record a lap: prepend the current elapsed split to the lap list (newest on top).
+// Bounded by kMaxLaps so the list cannot grow without limit over a long session.
+void stopwatch_add_lap(StopwatchPageState* st)
+{
+    if (!st || st->countdown || !st->lap_list || !lv_obj_is_valid(st->lap_list))
+    {
+        return;
+    }
+    if (st->lap_count >= StopwatchPageState::kMaxLaps)
+    {
+        // Drop the oldest row (the last child) to keep the list bounded.
+        const uint32_t child_count = lv_obj_get_child_count(st->lap_list);
+        if (child_count > 0)
+        {
+            lv_obj_t* oldest = lv_obj_get_child(st->lap_list, child_count - 1);
+            if (oldest && lv_obj_is_valid(oldest))
+            {
+                lv_obj_del(oldest);
+            }
+        }
+    }
+    else
+    {
+        st->lap_count += 1;
+    }
+
+    char tbuf[24];
+    stopwatch_format(stopwatch_elapsed_ms(st), tbuf, sizeof(tbuf));
+    char buf[40];
+    std::snprintf(buf, sizeof(buf), "Lap %d   %s", st->lap_count, tbuf);
+
+    lv_obj_t* row = lv_label_create(st->lap_list);
+    lv_label_set_text(row, buf);
+    lv_obj_set_width(row, LV_PCT(100));
+    lv_obj_set_style_text_font(row, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(row, ui::theme::text(), 0);
+    // Newest lap on top.
+    lv_obj_move_to_index(row, 0);
+}
+
+// Adjust the count-down target by a signed number of seconds, clamped to
+// [0, kMaxMinutes:59]. Only meaningful in timer mode and while stopped.
+void stopwatch_adjust_target(StopwatchPageState* st, int delta_s)
+{
+    if (!st)
+    {
+        return;
+    }
+    long total_s = static_cast<long>(st->target_ms / 1000u) + delta_s;
+    const long max_s = static_cast<long>(StopwatchPageState::kMaxMinutes) * 60 + 59;
+    if (total_s < 0)
+    {
+        total_s = 0;
+    }
+    if (total_s > max_s)
+    {
+        total_s = max_s;
+    }
+    st->target_ms = static_cast<uint32_t>(total_s) * 1000u;
+    // Re-arm a stopped timer to the new target so the read-out tracks the dial.
+    if (!st->running)
+    {
+        st->accum_ms = 0;
+        st->expired = false;
+    }
+    stopwatch_update_dial(st);
+    stopwatch_refresh(st);
+}
+
+// Toggle Stopwatch<->Timer. Only permitted while stopped so the elapsed math stays
+// unambiguous; resets the elapsed value and laps for a clean switch.
+void stopwatch_toggle_mode(StopwatchPageState* st)
+{
+    if (!st || st->running)
+    {
+        return;
+    }
+    st->countdown = !st->countdown;
+    stopwatch_reset(st);
+    stopwatch_apply_mode_visibility(st);
+    stopwatch_update_dial(st);
+    stopwatch_refresh(st);
+}
+
+// A large touch button with a centered text label, child of `parent`, bound to
+// LV_EVENT_CLICKED -> cb with `st` as user_data. Returns the button.
+lv_obj_t* stopwatch_make_button(lv_obj_t* parent,
+                                StopwatchPageState* st,
+                                const char* text,
+                                lv_event_cb_t cb)
+{
+    lv_obj_t* btn = lv_button_create(parent);
+    lv_obj_set_style_pad_top(btn, 14, 0);
+    lv_obj_set_style_pad_bottom(btn, 14, 0);
+    lv_obj_set_style_pad_left(btn, 18, 0);
+    lv_obj_set_style_pad_right(btn, 18, 0);
+    lv_obj_t* lbl = lv_label_create(btn);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, 0);
+    lv_label_set_text(lbl, text);
+    lv_obj_center(lbl);
+    lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, st);
+    return btn;
+}
+
+void stopwatch_enter(void* user_data, lv_obj_t* parent)
+{
+    auto* state = static_cast<StopwatchPageState*>(user_data);
+    if (!state || !parent || (state->root && lv_obj_is_valid(state->root)))
+    {
+        return;
+    }
+
+    // Fresh session state (preserve the dialed target across re-entries, but reset
+    // the run/laps so a stale running span can never carry over).
+    state->running = false;
+    state->expired = false;
+    state->accum_ms = 0;
+    state->start_tick = lv_tick_get();
+    state->lap_count = 0;
+    if (state->target_ms == 0)
+    {
+        state->target_ms = 60000;
+    }
+    state->time_label = nullptr;
+    state->status_label = nullptr;
+    state->start_label = nullptr;
+    state->lap_list = nullptr;
+    state->dial_row = nullptr;
+    state->dial_label = nullptr;
+    state->lap_btn = nullptr;
+    state->timer = nullptr;
+
+    state->root = lv_obj_create(parent);
+    lv_obj_set_size(state->root, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(state->root, ui::theme::white(), 0);
+    lv_obj_set_style_bg_opa(state->root, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(state->root, 0, 0);
+    lv_obj_set_style_radius(state->root, 0, 0);
+    lv_obj_set_style_pad_left(state->root, 18, 0);
+    lv_obj_set_style_pad_right(state->root, 18, 0);
+    lv_obj_set_style_pad_top(state->root, 18, 0);
+    lv_obj_set_style_pad_bottom(state->root, 18, 0);
+    lv_obj_set_flex_flow(state->root, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(state->root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(state->root, 10, 0);
+    // Vertically scrollable as a safety net so the dial + controls + lap list can
+    // never push a control off the 1168px panel (same pattern as the Help page).
+    lv_obj_set_scroll_dir(state->root, LV_DIR_VER);
+    lv_obj_add_flag(state->root, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Back button: routes to the launcher menu via the same exit the Chat app uses
+    // (exactly like companion_enter/help_enter/systest_enter).
+    lv_obj_t* back_btn = lv_button_create(state->root);
+    lv_obj_set_width(back_btn, LV_PCT(45));
+    lv_obj_t* back_lbl = lv_label_create(back_btn);
+    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(
+        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+
+    // Status line (mode / "Time's up").
+    state->status_label = lv_label_create(state->root);
+    lv_obj_set_width(state->status_label, LV_PCT(100));
+    lv_obj_set_style_text_font(state->status_label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(state->status_label, ui::theme::text_muted(), 0);
+    lv_label_set_text(state->status_label, "Stopwatch");
+
+    // The big HH:MM:SS.cs read-out (montserrat-24 is the largest font compiled
+    // into this build; the menu uses it for the battery percentage).
+    state->time_label = lv_label_create(state->root);
+    lv_obj_set_width(state->time_label, LV_PCT(100));
+    lv_obj_set_style_text_font(state->time_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(state->time_label, ui::theme::text(), 0);
+    lv_obj_set_style_pad_top(state->time_label, 6, 0);
+    lv_obj_set_style_pad_bottom(state->time_label, 6, 0);
+    lv_label_set_text(state->time_label, "00:00:00.00");
+
+    // Primary controls row: Start/Stop + Reset.
+    lv_obj_t* ctrl_row = lv_obj_create(state->root);
+    lv_obj_set_size(ctrl_row, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(ctrl_row, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(ctrl_row, 0, 0);
+    lv_obj_set_style_pad_all(ctrl_row, 0, 0);
+    lv_obj_set_flex_flow(ctrl_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(ctrl_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(ctrl_row, 14, 0);
+    lv_obj_clear_flag(ctrl_row, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* start_btn = stopwatch_make_button(
+        ctrl_row, state, LV_SYMBOL_PLAY " Start",
+        [](lv_event_t* e)
+        { stopwatch_toggle_run(static_cast<StopwatchPageState*>(lv_event_get_user_data(e))); });
+    // Capture the Start/Stop button's label so the toggle can rewrite it.
+    state->start_label = lv_obj_get_child(start_btn, 0);
+
+    stopwatch_make_button(
+        ctrl_row, state, LV_SYMBOL_REFRESH " Reset",
+        [](lv_event_t* e)
+        { stopwatch_reset(static_cast<StopwatchPageState*>(lv_event_get_user_data(e))); });
+
+    // Secondary controls row: Lap (stopwatch) + Mode toggle.
+    lv_obj_t* ctrl_row2 = lv_obj_create(state->root);
+    lv_obj_set_size(ctrl_row2, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(ctrl_row2, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(ctrl_row2, 0, 0);
+    lv_obj_set_style_pad_all(ctrl_row2, 0, 0);
+    lv_obj_set_flex_flow(ctrl_row2, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(ctrl_row2, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(ctrl_row2, 14, 0);
+    lv_obj_clear_flag(ctrl_row2, LV_OBJ_FLAG_SCROLLABLE);
+
+    state->lap_btn = stopwatch_make_button(
+        ctrl_row2, state, LV_SYMBOL_PLUS " Lap",
+        [](lv_event_t* e)
+        { stopwatch_add_lap(static_cast<StopwatchPageState*>(lv_event_get_user_data(e))); });
+
+    stopwatch_make_button(
+        ctrl_row2, state, LV_SYMBOL_LOOP " Mode",
+        [](lv_event_t* e)
+        { stopwatch_toggle_mode(static_cast<StopwatchPageState*>(lv_event_get_user_data(e))); });
+
+    // Timer dial row (Timer mode only): -1m  -10s  [MM:SS]  +10s  +1m.
+    state->dial_row = lv_obj_create(state->root);
+    lv_obj_set_size(state->dial_row, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(state->dial_row, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(state->dial_row, 0, 0);
+    lv_obj_set_style_pad_all(state->dial_row, 0, 0);
+    lv_obj_set_flex_flow(state->dial_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(state->dial_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(state->dial_row, 8, 0);
+    lv_obj_clear_flag(state->dial_row, LV_OBJ_FLAG_SCROLLABLE);
+
+    stopwatch_make_button(
+        state->dial_row, state, "-1m",
+        [](lv_event_t* e)
+        { stopwatch_adjust_target(static_cast<StopwatchPageState*>(lv_event_get_user_data(e)),
+                                  -60); });
+    stopwatch_make_button(
+        state->dial_row, state, "-10s",
+        [](lv_event_t* e)
+        { stopwatch_adjust_target(static_cast<StopwatchPageState*>(lv_event_get_user_data(e)),
+                                  -10); });
+    state->dial_label = lv_label_create(state->dial_row);
+    lv_obj_set_style_text_font(state->dial_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(state->dial_label, ui::theme::accent(), 0);
+    lv_label_set_text(state->dial_label, "01:00");
+    stopwatch_make_button(
+        state->dial_row, state, "+10s",
+        [](lv_event_t* e)
+        { stopwatch_adjust_target(static_cast<StopwatchPageState*>(lv_event_get_user_data(e)),
+                                  10); });
+    stopwatch_make_button(
+        state->dial_row, state, "+1m",
+        [](lv_event_t* e)
+        { stopwatch_adjust_target(static_cast<StopwatchPageState*>(lv_event_get_user_data(e)),
+                                  60); });
+
+    // Lap list: a scrollable column the laps are prepended to (newest on top).
+    state->lap_list = lv_obj_create(state->root);
+    lv_obj_set_width(state->lap_list, LV_PCT(100));
+    lv_obj_set_height(state->lap_list, 300);
+    lv_obj_set_style_bg_color(state->lap_list, ui::theme::surface(), 0);
+    lv_obj_set_style_bg_opa(state->lap_list, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(state->lap_list, 1, 0);
+    lv_obj_set_style_border_color(state->lap_list, ui::theme::border(), 0);
+    lv_obj_set_style_radius(state->lap_list, 6, 0);
+    lv_obj_set_style_pad_all(state->lap_list, 10, 0);
+    lv_obj_set_flex_flow(state->lap_list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(state->lap_list, 4, 0);
+    lv_obj_set_scroll_dir(state->lap_list, LV_DIR_VER);
+
+    // Apply initial mode visibility (start in stopwatch mode: dial hidden, Lap shown)
+    // and paint the read-out, then start the ~50 ms repaint timer.
+    stopwatch_apply_mode_visibility(state);
+    stopwatch_update_dial(state);
+    stopwatch_refresh(state);
+    state->timer = lv_timer_create(stopwatch_tick, StopwatchPageState::kTickMs, state);
+}
+
+void stopwatch_exit(void* user_data, lv_obj_t* parent)
+{
+    (void)parent;
+    auto* state = static_cast<StopwatchPageState*>(user_data);
+    if (!state)
+    {
+        return;
+    }
+    if (state->timer)
+    {
+        lv_timer_del(state->timer);
+        state->timer = nullptr;
+    }
+    if (!state->root || !lv_obj_is_valid(state->root))
+    {
+        state->root = nullptr;
+        state->time_label = nullptr;
+        state->status_label = nullptr;
+        state->start_label = nullptr;
+        state->lap_list = nullptr;
+        state->dial_row = nullptr;
+        state->dial_label = nullptr;
+        state->lap_btn = nullptr;
+        return;
+    }
+    lv_obj_del(state->root);
+    state->root = nullptr;
+    state->time_label = nullptr;
+    state->status_label = nullptr;
+    state->start_label = nullptr;
+    state->lap_list = nullptr;
+    state->dial_row = nullptr;
+    state->dial_label = nullptr;
+    state->lap_btn = nullptr;
+}
+
+ui::CallbackAppScreen s_stopwatch_app("stopwatch", "Stopwatch", &Setting, stopwatch_enter,
+                                      stopwatch_exit, &s_stopwatch_state);
+
 // Chat shell entry. Mirrors modules/ui_shared/src/ui/app_catalog_builder.cpp:
 // the chat page shell's enter/exit take a ui::page::Host* as user_data, and the
 // menu host routes the page's back/exit request to ui_request_exit_to_menu().
@@ -3430,7 +4018,8 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_systest_app,
                        &s_gps_position_app,
                        &s_g2048_app,
-                       &s_flashlight_app};
+                       &s_flashlight_app,
+                       &s_stopwatch_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 
