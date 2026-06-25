@@ -1403,8 +1403,9 @@ void help_enter(void* user_data, lv_obj_t* parent)
     help_add_title(state->root, "What this device is");
     help_add_body(state->root,
                   "A LilyGo T-Display P4 touchscreen running the Trail Mate launcher, a "
-                  "dual-boot Meshtastic / MeshCore off-grid mesh communicator and toolkit. It "
-                  "drives the LoRa radios directly; it is not the original TrailMate phone app.");
+                  "multi-protocol off-grid mesh communicator and toolkit (Meshtastic, MeshCore, "
+                  "LXMF, R-Node Bridge). It drives the LoRa radios directly; it is not the "
+                  "original TrailMate phone app.");
 
     // (3) The apps, one tight line each.
     help_add_title(state->root, "The apps");
@@ -1413,7 +1414,8 @@ void help_enter(void* user_data, lv_obj_t* parent)
                   "Contacts: nearby nodes. Nearby auto-updates; Broadcast ID announces you "
                   "instantly.");
     help_add_body(state->root,
-                  "Settings: device, radio, channel, GPS. Channel keys accept a passphrase.");
+                  "Settings: device, radio, channel, GPS. Channel keys accept a passphrase. "
+                  "Switch the mesh protocol under Settings > Chat > Protocol.");
     help_add_body(state->root, "Satellites: GNSS sky-plot.");
     help_add_body(state->root, "Tracker: GPS tracks to SD.");
     help_add_body(state->root, "Sub-GHz Scan: LoRa spectrum sweep.");
@@ -1422,14 +1424,13 @@ void help_enter(void* user_data, lv_obj_t* parent)
     help_add_body(state->root, "C6 Companion: ESP32-C6 status.");
     help_add_body(state->root, "Games: Snake, Tetris.");
 
-    // (4) Switching Meshtastic and MeshCore. Deliberately general about the boot
-    // launcher: do not invent specific button/key sequences here.
-    help_add_title(state->root, "Switching Meshtastic and MeshCore");
+    // (4) Switching the mesh protocol (Settings > Chat > Protocol).
+    help_add_title(state->root, "Switching protocols");
     help_add_body(state->root,
-                  "This device is dual-boot. It runs Meshtastic (this Trail Mate firmware, what "
-                  "you are using now) or MeshCore, which is installed as a separate firmware. "
-                  "Switch between them from the device's DualMesh boot launcher, which lets you "
-                  "choose which one to start. The MeshCore side is lock-protected by default.");
+                  "This device can run several mesh protocols. To switch, open Settings, choose "
+                  "Chat, then Protocol, and pick one: Meshtastic, MeshCore, LXMF, or R-Node "
+                  "Bridge. Meshtastic and MeshCore are the two main mesh options; LXMF and "
+                  "R-Node Bridge are also available.");
 
     // (5) Tips and tricks.
     help_add_title(state->root, "Tips and tricks");
