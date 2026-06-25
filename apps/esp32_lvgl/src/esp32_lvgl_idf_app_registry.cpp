@@ -11,6 +11,7 @@
 #include "ui/screens/energy_sweep/energy_sweep_page_shell.h"
 #include "ui/screens/extensions/extensions_page_shell.h"
 #include "ui/screens/gnss/gnss_skyplot_page_shell.h"
+#include "ui/screens/gps/gps_page_shell.h"
 #include "ui/screens/pc_link/pc_link_page_shell.h"
 #include "ui/screens/settings/settings_page_shell.h"
 #include "ui/screens/tracker/tracker_page_shell.h"
@@ -2078,6 +2079,31 @@ ui::CallbackAppScreen s_skyplot_app("sky_plot",
                                     gnss::ui::shell::exit,
                                     &s_skyplot_menu_host);
 
+// Map (the full offline-tile map: your-position marker + mesh node markers +
+// tracker/route overlays). stable_id = 'map'; screen dir is screens/gps. Mirrors
+// the chat/contacts/settings/sky_plot binding: the gps page shell's enter/exit
+// take a ui::page::Host* (gps::ui::shell::Host is an alias of ::ui::page::Host) as
+// user_data and route the back request through ui_request_exit_to_menu() via the
+// menu host. The shell wraps the runtime with the header-only page_shell_fallback
+// template; its placeholder_page::show/hide (non-inline) TU is ALREADY linked via
+// TRAILMATE_ESP_IDF_GNSS_UI_SOURCES, so it is not repeated in the GPS set.
+// is_available() == platform::ui::device::gps_supported() == true on the P4, so
+// the live map runtime is entered: it builds the offline-tile map (map_viewport +
+// the arduino_common map_tiles engine, both already compiled for the Contacts
+// node-detail mini-map) and reads the fix/team/route via the platform::ui
+// producers (gps/tracker/route_storage/team_ui_store, all in the PLATFORM block).
+// It degrades gracefully with no SD/fix (empty tiles, default view), and exit()
+// tears down synchronously via gps::ui::runtime::exit (timers deleted, overlays/
+// tiles cleaned, root deleted), so the boot self-test enters+exits cleanly.
+ui::page::Host s_gps_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_gps_app("map",
+                                "Map",
+                                &Setting,
+                                gps::ui::shell::enter,
+                                gps::ui::shell::exit,
+                                &s_gps_menu_host);
+
 // Extensions (Wi-Fi / companion extensions status panel: language-pack catalog,
 // install/update/uninstall + per-package detail). stable_id = 'extensions'.
 // Mirrors the chat/contacts/settings binding: the extensions page shell's
@@ -2178,6 +2204,7 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_contacts_app,
                        &s_settings_app,
                        &s_skyplot_app,
+                       &s_gps_app,
                        &s_extensions_app,
                        &s_tracker_app,
                        &s_energy_sweep_app,

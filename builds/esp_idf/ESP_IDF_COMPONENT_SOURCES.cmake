@@ -278,11 +278,14 @@ set(TRAILMATE_ESP_IDF_CONTACTS_UI_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_map_runtime/src/map_tiles/map_tile_render_queue.cpp"
     "${TRAILMATE_ROOT}/modules/ui_map_runtime/src/map_tiles/map_tile_resolver.cpp"
     # Toast widget: the contacts compose panel (chat_compose) and the node_info
-    # layer-notice path call ::ui::widgets::Toast::show(); the GPS screen that
-    # owns the free show_toast() in Arduino/Linux builds is out of scope here, so
-    # node_info's show_toast() is provided by the IDF compat producer below.
-    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/toast/toast_widget.cpp"
-    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/ui_toast_compat.cpp")
+    # layer-notice path call ::ui::widgets::Toast::show(). The free
+    # show_toast(const char*, uint32_t) that node_info also calls is owned by the
+    # GPS screen (gps_page_components.cpp); when the Map app is bound that TU is
+    # compiled in TRAILMATE_ESP_IDF_GPS_UI_SOURCES and provides the real
+    # show_toast for BOTH node_info and the GPS page, so the IDF node_info-only
+    # stand-in (idf_common/src/ui_toast_compat.cpp) is intentionally NOT listed
+    # here -- keeping it would duplicate the show_toast symbol at link time.
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/widgets/toast/toast_widget.cpp")
 
 # ---------------------------------------------------------------------------
 # Settings app (device/radio/channel/GPS config editor + broadcast-nodeinfo
@@ -338,6 +341,55 @@ set(TRAILMATE_ESP_IDF_GNSS_UI_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/gnss/gnss_skyplot_page_runtime.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/gnss/gnss_skyplot_page_shell.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/common/placeholder_page.cpp")
+
+# ---------------------------------------------------------------------------
+# GPS / Map app (the full offline-tile map: your-position marker + mesh node
+# markers + tracker/route overlays). stable_id = 'map'; screen dir is
+# screens/gps. The page shell wraps the runtime with the header-only
+# page_shell_fallback template (its placeholder_page::show/hide non-inline TU is
+# ALREADY linked via TRAILMATE_ESP_IDF_GNSS_UI_SOURCES, so it is intentionally
+# NOT repeated here -- a second copy would be a duplicate-symbol link error).
+# is_available() == platform::ui::device::gps_supported() == true on the P4, so
+# the live map runtime is entered.
+#
+# The runtime is the ESP/ARDUINO branch of gps_page_runtime.cpp (ESP_PLATFORM is
+# defined). It composes the page from the screens/gps sub-modules (layout /
+# styles / lifetime / components / input / map / modal / route & tracker
+# overlays), whose bodies live in platform/esp/arduino_common/src/ui/screens/gps/
+# (pure FreeRTOS/stdlib, not Arduino-API bound -- they reach config via
+# app::configFacade().getConfig(), the SD via bsp_runtime, and GPS/team via the
+# platform::ui producers), so they build and run in the pure IDF/no-SD self-test.
+# It also drives the GpsPageRuntimePump (ui_gps_runtime), whose out-of-line
+# methods are in gps_page_runtime_pump.cpp.
+#
+# The map-tile WIDGET stack the runtime renders into -- map_viewport.cpp, the
+# arduino_common map_tiles tile engine, and the ui_map_runtime tile producers --
+# is intentionally NOT listed here: it is ALREADY compiled in
+# TRAILMATE_ESP_IDF_CONTACTS_UI_SOURCES (the node-detail mini-map), and re-adding
+# it would be a duplicate-symbol link error. Likewise, the free
+# show_toast(const char*, uint32_t) the GPS components own is provided here by
+# gps_page_components.cpp, so the node_info-only IDF stand-in
+# (idf_common/src/ui_toast_compat.cpp) is removed from the Contacts group above
+# to avoid a duplicate definition.
+set(TRAILMATE_ESP_IDF_GPS_UI_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/gps/gps_page_shell.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/gps/gps_page_runtime.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_gps_runtime/src/gps_page_runtime_pump.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/screens/gps/gps_page_layout.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/screens/gps/gps_page_styles.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/screens/gps/gps_page_lifetime.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/screens/gps/gps_page_components.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/screens/gps/gps_page_input.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/screens/gps/gps_page_map.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/screens/gps/gps_modal.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/screens/gps/gps_route_overlay.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ui/screens/gps/gps_tracker_overlay.cpp"
+    # gps_page_map.cpp draws the team node markers via TeamMapOverlaySource
+    # (loads each member's last location from the shared team_ui snapshot store)
+    # and the "your position" marker from the room_24px icon descriptor, so both
+    # of those producers are pulled in here.
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/presentation_sources/team_map_overlay_source.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/room-24px.c")
 
 # ---------------------------------------------------------------------------
 # Extensions app (Wi-Fi / companion extensions status panel: language-pack
