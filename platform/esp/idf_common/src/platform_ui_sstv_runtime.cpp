@@ -64,6 +64,16 @@ bool is_active()
     return ::sstv::is_active();
 }
 
+void set_gain(float db)
+{
+    ::sstv::set_gain(db);
+}
+
+float get_gain()
+{
+    return ::sstv::get_gain();
+}
+
 Status get_status()
 {
     const ::sstv::Status source = ::sstv::get_status();

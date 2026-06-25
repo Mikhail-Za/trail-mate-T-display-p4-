@@ -31,6 +31,7 @@ constexpr uint32_t kReceivingMs = 6200U;
 
 std::mutex s_mutex;
 bool s_active = false;
+float s_gain_db = 24.0f; // simulated mic gain; mirrors the device default + range
 State s_state = State::Idle;
 Clock::time_point s_started_at = Clock::now();
 std::string s_last_error{};
@@ -305,6 +306,18 @@ bool is_active()
 {
     std::lock_guard<std::mutex> lock(s_mutex);
     return s_active;
+}
+
+void set_gain(float db)
+{
+    std::lock_guard<std::mutex> lock(s_mutex);
+    s_gain_db = std::clamp(db, 0.0f, 42.0f);
+}
+
+float get_gain()
+{
+    std::lock_guard<std::mutex> lock(s_mutex);
+    return s_gain_db;
 }
 
 Status get_status()

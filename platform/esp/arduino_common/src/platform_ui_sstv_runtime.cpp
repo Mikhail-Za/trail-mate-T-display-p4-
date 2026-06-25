@@ -69,6 +69,24 @@ bool is_active()
 #endif
 }
 
+void set_gain(float db)
+{
+#if !defined(TRAIL_MATE_ENABLE_SSTV) || TRAIL_MATE_ENABLE_SSTV
+    ::sstv::set_gain(db);
+#else
+    (void)db;
+#endif
+}
+
+float get_gain()
+{
+#if !defined(TRAIL_MATE_ENABLE_SSTV) || TRAIL_MATE_ENABLE_SSTV
+    return ::sstv::get_gain();
+#else
+    return 0.0f;
+#endif
+}
+
 Status get_status()
 {
 #if !defined(TRAIL_MATE_ENABLE_SSTV) || TRAIL_MATE_ENABLE_SSTV

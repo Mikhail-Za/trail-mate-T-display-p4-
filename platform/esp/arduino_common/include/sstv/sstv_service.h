@@ -26,6 +26,13 @@ struct Status
 bool start();
 void stop();
 bool is_active();
+
+// Mic input gain (dB) for SSTV capture. set_gain() clamps to a sane range and,
+// if a capture is active, applies the new gain to the open codec immediately so
+// it takes effect live during RX. get_gain() returns the current runtime value.
+float get_gain();
+void set_gain(float db);
+
 Status get_status();
 const char* get_last_error();
 const char* get_last_saved_path();

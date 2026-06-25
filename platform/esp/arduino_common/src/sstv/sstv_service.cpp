@@ -318,6 +318,28 @@ volatile bool s_stop = false;
 bool s_active = false;
 bool s_codec_open = false;
 
+// Runtime mic input gain (dB) for SSTV capture. The fixed kMicGainDb (6 dB) was
+// far too low for the ES8311 mic on the P4 -- the walkie path uses 36 dB. This
+// starts at a solid usable default and is live-tunable from the screen's
+// GAIN -/+ buttons (see set_gain below). Clamped to a sane 0..42 dB window.
+constexpr float kSstvGainMinDb = 0.0f;
+constexpr float kSstvGainMaxDb = 42.0f;
+constexpr float kSstvGainDefaultDb = 24.0f;
+float s_gain_db = kSstvGainDefaultDb;
+
+float clamp_gain_db(float db)
+{
+    if (db < kSstvGainMinDb)
+    {
+        return kSstvGainMinDb;
+    }
+    if (db > kSstvGainMaxDb)
+    {
+        return kSstvGainMaxDb;
+    }
+    return db;
+}
+
 sstv::Status s_status;
 char s_last_error[96] = {0};
 char s_saved_path[64] = {0};
@@ -870,7 +892,7 @@ void sstv_task(void*)
 
     s_codec_open = true;
     SSTV_LOG("[SSTV] codec.open ok -- entering capture loop\n");
-    board->codec.setGain(kMicGainDb);
+    board->codec.setGain(clamp_gain_db(s_gain_db));
     board->codec.setMute(false);
     prev_volume = board->codec.getVolume();
     prev_out_mute = board->codec.getOutMute();
@@ -1452,6 +1474,33 @@ bool is_active()
     return s_active;
 }
 
+float get_gain()
+{
+    return s_gain_db;
+}
+
+void set_gain(float db)
+{
+    s_gain_db = clamp_gain_db(db);
+    // If a capture is live, push the new gain into the open codec so the change
+    // takes effect immediately during RX (the ES8311 mic gain is settable while
+    // the codec is open). getInstance() is the same singleton the capture task
+    // uses; the board path differs between the IDF and Arduino builds.
+    if (s_active && s_codec_open)
+    {
+#if defined(TRAIL_MATE_SSTV_IDF_PATH)
+        auto* board = TLoRaPagerBoard::getInstance();
+#else
+        auto* board = boards::tlora_pager::TLoRaPagerBoard::getInstance();
+#endif
+        if (board)
+        {
+            board->codec.setGain(s_gain_db);
+        }
+    }
+    SSTV_LOG("[SSTV] gain=%.1f dB\n", static_cast<double>(s_gain_db));
+}
+
 Status get_status()
 {
     Status out;
@@ -1508,6 +1557,15 @@ void stop() {}
 bool is_active()
 {
     return false;
+}
+
+float get_gain()
+{
+    return 0.0f;
+}
+
+void set_gain(float)
+{
 }
 
 Status get_status()

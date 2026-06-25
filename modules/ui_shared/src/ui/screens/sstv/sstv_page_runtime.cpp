@@ -41,6 +41,7 @@ void request_exit()
 constexpr lv_coord_t kClassicScreenW = 480;
 constexpr lv_coord_t kClassicMainHeight = 192;
 constexpr int kMeterSegments = 12;
+constexpr float kGainStepDb = 6.0f; // per-tap mic-gain change for the -/+ buttons
 
 lv_coord_t top_bar_height()
 {
@@ -100,12 +101,24 @@ struct SstvLayout
     lv_coord_t btn_rx_w = 72;
     lv_coord_t btn_rx_h = 22;
 
+    // Manual mic-gain controls ("Gain: NN dB" + big -/+ touch buttons). Only the
+    // tall portrait layout has room for them; classic landscape leaves show_gain
+    // false so its hand-tuned 480x192 geometry is unchanged. Coordinates are in
+    // info-panel space, same as the RX button.
+    bool show_gain = false;
+    lv_coord_t gain_label_y = 0;
+    lv_coord_t gain_btn_y = 0;
+    lv_coord_t gain_btn_w = 72;
+    lv_coord_t gain_btn_h = 56;
+
     // Fonts (default to the classic inline sizes).
     const lv_font_t* placeholder_font = &lv_font_montserrat_12;
     const lv_font_t* state_sub_font = &lv_font_montserrat_14;
     const lv_font_t* mode_font = &lv_font_montserrat_14;
     const lv_font_t* ready_font = &lv_font_montserrat_14;
     const lv_font_t* btn_rx_font = &lv_font_montserrat_16;
+    const lv_font_t* gain_label_font = &lv_font_montserrat_20;
+    const lv_font_t* gain_btn_font = &lv_font_montserrat_24;
 };
 
 SstvLayout make_classic_layout()
@@ -165,7 +178,18 @@ SstvLayout make_portrait_tall_layout(int parent_w, int parent_h, int top_bar_h)
     l.mode_y = 96;
     l.ready_y = 156;
     l.btn_rx_y = l.info_h - l.btn_rx_h - 8;
-    l.progress_y = l.btn_rx_y - 28;
+
+    // Manual mic-gain row sits above the RX button: big -/+ touch buttons with a
+    // "Gain: NN dB" label above them; the progress bar sits above the label. The
+    // portrait info panel is tall enough to host this between the status labels
+    // and the RX button (stacked top->bottom: status, progress, gain label,
+    // gain buttons, RX).
+    l.show_gain = true;
+    l.gain_btn_h = 56;
+    l.gain_btn_w = static_cast<lv_coord_t>((content_w - 24) / 2); // two side-by-side
+    l.gain_btn_y = l.btn_rx_y - 18 - l.gain_btn_h;
+    l.gain_label_y = l.gain_btn_y - 32;
+    l.progress_y = l.gain_label_y - 24;
 
     // Audio meter: a wider/taller vertical bar on the right edge of the info panel.
     l.meter_w = 40;
@@ -221,6 +245,9 @@ struct SstvUi
     lv_obj_t* meter_segments[kMeterSegments] = {};
     lv_obj_t* btn_rx = nullptr;
     lv_obj_t* btn_rx_label = nullptr;
+    lv_obj_t* label_gain = nullptr;
+    lv_obj_t* btn_gain_minus = nullptr;
+    lv_obj_t* btn_gain_plus = nullptr;
 };
 
 SstvUi s_ui;
@@ -298,6 +325,38 @@ void on_rx_btn_key(lv_event_t* e)
         return;
     }
     on_rx_btn_clicked(nullptr);
+}
+
+// Push the current SSTV mic gain into the "Gain: NN dB" label.
+void refresh_gain_label()
+{
+    if (!s_ui.label_gain)
+    {
+        return;
+    }
+    int db = static_cast<int>(lroundf(platform::ui::sstv::get_gain()));
+    const std::string text = ::ui::i18n::format("Gain: %d dB", db);
+    lv_label_set_text(s_ui.label_gain, text.c_str());
+}
+
+// Touch mic-gain control: the P4 is touch-only, so on-screen -/+ buttons step
+// the SSTV capture gain. The service clamps to its sane window and, if RX is
+// live, applies the change to the open codec immediately. Updating the label
+// reflects the clamped value the service actually settled on.
+void gain_step(float delta)
+{
+    platform::ui::sstv::set_gain(platform::ui::sstv::get_gain() + delta);
+    refresh_gain_label();
+}
+
+void on_gain_minus(lv_event_t*)
+{
+    gain_step(-kGainStepDb);
+}
+
+void on_gain_plus(lv_event_t*)
+{
+    gain_step(kGainStepDb);
 }
 
 void refresh_cb(lv_timer_t*)
@@ -552,6 +611,54 @@ void build_main_area(lv_obj_t* parent)
     lv_obj_add_event_cb(s_ui.btn_rx, on_rx_btn_clicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_add_event_cb(s_ui.btn_rx, on_rx_btn_key, LV_EVENT_KEY, nullptr);
 
+    // Manual mic-gain controls (portrait/touch only). A "Gain: NN dB" readout
+    // above a pair of big -/+ touch buttons that step the SSTV capture gain. They
+    // work before RX (set the gain RX starts with) and during RX (live adjust).
+    if (s_layout.show_gain)
+    {
+        s_ui.label_gain = lv_label_create(s_ui.info_area);
+        lv_obj_set_pos(s_ui.label_gain, 0, s_layout.gain_label_y);
+        lv_obj_set_width(s_ui.label_gain, s_layout.info_w);
+        lv_obj_set_style_text_align(s_ui.label_gain, LV_TEXT_ALIGN_CENTER, 0);
+        apply_label_style(s_ui.label_gain, s_layout.gain_label_font, kColorText);
+        ::ui::i18n::set_label_text(s_ui.label_gain, "Gain: -- dB");
+
+        const lv_coord_t minus_x = 0;
+        const lv_coord_t plus_x = static_cast<lv_coord_t>(s_layout.info_w - s_layout.gain_btn_w);
+
+        s_ui.btn_gain_minus = lv_btn_create(s_ui.info_area);
+        lv_obj_set_size(s_ui.btn_gain_minus, s_layout.gain_btn_w, s_layout.gain_btn_h);
+        lv_obj_set_pos(s_ui.btn_gain_minus, minus_x, s_layout.gain_btn_y);
+        lv_obj_set_style_bg_color(s_ui.btn_gain_minus, lv_color_hex(kColorPanelBg), 0);
+        lv_obj_set_style_bg_opa(s_ui.btn_gain_minus, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_width(s_ui.btn_gain_minus, 1, 0);
+        lv_obj_set_style_border_color(s_ui.btn_gain_minus, lv_color_hex(kColorLine), 0);
+        lv_obj_set_style_radius(s_ui.btn_gain_minus, 6, 0);
+        lv_obj_clear_flag(s_ui.btn_gain_minus, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_add_event_cb(s_ui.btn_gain_minus, on_gain_minus, LV_EVENT_CLICKED, nullptr);
+        lv_obj_t* gain_minus_label = lv_label_create(s_ui.btn_gain_minus);
+        apply_label_style(gain_minus_label, s_layout.gain_btn_font, kColorText);
+        ::ui::i18n::set_label_text(gain_minus_label, "GAIN -");
+        lv_obj_center(gain_minus_label);
+
+        s_ui.btn_gain_plus = lv_btn_create(s_ui.info_area);
+        lv_obj_set_size(s_ui.btn_gain_plus, s_layout.gain_btn_w, s_layout.gain_btn_h);
+        lv_obj_set_pos(s_ui.btn_gain_plus, plus_x, s_layout.gain_btn_y);
+        lv_obj_set_style_bg_color(s_ui.btn_gain_plus, lv_color_hex(kColorPanelBg), 0);
+        lv_obj_set_style_bg_opa(s_ui.btn_gain_plus, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_width(s_ui.btn_gain_plus, 1, 0);
+        lv_obj_set_style_border_color(s_ui.btn_gain_plus, lv_color_hex(kColorLine), 0);
+        lv_obj_set_style_radius(s_ui.btn_gain_plus, 6, 0);
+        lv_obj_clear_flag(s_ui.btn_gain_plus, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_add_event_cb(s_ui.btn_gain_plus, on_gain_plus, LV_EVENT_CLICKED, nullptr);
+        lv_obj_t* gain_plus_label = lv_label_create(s_ui.btn_gain_plus);
+        apply_label_style(gain_plus_label, s_layout.gain_btn_font, kColorText);
+        ::ui::i18n::set_label_text(gain_plus_label, "GAIN +");
+        lv_obj_center(gain_plus_label);
+
+        refresh_gain_label();
+    }
+
     s_ui.meter_box = lv_obj_create(s_ui.info_area);
     lv_obj_set_size(s_ui.meter_box, s_layout.meter_w, s_layout.meter_h);
     lv_obj_set_pos(s_ui.meter_box, s_layout.meter_x, s_layout.meter_y);
@@ -665,6 +772,14 @@ void ui_sstv_enter(lv_obj_t* parent)
         if (s_ui.btn_rx)
         {
             lv_group_add_obj(::app_g, s_ui.btn_rx);
+        }
+        if (s_ui.btn_gain_minus)
+        {
+            lv_group_add_obj(::app_g, s_ui.btn_gain_minus);
+        }
+        if (s_ui.btn_gain_plus)
+        {
+            lv_group_add_obj(::app_g, s_ui.btn_gain_plus);
         }
         lv_group_focus_obj(s_ui.top_bar.back_btn);
         set_default_group(::app_g);

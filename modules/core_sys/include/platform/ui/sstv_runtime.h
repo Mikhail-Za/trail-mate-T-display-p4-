@@ -29,6 +29,14 @@ bool is_supported();
 bool start();
 void stop();
 bool is_active();
+
+// Mic input gain (dB) for SSTV capture. Forwards to the SSTV service. set_gain()
+// clamps to a sane range and, when a capture is active, applies the new gain to
+// the open codec immediately so it takes effect live during RX. get_gain()
+// returns the current runtime value. The on-screen GAIN -/+ buttons drive these.
+void set_gain(float db);
+float get_gain();
+
 Status get_status();
 const char* last_error();
 const char* last_saved_path();
