@@ -840,6 +840,7 @@ void sstv_task(void*)
     bool prev_amp = true;
     if (!board)
     {
+        SSTV_LOG("[SSTV] exit: board not ready (getInstance returned null)\n");
         set_error("Board not ready");
         set_status(sstv::State::Error, 0, 0.0f, 0.0f, false);
         s_active = false;
@@ -847,9 +848,20 @@ void sstv_task(void*)
         return;
     }
 
-    if (board->codec.open(kBitsPerSample, kChannels, kCodecSampleRate) != 0)
+    const int codec_rc = board->codec.open(kBitsPerSample, kChannels, kCodecSampleRate);
+    if (codec_rc != 0)
     {
-        set_error("Codec open failed");
+        // rc == -1 => ensureCodec()/ensureI2s() failed: most likely I2S_NUM_0 is
+        // already owned (e.g. the walkie codec session is still open) or the
+        // ES8311 did not come up. rc > 0 => esp_codec_dev_open returned an error.
+        SSTV_LOG("[SSTV] exit: codec.open failed rc=%d (bits=%u ch=%u rate=%lu) -- "
+                 "I2S_NUM_0 busy or ES8311 down?\n",
+                 codec_rc, static_cast<unsigned>(kBitsPerSample),
+                 static_cast<unsigned>(kChannels),
+                 static_cast<unsigned long>(kCodecSampleRate));
+        char buf[64];
+        snprintf(buf, sizeof(buf), "Codec open failed (rc=%d)", codec_rc);
+        set_error(buf);
         set_status(sstv::State::Error, 0, 0.0f, 0.0f, false);
         s_active = false;
         vTaskDelete(nullptr);
@@ -857,6 +869,7 @@ void sstv_task(void*)
     }
 
     s_codec_open = true;
+    SSTV_LOG("[SSTV] codec.open ok -- entering capture loop\n");
     board->codec.setGain(kMicGainDb);
     board->codec.setMute(false);
     prev_volume = board->codec.getVolume();
@@ -881,6 +894,8 @@ void sstv_task(void*)
     int16_t* buffer = static_cast<int16_t*>(malloc(samples_per_read * sizeof(int16_t)));
     if (!buffer)
     {
+        SSTV_LOG("[SSTV] exit: audio buffer alloc failed (%d bytes)\n",
+                 static_cast<int>(samples_per_read * sizeof(int16_t)));
         set_error("No audio buffer");
         set_status(sstv::State::Error, 0, 0.0f, 0.0f, false);
         s_codec_open = false;
@@ -894,6 +909,9 @@ void sstv_task(void*)
     auto* line_rgb = static_cast<uint8_t(*)[4]>(malloc(320 * 4));
     if (!mono_buf || !resampled || !line_rgb)
     {
+        SSTV_LOG("[SSTV] exit: decode buffer alloc failed (mono=%p resampled=%p line_rgb=%p)\n",
+                 static_cast<void*>(mono_buf), static_cast<void*>(resampled),
+                 static_cast<void*>(line_rgb));
         free(line_rgb);
         free(resampled);
         free(mono_buf);
@@ -920,6 +938,11 @@ void sstv_task(void*)
 
     if (!s_frame)
     {
+        SSTV_LOG("[SSTV] exit: framebuffer alloc failed (%d bytes, SPIRAM then internal)\n",
+                 static_cast<int>(static_cast<size_t>(kOutWidth) * kOutHeight * sizeof(uint16_t)));
+        free(line_rgb);
+        free(resampled);
+        free(mono_buf);
         free(buffer);
         set_error("No framebuffer");
         set_status(sstv::State::Error, 0, 0.0f, 0.0f, false);
@@ -981,6 +1004,7 @@ void sstv_task(void*)
     goertzel_init(g1200, 1200.0, static_cast<double>(kSampleRate));
     goertzel_init(g1900, 1900.0, static_cast<double>(kSampleRate));
     double energy_sum = 0.0;
+    uint32_t s_read_iter = 0; // successful codec.read count, for the read-fail diagnostic
 
     while (!s_stop)
     {
@@ -988,10 +1012,19 @@ void sstv_task(void*)
                                            samples_per_read * sizeof(int16_t));
         if (read_state != 0)
         {
-            set_error("Audio read failed");
+            // If RX "blinks" off almost immediately, this is the most likely
+            // cause: the very first esp_codec_dev_read returned non-zero (I2S RX
+            // channel not enabled / codec IN not running). read_iter shows how
+            // many reads succeeded before the failure.
+            SSTV_LOG("[SSTV] exit: codec.read failed rc=%d after %lu ok reads\n",
+                     read_state, static_cast<unsigned long>(s_read_iter));
+            char buf[64];
+            snprintf(buf, sizeof(buf), "Audio read failed (rc=%d)", read_state);
+            set_error(buf);
             set_status(sstv::State::Error, 0, 0.0f, 0.0f, s_has_image);
             break;
         }
+        s_read_iter += 1;
 
         int block_peak = 0;
         bool had_pixel = false;
