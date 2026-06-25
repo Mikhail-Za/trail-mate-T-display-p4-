@@ -16,6 +16,11 @@
 #include "ui/screens/tracker/tracker_page_shell.h"
 #include "ui/ui_theme.h"
 
+#include "platform/ui/device_runtime.h"
+
+#include "esp_heap_caps.h"
+#include "esp_system.h"
+
 #include <cstdint>
 #include <cstdio>
 
@@ -1460,6 +1465,549 @@ void help_exit(void* user_data, lv_obj_t* parent)
 
 ui::CallbackAppScreen s_help_app("help", "Help", &Setting, help_enter, help_exit, &s_help_state);
 
+// ---------------------------------------------------------------------------
+// System Test: a fully self-contained hardware self-test / diagnostics app,
+// built inline the same way as the C6 Companion / Snake / Tetris / Help apps
+// above (file-static state, enter()/exit() that build/tear-down a root sized
+// LV_PCT(100), and a CallbackAppScreen added to s_apps[]). stable_id = "systest"
+// so the boot self-test logs appselftest:systest:ok when it enters then
+// immediately exits this screen once.
+//
+// The display + touch already work on this device, so this app REUSES the live
+// LVGL display + touch indev: it never initialises any display, touch, or
+// peripheral driver. The menu page is a scrollable flex column (like the Help
+// page) with a Back button and three test tiles, each opening a full-screen
+// sub-view (built as a child of the same app `parent`, so it covers the menu)
+// that carries its own Back-to-test-menu control:
+//   1. Color test  - a full-screen solid-color overlay on the top layer that
+//                     cycles Red->Green->Blue->White->Black->Gradient on tap,
+//                     then deletes itself and returns to the test menu.
+//   2. Touch test  - an lv_canvas (buffer in PSRAM) that draws a red line under
+//                     the finger via LV_EVENT_PRESSING + lv_indev_get_point.
+//   3. Info readout- a panel of labels (battery / free heap / free PSRAM / a
+//                     static panel line).
+//
+// systest_exit MUST leave nothing behind even when only enter()+exit() run (the
+// boot self-test): it deletes the color overlay if open, frees the canvas PSRAM
+// buffer if allocated (heap_caps_free) and clears the pointer, and deletes the
+// root with the same null/validity guards companion_exit/snake_exit use. The
+// canvas buffer is also freed in the touch sub-view's own close handler, so a
+// leak cannot accumulate across repeated open/close of the touch test.
+// ---------------------------------------------------------------------------
+struct SystestPageState
+{
+    // Drawing surface size for the touch test. A full 540x1168 RGB565 canvas is
+    // 540*1168*2 = ~1.26 MB; the panel has PSRAM so that fits, but we size the
+    // surface to most of the screen (540x900) to leave room for the Back/Clear
+    // controls above it. The buffer is still allocated from PSRAM.
+    static constexpr int kCanvasW = 540;
+    static constexpr int kCanvasH = 900;
+
+    lv_obj_t* parent = nullptr;  // the app container; sub-views are children of it
+    lv_obj_t* root = nullptr;    // the scrollable test menu page
+
+    lv_obj_t* sub_view = nullptr;  // active full-screen sub-view (touch or info)
+
+    // Color test: a full-screen overlay on the top layer + the cycle index.
+    lv_obj_t* color_overlay = nullptr;
+    int color_index = 0;
+
+    // Touch test: the canvas + its PSRAM buffer + the last drawn point.
+    lv_obj_t* canvas = nullptr;
+    void* canvas_buf = nullptr;
+    int32_t last_x = 0;
+    int32_t last_y = 0;
+    bool have_last = false;
+};
+
+SystestPageState s_systest_state;
+
+// Free the touch-test canvas PSRAM buffer (if allocated) and clear the pointers.
+// Safe to call repeatedly; called from the touch sub-view close handler AND from
+// systest_exit so the boot self-test enter+exit can never leak the buffer.
+void systest_free_canvas(SystestPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    st->canvas = nullptr;  // owned by (and deleted with) the sub-view tree
+    st->have_last = false;
+    if (st->canvas_buf)
+    {
+        heap_caps_free(st->canvas_buf);
+        st->canvas_buf = nullptr;
+    }
+}
+
+// ---- Color test -----------------------------------------------------------
+// Six steps: Red, Green, Blue, White, Black, then a vertical Black->White
+// gradient. The seventh tap deletes the overlay and returns to the test menu.
+void systest_color_apply(SystestPageState* st)
+{
+    if (!st || !st->color_overlay || !lv_obj_is_valid(st->color_overlay))
+    {
+        return;
+    }
+    // A flat solid color via bg color (no raw framebuffer writes), or, on the
+    // final step, a vertical gradient.
+    lv_color_t c = lv_color_hex(0x000000);
+    bool gradient = false;
+    switch (st->color_index)
+    {
+    case 0: c = lv_color_hex(0xFF0000); break;  // Red
+    case 1: c = lv_color_hex(0x00FF00); break;  // Green
+    case 2: c = lv_color_hex(0x0000FF); break;  // Blue
+    case 3: c = lv_color_hex(0xFFFFFF); break;  // White
+    case 4: c = lv_color_hex(0x000000); break;  // Black
+    default: gradient = true; break;            // vertical gradient
+    }
+    if (!gradient)
+    {
+        lv_obj_set_style_bg_grad_dir(st->color_overlay, LV_GRAD_DIR_NONE, 0);
+        lv_obj_set_style_bg_color(st->color_overlay, c, 0);
+        lv_obj_set_style_bg_opa(st->color_overlay, LV_OPA_COVER, 0);
+    }
+    else
+    {
+        // Vertical gradient from black (top) to white (bottom) as a smooth ramp
+        // to spot banding / uneven backlight, still via lv_obj bg styling.
+        lv_obj_set_style_bg_color(st->color_overlay, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_bg_grad_color(st->color_overlay, lv_color_hex(0xFFFFFF), 0);
+        lv_obj_set_style_bg_grad_dir(st->color_overlay, LV_GRAD_DIR_VER, 0);
+        lv_obj_set_style_bg_opa(st->color_overlay, LV_OPA_COVER, 0);
+    }
+}
+
+void systest_color_close(SystestPageState* st)
+{
+    if (st && st->color_overlay)
+    {
+        if (lv_obj_is_valid(st->color_overlay))
+        {
+            lv_obj_del(st->color_overlay);
+        }
+        st->color_overlay = nullptr;
+    }
+}
+
+void systest_open_color(SystestPageState* st)
+{
+    if (!st || (st->color_overlay && lv_obj_is_valid(st->color_overlay)))
+    {
+        return;
+    }
+    st->color_index = 0;
+    // Full-screen overlay on the top layer so it covers everything (menu + status)
+    // and receives taps directly. lv_obj covering the whole display; bg color is
+    // set per step, no raw framebuffer access.
+    lv_obj_t* ov = lv_obj_create(lv_layer_top());
+    st->color_overlay = ov;
+    lv_obj_remove_style_all(ov);
+    lv_obj_set_size(ov, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_pos(ov, 0, 0);
+    lv_obj_clear_flag(ov, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(ov, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(
+        ov,
+        [](lv_event_t* e)
+        {
+            auto* s = static_cast<SystestPageState*>(lv_event_get_user_data(e));
+            if (!s)
+            {
+                return;
+            }
+            s->color_index += 1;
+            if (s->color_index >= 6)
+            {
+                // Past the last (gradient) step: tear the overlay down and return
+                // to the test menu.
+                systest_color_close(s);
+                return;
+            }
+            systest_color_apply(s);
+        },
+        LV_EVENT_CLICKED, st);
+    systest_color_apply(st);
+}
+
+// ---- Touch test -----------------------------------------------------------
+// Draw a red line segment from the last finger point to the new one on every
+// LV_EVENT_PRESSING. Points come from the live touch indev; they are display
+// coordinates, so translate into canvas-local pixels via the canvas's coords.
+void systest_canvas_pressing(lv_event_t* e)
+{
+    auto* st = static_cast<SystestPageState*>(lv_event_get_user_data(e));
+    if (!st || !st->canvas || !lv_obj_is_valid(st->canvas))
+    {
+        return;
+    }
+    lv_indev_t* indev = lv_indev_get_act();
+    if (!indev)
+    {
+        return;
+    }
+    lv_point_t p;
+    lv_indev_get_point(indev, &p);
+
+    // Translate display coords -> canvas-local coords using the canvas position.
+    lv_area_t coords;
+    lv_obj_get_coords(st->canvas, &coords);
+    const int32_t cx = p.x - coords.x1;
+    const int32_t cy = p.y - coords.y1;
+    if (cx < 0 || cy < 0 || cx >= SystestPageState::kCanvasW ||
+        cy >= SystestPageState::kCanvasH)
+    {
+        // Finger is outside the drawing surface: drop the trail so the next
+        // in-bounds press starts a fresh stroke instead of a long jump-line.
+        st->have_last = false;
+        return;
+    }
+
+    if (st->have_last)
+    {
+        lv_layer_t layer;
+        lv_canvas_init_layer(st->canvas, &layer);
+        lv_draw_line_dsc_t line;
+        lv_draw_line_dsc_init(&line);
+        line.color = lv_color_hex(0xFF0000);
+        line.width = 4;
+        line.round_start = 1;
+        line.round_end = 1;
+        line.p1.x = st->last_x;
+        line.p1.y = st->last_y;
+        line.p2.x = cx;
+        line.p2.y = cy;
+        lv_draw_line(&layer, &line);
+        lv_canvas_finish_layer(st->canvas, &layer);
+    }
+    st->last_x = cx;
+    st->last_y = cy;
+    st->have_last = true;
+}
+
+void systest_close_sub_view(SystestPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    // Free the canvas buffer first (if this was the touch view) so closing it can
+    // never leak, then delete the sub-view tree and re-show the test menu.
+    systest_free_canvas(st);
+    if (st->sub_view)
+    {
+        if (lv_obj_is_valid(st->sub_view))
+        {
+            lv_obj_del(st->sub_view);
+        }
+        st->sub_view = nullptr;
+    }
+    if (st->root && lv_obj_is_valid(st->root))
+    {
+        lv_obj_clear_flag(st->root, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+// Build the standard "Back to test" bar at the top of a sub-view. Returns the
+// bar so the caller can add more controls (e.g. a Clear button) to the right.
+lv_obj_t* systest_sub_view_bar(SystestPageState* st, lv_obj_t* sub, const char* title)
+{
+    lv_obj_t* bar = lv_obj_create(sub);
+    lv_obj_set_size(bar, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(bar, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(bar, 0, 0);
+    lv_obj_set_style_pad_all(bar, 0, 0);
+    lv_obj_set_flex_flow(bar, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(bar, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(bar, 12, 0);
+    lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* back_btn = lv_button_create(bar);
+    lv_obj_t* back_lbl = lv_label_create(back_btn);
+    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Test");
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(
+        back_btn,
+        [](lv_event_t* e)
+        { systest_close_sub_view(static_cast<SystestPageState*>(lv_event_get_user_data(e))); },
+        LV_EVENT_CLICKED, st);
+
+    if (title)
+    {
+        lv_obj_t* lbl = lv_label_create(bar);
+        lv_obj_set_style_text_color(lbl, ui::theme::text(), 0);
+        lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, 0);
+        lv_label_set_text(lbl, title);
+    }
+    return bar;
+}
+
+// Create a full-screen sub-view as a child of the app parent (covering the menu).
+// Hides the menu root while it is shown. Returns the sub-view root.
+lv_obj_t* systest_make_sub_view(SystestPageState* st)
+{
+    if (!st || !st->parent)
+    {
+        return nullptr;
+    }
+    if (st->root && lv_obj_is_valid(st->root))
+    {
+        lv_obj_add_flag(st->root, LV_OBJ_FLAG_HIDDEN);
+    }
+    lv_obj_t* sub = lv_obj_create(st->parent);
+    st->sub_view = sub;
+    lv_obj_set_size(sub, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(sub, ui::theme::white(), 0);
+    lv_obj_set_style_bg_opa(sub, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(sub, 0, 0);
+    lv_obj_set_style_radius(sub, 0, 0);
+    lv_obj_set_style_pad_all(sub, 10, 0);
+    lv_obj_set_flex_flow(sub, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(sub, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(sub, 8, 0);
+    return sub;
+}
+
+void systest_open_touch(SystestPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    lv_obj_t* sub = systest_make_sub_view(st);
+    if (!sub)
+    {
+        return;
+    }
+
+    lv_obj_t* bar = systest_sub_view_bar(st, sub, "Touch");
+    // Clear button on the bar: refill the canvas bg and drop the trail.
+    lv_obj_t* clear_btn = lv_button_create(bar);
+    lv_obj_t* clear_lbl = lv_label_create(clear_btn);
+    lv_label_set_text(clear_lbl, LV_SYMBOL_TRASH " Clear");
+    lv_obj_center(clear_lbl);
+    lv_obj_add_event_cb(
+        clear_btn,
+        [](lv_event_t* e)
+        {
+            auto* s = static_cast<SystestPageState*>(lv_event_get_user_data(e));
+            if (s && s->canvas && lv_obj_is_valid(s->canvas))
+            {
+                lv_canvas_fill_bg(s->canvas, lv_color_hex(0xDDDDDD), LV_OPA_COVER);
+                s->have_last = false;
+            }
+        },
+        LV_EVENT_CLICKED, st);
+
+    // Allocate the canvas buffer from PSRAM. RGB565 -> 2 bytes/px. If the alloc
+    // fails (low PSRAM) show a label instead of crashing.
+    const size_t buf_size =
+        static_cast<size_t>(SystestPageState::kCanvasW) * SystestPageState::kCanvasH *
+        sizeof(lv_color_t);
+    st->canvas_buf = heap_caps_malloc(buf_size, MALLOC_CAP_SPIRAM);
+    if (!st->canvas_buf)
+    {
+        lv_obj_t* err = lv_label_create(sub);
+        lv_obj_set_style_text_color(err, ui::theme::error(), 0);
+        lv_obj_set_style_text_font(err, &lv_font_montserrat_14, 0);
+        lv_label_set_text(err, "Touch test: PSRAM alloc failed");
+        return;
+    }
+
+    st->canvas = lv_canvas_create(sub);
+    lv_canvas_set_buffer(st->canvas, st->canvas_buf, SystestPageState::kCanvasW,
+                         SystestPageState::kCanvasH, LV_COLOR_FORMAT_RGB565);
+    lv_canvas_fill_bg(st->canvas, lv_color_hex(0xDDDDDD), LV_OPA_COVER);
+    lv_obj_set_style_border_width(st->canvas, 1, 0);
+    lv_obj_set_style_border_color(st->canvas, ui::theme::border(), 0);
+    lv_obj_clear_flag(st->canvas, LV_OBJ_FLAG_SCROLLABLE);
+    // The canvas itself must receive press events; bind PRESSING to draw.
+    lv_obj_add_flag(st->canvas, LV_OBJ_FLAG_CLICKABLE);
+    st->have_last = false;
+    lv_obj_add_event_cb(st->canvas, systest_canvas_pressing, LV_EVENT_PRESSING, st);
+}
+
+// ---- Info readout ---------------------------------------------------------
+void systest_open_info(SystestPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    lv_obj_t* sub = systest_make_sub_view(st);
+    if (!sub)
+    {
+        return;
+    }
+    systest_sub_view_bar(st, sub, "Info");
+
+    // A panel of labels. Battery uses the SAME source the menu uses
+    // (platform::ui::device::battery_info(); see menu_runtime.cpp
+    // refreshBatteryLabel). Heap/PSRAM are read live at open time.
+    lv_obj_t* panel = lv_obj_create(sub);
+    lv_obj_set_size(panel, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_color(panel, ui::theme::surface(), 0);
+    lv_obj_set_style_bg_opa(panel, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(panel, 1, 0);
+    lv_obj_set_style_border_color(panel, ui::theme::border(), 0);
+    lv_obj_set_style_radius(panel, 6, 0);
+    lv_obj_set_style_pad_all(panel, 12, 0);
+    lv_obj_set_flex_flow(panel, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(panel, 6, 0);
+
+    const platform::ui::device::BatteryInfo battery = platform::ui::device::battery_info();
+    char batt_buf[48];
+    if (battery.level < 0)
+    {
+        std::snprintf(batt_buf, sizeof(batt_buf), "%s",
+                      battery.charging ? "USB (charging)" : "unknown");
+    }
+    else
+    {
+        std::snprintf(batt_buf, sizeof(batt_buf), "%d%%%s", battery.level,
+                      battery.charging ? " (charging)" : "");
+    }
+    add_status_line(panel, "Battery", batt_buf);
+
+    add_u32_line(panel, "Free heap",
+                 static_cast<unsigned long>(esp_get_free_heap_size()));
+    add_u32_line(panel, "Free PSRAM",
+                 static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));
+
+    add_status_line(panel, "Display", "HI8561 540x1168 RGB565");
+}
+
+// ---- Test menu ------------------------------------------------------------
+lv_obj_t* systest_make_tile(lv_obj_t* parent,
+                            SystestPageState* st,
+                            const char* text,
+                            lv_event_cb_t cb)
+{
+    // A wide button tile (full width) that opens a sub-view on click. The whole
+    // tile is the hitbox.
+    lv_obj_t* btn = lv_button_create(parent);
+    lv_obj_set_width(btn, LV_PCT(100));
+    lv_obj_set_style_pad_top(btn, 16, 0);
+    lv_obj_set_style_pad_bottom(btn, 16, 0);
+    lv_obj_t* lbl = lv_label_create(btn);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, 0);
+    lv_label_set_text(lbl, text);
+    lv_obj_center(lbl);
+    lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, st);
+    return btn;
+}
+
+void systest_enter(void* user_data, lv_obj_t* parent)
+{
+    auto* state = static_cast<SystestPageState*>(user_data);
+    if (!state || !parent || (state->root && lv_obj_is_valid(state->root)))
+    {
+        return;
+    }
+
+    state->parent = parent;
+    state->sub_view = nullptr;
+    state->color_overlay = nullptr;
+    state->color_index = 0;
+    state->canvas = nullptr;
+    state->canvas_buf = nullptr;
+    state->have_last = false;
+
+    state->root = lv_obj_create(parent);
+    lv_obj_set_size(state->root, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(state->root, ui::theme::white(), 0);
+    lv_obj_set_style_bg_opa(state->root, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(state->root, 0, 0);
+    lv_obj_set_style_radius(state->root, 0, 0);
+    lv_obj_set_style_pad_left(state->root, 18, 0);
+    lv_obj_set_style_pad_right(state->root, 18, 0);
+    lv_obj_set_style_pad_top(state->root, 18, 0);
+    lv_obj_set_style_pad_bottom(state->root, 18, 0);
+    lv_obj_set_flex_flow(state->root, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(state->root, 10, 0);
+    // Vertically scrollable like the Help page so every tile stays reachable.
+    lv_obj_set_scroll_dir(state->root, LV_DIR_VER);
+    lv_obj_add_flag(state->root, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Back button: routes to the launcher menu via the same exit the Chat app
+    // uses (exactly like companion_enter/help_enter).
+    lv_obj_t* back_btn = lv_button_create(state->root);
+    lv_obj_set_width(back_btn, LV_PCT(45));
+    lv_obj_t* back_lbl = lv_label_create(back_btn);
+    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(
+        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+
+    // Page title.
+    lv_obj_t* title = lv_label_create(state->root);
+    lv_obj_set_width(title, LV_PCT(100));
+    lv_label_set_long_mode(title, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(title, ui::theme::accent(), 0);
+    lv_label_set_text(title, "System Test");
+
+    add_label(state->root,
+              "Hardware self-test. Pick a test below.",
+              &lv_font_montserrat_14,
+              ui::theme::text_muted());
+
+    // Three test tiles, each opening its sub-view.
+    systest_make_tile(
+        state->root, state, "Color Test (dead pixel / color)",
+        [](lv_event_t* e)
+        { systest_open_color(static_cast<SystestPageState*>(lv_event_get_user_data(e))); });
+    systest_make_tile(
+        state->root, state, "Touch Test (draw on touch)",
+        [](lv_event_t* e)
+        { systest_open_touch(static_cast<SystestPageState*>(lv_event_get_user_data(e))); });
+    systest_make_tile(
+        state->root, state, "Info Readout",
+        [](lv_event_t* e)
+        { systest_open_info(static_cast<SystestPageState*>(lv_event_get_user_data(e))); });
+}
+
+void systest_exit(void* user_data, lv_obj_t* parent)
+{
+    (void)parent;
+    auto* state = static_cast<SystestPageState*>(user_data);
+    if (!state)
+    {
+        return;
+    }
+    // Tear down the color overlay (lives on the top layer, not under root).
+    systest_color_close(state);
+    // Free the canvas PSRAM buffer if the touch test allocated it (also frees on
+    // the touch view's own Back, so this covers enter->open-touch->exit and the
+    // boot self-test's bare enter->exit).
+    systest_free_canvas(state);
+    // Delete any open sub-view (child of parent, a sibling of root).
+    if (state->sub_view)
+    {
+        if (lv_obj_is_valid(state->sub_view))
+        {
+            lv_obj_del(state->sub_view);
+        }
+        state->sub_view = nullptr;
+    }
+    // Delete the root with companion_exit-style guards.
+    if (!state->root || !lv_obj_is_valid(state->root))
+    {
+        state->root = nullptr;
+        state->parent = nullptr;
+        return;
+    }
+    lv_obj_del(state->root);
+    state->root = nullptr;
+    state->parent = nullptr;
+}
+
+ui::CallbackAppScreen s_systest_app("systest", "System Test", &Setting, systest_enter,
+                                    systest_exit, &s_systest_state);
+
 // Chat shell entry. Mirrors modules/ui_shared/src/ui/app_catalog_builder.cpp:
 // the chat page shell's enter/exit take a ui::page::Host* as user_data, and the
 // menu host routes the page's back/exit request to ui_request_exit_to_menu().
@@ -1637,7 +2185,8 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_companion_app,
                        &s_snake_app,
                        &s_tetris_app,
-                       &s_help_app};
+                       &s_help_app,
+                       &s_systest_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 
