@@ -20,12 +20,22 @@
 
 #include "platform/ui/device_runtime.h"
 
+// Node Radar reads the same nearby-node source the Contacts app uses
+// (app::messagingFacade().getContactService().getNearby()).
+#include "app/app_facade_access.h"
+#include "chat/domain/contact_types.h"
+#include "chat/usecase/contact_service.h"
+#include "sys/clock.h"
+
 #include "esp_heap_caps.h"
 #include "esp_system.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <vector>
 
 namespace
 {
@@ -3811,6 +3821,549 @@ void stopwatch_exit(void* user_data, lv_obj_t* parent)
 ui::CallbackAppScreen s_stopwatch_app("stopwatch", "Stopwatch", &Setting, stopwatch_enter,
                                       stopwatch_exit, &s_stopwatch_state);
 
+// ---------------------------------------------------------------------------
+// Node Radar: a fully self-contained mesh-node "radar", built inline the same
+// way as the C6 Companion / Snake / Tetris / Help / System Test apps above
+// (file-static state, enter()/exit() that build/tear-down a root sized
+// LV_PCT(100), and a CallbackAppScreen added to s_apps[]). stable_id =
+// "node_radar" so the boot self-test logs appselftest:node_radar:ok when it
+// enters then immediately exits this screen once.
+//
+// It lists every heard mesh node ranked strongest-first. It reads the SAME
+// nearby-node source the Contacts page uses:
+//   app::messagingFacade().getContactService().getNearby()
+// which returns std::vector<chat::contacts::NodeInfo>. From each NodeInfo we use
+// the display name (display_name, else long_name, else "!<id>"), the link
+// metadata (rssi dBm / snr dB -- treated as present unless NaN, exactly like the
+// Node Info page's build_rssi_line/build_snr_line), the last_seen Unix seconds,
+// and the node position (position.valid + latitude_i/longitude_i at 1e-7 deg).
+//
+// Ranking (strongest first), honoring "do not invent data": nodes are bucketed
+// by what real signal metadata they expose --
+//   tier 0: has RSSI  -> ordered by rssi   (e.g. -50 dBm ranks above -90 dBm)
+//   tier 1: has SNR only -> ordered by snr  (higher dB first)
+//   tier 2: neither   -> ordered by last_seen (most-recently-heard first)
+// so signal-bearing nodes sort above signal-less ones, and signal-less nodes
+// fall back to last-heard recency. Each row shows the node name, the real metric
+// it was ranked by (RSSI / SNR / "Seen ..."), a proportional signal bar, and --
+// only when the node has a valid position AND we currently have a GPS fix
+// (platform::ui::gps::get_data().valid) -- an approximate great-circle distance
+// (haversine). No value is shown unless it is real.
+//
+// A ~2s lv_timer (node_radar_tick) re-queries getNearby() and rebuilds the row
+// list ONLY when the heard set actually changes: a 32-bit signature folds each
+// node's id, last_seen and quantized rssi/snr, so per-tick churn is avoided while
+// new/updated/lost nodes still refresh. node_radar_exit deletes the timer and
+// lv_obj_del the root with the same null/validity guards companion_exit/
+// snake_exit use, so the boot self-test's bare enter->exit (no fix, possibly an
+// empty roster) leaves nothing dangling.
+// ---------------------------------------------------------------------------
+struct NodeRadarPageState
+{
+    lv_obj_t* root = nullptr;
+    lv_obj_t* list = nullptr;     // scrollable column the node rows are added to
+    lv_obj_t* status_label = nullptr;  // "N nodes" / "No nodes heard yet"
+    lv_timer_t* timer = nullptr;
+
+    bool have_signature = false;
+    uint32_t signature = 0;  // fold of the current ranked set; rebuild on change
+};
+
+NodeRadarPageState s_node_radar_state;
+
+// True iff this node exposes a usable RSSI / SNR reading. The Node Info page uses
+// the SAME NaN test (build_rssi_line/build_snr_line), so an absent reading (NaN)
+// is never treated as real data; a genuine 0 dBm / 0 dB reading still counts.
+bool node_radar_has_rssi(const chat::contacts::NodeInfo& n)
+{
+    return !std::isnan(n.rssi);
+}
+
+bool node_radar_has_snr(const chat::contacts::NodeInfo& n)
+{
+    return !std::isnan(n.snr);
+}
+
+// Ranking tier: 0 = has RSSI, 1 = has SNR only, 2 = neither (last-heard only).
+int node_radar_tier(const chat::contacts::NodeInfo& n)
+{
+    if (node_radar_has_rssi(n))
+    {
+        return 0;
+    }
+    if (node_radar_has_snr(n))
+    {
+        return 1;
+    }
+    return 2;
+}
+
+// Best-available display name for a node, mirroring how the Node Info / Contacts
+// pages resolve it: the contact/display name first, then the long name, then the
+// Meshtastic "!" + 8 hex id form so a row is never blank.
+void node_radar_node_name(const chat::contacts::NodeInfo& n, char* out, size_t out_len)
+{
+    if (!out || out_len == 0)
+    {
+        return;
+    }
+    if (!n.display_name.empty())
+    {
+        std::snprintf(out, out_len, "%s", n.display_name.c_str());
+        return;
+    }
+    if (n.long_name[0] != '\0')
+    {
+        std::snprintf(out, out_len, "%s", n.long_name);
+        return;
+    }
+    if (n.short_name[0] != '\0')
+    {
+        std::snprintf(out, out_len, "%s", n.short_name);
+        return;
+    }
+    std::snprintf(out, out_len, "!%08lx", static_cast<unsigned long>(n.node_id));
+}
+
+// Short "last heard" text from a Unix-seconds timestamp, using the live GPS-or-
+// device clock as "now". Degrades to "Seen recently" if the clock is clearly
+// unset (the boot self-test runs with no RTC), so a row is always meaningful.
+void node_radar_seen_text(uint32_t last_seen, char* out, size_t out_len)
+{
+    if (!out || out_len == 0)
+    {
+        return;
+    }
+    if (last_seen == 0)
+    {
+        std::snprintf(out, out_len, "Seen recently");
+        return;
+    }
+    const uint32_t now = sys::epoch_seconds_now();
+    if (now <= last_seen || now < 1577836800u /* 2020-01-01: clock unset */)
+    {
+        std::snprintf(out, out_len, "Seen recently");
+        return;
+    }
+    const uint32_t age = now - last_seen;
+    if (age < 60u)
+    {
+        std::snprintf(out, out_len, "Seen %us", static_cast<unsigned>(age));
+    }
+    else if (age < 3600u)
+    {
+        std::snprintf(out, out_len, "Seen %um", static_cast<unsigned>(age / 60u));
+    }
+    else if (age < 86400u)
+    {
+        std::snprintf(out, out_len, "Seen %uh", static_cast<unsigned>(age / 3600u));
+    }
+    else
+    {
+        std::snprintf(out, out_len, "Seen %ud", static_cast<unsigned>(age / 86400u));
+    }
+}
+
+// Great-circle distance (metres) between two lat/lon points in degrees, via the
+// haversine formula. Used only when both endpoints are real (node position valid
+// AND a live GPS fix), so it never fabricates a distance.
+double node_radar_haversine_m(double lat1, double lon1, double lat2, double lon2)
+{
+    constexpr double kEarthR = 6371000.0;  // mean Earth radius, metres
+    constexpr double kDeg2Rad = 3.14159265358979323846 / 180.0;
+    const double dlat = (lat2 - lat1) * kDeg2Rad;
+    const double dlon = (lon2 - lon1) * kDeg2Rad;
+    const double a =
+        std::sin(dlat * 0.5) * std::sin(dlat * 0.5) +
+        std::cos(lat1 * kDeg2Rad) * std::cos(lat2 * kDeg2Rad) * std::sin(dlon * 0.5) *
+            std::sin(dlon * 0.5);
+    const double c = 2.0 * std::atan2(std::sqrt(a), std::sqrt(1.0 - a));
+    return kEarthR * c;
+}
+
+// Map a metric onto 0..100 for the signal bar. RSSI in [-120,-40] dBm and SNR in
+// [-20,+10] dB are clamped to the bar's full range; for signal-less nodes the
+// bar reflects last-heard recency (fresh = full) so the row still reads at a
+// glance. The TEXT always states the real metric; the bar is only an indicator.
+int node_radar_bar_percent(const chat::contacts::NodeInfo& n)
+{
+    if (node_radar_has_rssi(n))
+    {
+        double pct = (n.rssi + 120.0) / 80.0 * 100.0;  // -120..-40 dBm -> 0..100
+        if (pct < 0.0) pct = 0.0;
+        if (pct > 100.0) pct = 100.0;
+        return static_cast<int>(pct + 0.5);
+    }
+    if (node_radar_has_snr(n))
+    {
+        double pct = (n.snr + 20.0) / 30.0 * 100.0;  // -20..+10 dB -> 0..100
+        if (pct < 0.0) pct = 0.0;
+        if (pct > 100.0) pct = 100.0;
+        return static_cast<int>(pct + 0.5);
+    }
+    // Recency-based fill for signal-less nodes: <=2 min -> full, fading to 10%
+    // over an hour, so a recently-heard node still shows a strong-ish bar.
+    if (n.last_seen == 0)
+    {
+        return 35;
+    }
+    const uint32_t now = sys::epoch_seconds_now();
+    if (now <= n.last_seen || now < 1577836800u)
+    {
+        return 60;
+    }
+    const uint32_t age = now - n.last_seen;
+    if (age <= 120u)
+    {
+        return 100;
+    }
+    if (age >= 3600u)
+    {
+        return 10;
+    }
+    const double frac = 1.0 - static_cast<double>(age - 120u) / static_cast<double>(3600u - 120u);
+    int pct = 10 + static_cast<int>(frac * 90.0 + 0.5);
+    if (pct < 10) pct = 10;
+    if (pct > 100) pct = 100;
+    return pct;
+}
+
+lv_color_t node_radar_bar_color(int percent)
+{
+    if (percent >= 66)
+    {
+        return ui::theme::status_green();
+    }
+    if (percent >= 33)
+    {
+        return ui::theme::accent();
+    }
+    return ui::theme::error();
+}
+
+// Build one row in the list for a single node: name on the left, the real ranked
+// metric + optional distance on the right, and a proportional signal bar below.
+void node_radar_add_row(NodeRadarPageState* st, const chat::contacts::NodeInfo& n)
+{
+    if (!st || !st->list || !lv_obj_is_valid(st->list))
+    {
+        return;
+    }
+
+    lv_obj_t* row = lv_obj_create(st->list);
+    lv_obj_set_width(row, LV_PCT(100));
+    lv_obj_set_height(row, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_color(row, ui::theme::surface(), 0);
+    lv_obj_set_style_bg_opa(row, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(row, 1, 0);
+    lv_obj_set_style_border_color(row, ui::theme::border(), 0);
+    lv_obj_set_style_radius(row, 6, 0);
+    lv_obj_set_style_pad_all(row, 10, 0);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(row, 6, 0);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Header line: name (left, grows) + ranked metric (right).
+    lv_obj_t* head = lv_obj_create(row);
+    lv_obj_set_width(head, LV_PCT(100));
+    lv_obj_set_height(head, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(head, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(head, 0, 0);
+    lv_obj_set_style_pad_all(head, 0, 0);
+    lv_obj_set_flex_flow(head, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(head, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(head, 8, 0);
+    lv_obj_clear_flag(head, LV_OBJ_FLAG_SCROLLABLE);
+
+    char namebuf[40];
+    node_radar_node_name(n, namebuf, sizeof(namebuf));
+    lv_obj_t* name_lbl = lv_label_create(head);
+    lv_obj_set_flex_grow(name_lbl, 1);
+    lv_label_set_long_mode(name_lbl, LV_LABEL_LONG_DOT);
+    lv_obj_set_style_text_font(name_lbl, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(name_lbl, ui::theme::text(), 0);
+    lv_label_set_text(name_lbl, namebuf);
+
+    char metricbuf[32];
+    if (node_radar_has_rssi(n))
+    {
+        std::snprintf(metricbuf, sizeof(metricbuf), "RSSI %.0f dBm", static_cast<double>(n.rssi));
+    }
+    else if (node_radar_has_snr(n))
+    {
+        std::snprintf(metricbuf, sizeof(metricbuf), "SNR %+0.1f dB", static_cast<double>(n.snr));
+    }
+    else
+    {
+        node_radar_seen_text(n.last_seen, metricbuf, sizeof(metricbuf));
+    }
+    lv_obj_t* metric_lbl = lv_label_create(head);
+    lv_obj_set_style_text_font(metric_lbl, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(metric_lbl, ui::theme::text_muted(), 0);
+    lv_label_set_text(metric_lbl, metricbuf);
+
+    // Signal bar: a track with a proportional colored fill.
+    const int pct = node_radar_bar_percent(n);
+    lv_obj_t* track = lv_obj_create(row);
+    lv_obj_set_width(track, LV_PCT(100));
+    lv_obj_set_height(track, 12);
+    lv_obj_set_style_bg_color(track, lv_color_hex(0xE6D6B8), 0);
+    lv_obj_set_style_bg_opa(track, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(track, 0, 0);
+    lv_obj_set_style_radius(track, 6, 0);
+    lv_obj_set_style_pad_all(track, 0, 0);
+    lv_obj_clear_flag(track, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* fill = lv_obj_create(track);
+    lv_obj_remove_style_all(fill);
+    lv_obj_set_height(fill, LV_PCT(100));
+    lv_obj_set_width(fill, LV_PCT(pct < 1 ? 1 : pct));
+    lv_obj_align(fill, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_set_style_bg_color(fill, node_radar_bar_color(pct), 0);
+    lv_obj_set_style_bg_opa(fill, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(fill, 6, 0);
+    lv_obj_clear_flag(fill, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Distance line: only when the node has a valid position AND we have a fix.
+    if (n.position.valid)
+    {
+        const gps::GpsState fix = platform::ui::gps::get_data();
+        if (fix.valid)
+        {
+            const double node_lat = static_cast<double>(n.position.latitude_i) * 1e-7;
+            const double node_lon = static_cast<double>(n.position.longitude_i) * 1e-7;
+            const double dist_m =
+                node_radar_haversine_m(fix.lat, fix.lng, node_lat, node_lon);
+            char distbuf[40];
+            if (dist_m < 1000.0)
+            {
+                std::snprintf(distbuf, sizeof(distbuf), LV_SYMBOL_GPS " ~%d m",
+                              static_cast<int>(dist_m + 0.5));
+            }
+            else
+            {
+                std::snprintf(distbuf, sizeof(distbuf), LV_SYMBOL_GPS " ~%.1f km",
+                              dist_m / 1000.0);
+            }
+            lv_obj_t* dist_lbl = lv_label_create(row);
+            lv_obj_set_width(dist_lbl, LV_PCT(100));
+            lv_obj_set_style_text_font(dist_lbl, &lv_font_montserrat_14, 0);
+            lv_obj_set_style_text_color(dist_lbl, ui::theme::text_muted(), 0);
+            lv_label_set_text(dist_lbl, distbuf);
+        }
+    }
+}
+
+// Query getNearby(), rank strongest-first, and (only if the set changed) rebuild
+// the row list. Returns the freshly computed signature so the caller can store
+// it. Reads the SAME source as Contacts; never mutates the contact service.
+uint32_t node_radar_rebuild(NodeRadarPageState* st, bool force)
+{
+    if (!st || !st->list || !lv_obj_is_valid(st->list))
+    {
+        return st ? st->signature : 0u;
+    }
+
+    std::vector<chat::contacts::NodeInfo> nodes;
+    if (app::hasAppFacade())
+    {
+        nodes = app::messagingFacade().getContactService().getNearby();
+    }
+
+    // Rank strongest-first: lower tier wins; within a tier, higher metric wins.
+    std::sort(nodes.begin(), nodes.end(),
+              [](const chat::contacts::NodeInfo& a, const chat::contacts::NodeInfo& b)
+              {
+                  const int ta = node_radar_tier(a);
+                  const int tb = node_radar_tier(b);
+                  if (ta != tb)
+                  {
+                      return ta < tb;
+                  }
+                  if (ta == 0)
+                  {
+                      if (a.rssi != b.rssi)
+                      {
+                          return a.rssi > b.rssi;
+                      }
+                  }
+                  else if (ta == 1)
+                  {
+                      if (a.snr != b.snr)
+                      {
+                          return a.snr > b.snr;
+                      }
+                  }
+                  if (a.last_seen != b.last_seen)
+                  {
+                      return a.last_seen > b.last_seen;  // more recent first
+                  }
+                  return a.node_id < b.node_id;  // stable, deterministic tie-break
+              });
+
+    // Signature of the ranked set: fold id, last_seen and quantized rssi/snr so a
+    // changed/added/removed node (or a meaningfully changed signal) triggers a
+    // rebuild, but identical ticks do not churn the UI.
+    uint32_t sig = 2166136261u;  // FNV-1a-ish seed
+    auto fold = [&sig](uint32_t v)
+    {
+        sig = (sig ^ v) * 16777619u;
+    };
+    fold(static_cast<uint32_t>(nodes.size()));
+    for (const auto& n : nodes)
+    {
+        fold(n.node_id);
+        fold(n.last_seen);
+        const int32_t rssi_q = std::isnan(n.rssi) ? INT32_MIN
+                                                   : static_cast<int32_t>(n.rssi);
+        const int32_t snr_q = std::isnan(n.snr) ? INT32_MIN
+                                                : static_cast<int32_t>(n.snr * 10.0f);
+        fold(static_cast<uint32_t>(rssi_q));
+        fold(static_cast<uint32_t>(snr_q));
+    }
+
+    if (!force && st->have_signature && sig == st->signature)
+    {
+        return sig;  // nothing changed; keep the existing rows
+    }
+
+    // Rebuild the list children from scratch.
+    lv_obj_clean(st->list);
+
+    if (st->status_label && lv_obj_is_valid(st->status_label))
+    {
+        char sbuf[40];
+        if (nodes.empty())
+        {
+            std::snprintf(sbuf, sizeof(sbuf), "No nodes heard yet");
+        }
+        else
+        {
+            std::snprintf(sbuf, sizeof(sbuf), "%u node%s heard",
+                          static_cast<unsigned>(nodes.size()),
+                          nodes.size() == 1 ? "" : "s");
+        }
+        lv_label_set_text(st->status_label, sbuf);
+    }
+
+    for (const auto& n : nodes)
+    {
+        node_radar_add_row(st, n);
+    }
+    return sig;
+}
+
+void node_radar_tick(lv_timer_t* timer)
+{
+    auto* st = static_cast<NodeRadarPageState*>(lv_timer_get_user_data(timer));
+    if (!st)
+    {
+        return;
+    }
+    const uint32_t sig = node_radar_rebuild(st, false);
+    st->signature = sig;
+    st->have_signature = true;
+}
+
+void node_radar_enter(void* user_data, lv_obj_t* parent)
+{
+    auto* state = static_cast<NodeRadarPageState*>(user_data);
+    if (!state || !parent || (state->root && lv_obj_is_valid(state->root)))
+    {
+        return;
+    }
+
+    state->have_signature = false;
+    state->signature = 0;
+
+    state->root = lv_obj_create(parent);
+    lv_obj_set_size(state->root, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(state->root, ui::theme::white(), 0);
+    lv_obj_set_style_bg_opa(state->root, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(state->root, 0, 0);
+    lv_obj_set_style_radius(state->root, 0, 0);
+    lv_obj_set_style_pad_left(state->root, 18, 0);
+    lv_obj_set_style_pad_right(state->root, 18, 0);
+    lv_obj_set_style_pad_top(state->root, 18, 0);
+    lv_obj_set_style_pad_bottom(state->root, 18, 0);
+    lv_obj_set_flex_flow(state->root, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(state->root, 10, 0);
+    lv_obj_clear_flag(state->root, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Back button: routes to the launcher menu via the same exit the Chat app
+    // uses (exactly like companion_enter/help_enter/systest_enter).
+    lv_obj_t* back_btn = lv_button_create(state->root);
+    lv_obj_set_width(back_btn, LV_PCT(45));
+    lv_obj_t* back_lbl = lv_label_create(back_btn);
+    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(
+        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+
+    // Page title.
+    lv_obj_t* title = lv_label_create(state->root);
+    lv_obj_set_width(title, LV_PCT(100));
+    lv_label_set_long_mode(title, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(title, ui::theme::accent(), 0);
+    lv_label_set_text(title, "Node Radar");
+
+    // Status line: node count (or "No nodes heard yet").
+    state->status_label = lv_label_create(state->root);
+    lv_obj_set_width(state->status_label, LV_PCT(100));
+    lv_obj_set_style_text_font(state->status_label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(state->status_label, ui::theme::text_muted(), 0);
+    lv_label_set_text(state->status_label, "Scanning...");
+
+    // Scrollable list the node rows are added to (grows to fill remaining height).
+    state->list = lv_obj_create(state->root);
+    lv_obj_set_width(state->list, LV_PCT(100));
+    lv_obj_set_flex_grow(state->list, 1);
+    lv_obj_set_style_bg_opa(state->list, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(state->list, 0, 0);
+    lv_obj_set_style_pad_all(state->list, 0, 0);
+    lv_obj_set_flex_flow(state->list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(state->list, 8, 0);
+    lv_obj_set_scroll_dir(state->list, LV_DIR_VER);
+    lv_obj_add_flag(state->list, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Populate immediately, then refresh every ~2s (rebuild only on set change).
+    const uint32_t sig = node_radar_rebuild(state, true);
+    state->signature = sig;
+    state->have_signature = true;
+    state->timer = lv_timer_create(node_radar_tick, 2000, state);
+}
+
+void node_radar_exit(void* user_data, lv_obj_t* parent)
+{
+    (void)parent;
+    auto* state = static_cast<NodeRadarPageState*>(user_data);
+    if (!state)
+    {
+        return;
+    }
+    if (state->timer)
+    {
+        lv_timer_del(state->timer);
+        state->timer = nullptr;
+    }
+    if (!state->root || !lv_obj_is_valid(state->root))
+    {
+        state->root = nullptr;
+        state->list = nullptr;
+        state->status_label = nullptr;
+        return;
+    }
+    lv_obj_del(state->root);
+    state->root = nullptr;
+    state->list = nullptr;
+    state->status_label = nullptr;
+}
+
+ui::CallbackAppScreen s_node_radar_app("node_radar", "Node Radar", &Chat, node_radar_enter,
+                                       node_radar_exit, &s_node_radar_state);
+
 // Chat shell entry. Mirrors modules/ui_shared/src/ui/app_catalog_builder.cpp:
 // the chat page shell's enter/exit take a ui::page::Host* as user_data, and the
 // menu host routes the page's back/exit request to ui_request_exit_to_menu().
@@ -4019,7 +4572,8 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_gps_position_app,
                        &s_g2048_app,
                        &s_flashlight_app,
-                       &s_stopwatch_app};
+                       &s_stopwatch_app,
+                       &s_node_radar_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 
