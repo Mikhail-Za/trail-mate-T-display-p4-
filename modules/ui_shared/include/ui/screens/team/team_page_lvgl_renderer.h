@@ -64,6 +64,13 @@ struct TeamPageLvglRendererInput
     TeamPage page = TeamPage::StatusNotInTeam;
     TeamPageReadModelInput read_model;
     uint32_t pairing_peer_id = 0;
+    // Whether the live team controller/pairing backend is present. When false
+    // (e.g. the IDF safe-screen bind where app::teamFacade() returns a null
+    // controller), the create/join actions on the 'not in a team' status page
+    // would have no functional backend, so the renderer disables + relabels them
+    // instead of presenting a tappable-but-dead control. Defaults to true so
+    // builds with a live controller render the actions as before.
+    bool actions_enabled = true;
 };
 
 class TeamPageLvglRenderer
@@ -105,7 +112,8 @@ class TeamPageLvglRenderer
         const TeamPageReadModelInput& input) const;
 
     void renderStatusNotInTeam(TeamPageLvglRendererContext& context,
-                               const TeamPageLvglRendererHandlers& handlers) const;
+                               const TeamPageLvglRendererHandlers& handlers,
+                               bool actions_enabled) const;
     void renderStatusInTeam(TeamPageLvglRendererContext& context,
                             const TeamPageReadModelInput& input,
                             const TeamPageLvglRendererHandlers& handlers) const;

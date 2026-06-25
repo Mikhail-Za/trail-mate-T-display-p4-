@@ -1737,6 +1737,10 @@ void render_page()
     input.page = team_page_state().page;
     input.read_model = read_model_input;
     input.pairing_peer_id = team_page_state().pairing_peer_id;
+    // Gate the create/join actions on a live team controller: when it is null
+    // (the IDF safe-screen bind), the renderer disables + relabels them so there
+    // is no tappable-but-dead control on a touch-only device.
+    input.actions_enabled = app::teamFacade().getTeamController() != nullptr;
 
     static TeamPageMemberNameResolver names;
     TeamPageLvglRenderer(now_secs()).render(context, input, handlers, names);

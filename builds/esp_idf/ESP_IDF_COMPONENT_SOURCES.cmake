@@ -506,6 +506,63 @@ set(TRAILMATE_ESP_IDF_PC_LINK_UI_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/hostlink/hostlink_bridge_radio.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/usb_cdc_transport.cpp")
 
+# ---------------------------------------------------------------------------
+# Team app (the team-coordination screen: a shared-map/team-awareness status +
+# create/join/manage flow). stable_id = 'team'; screen dir is screens/team.
+# SAFE-SCREEN BIND ONLY: the functional team controller + pairing service are a
+# separate owner-verified follow-up. On this IDF build app::teamFacade()
+# .getTeamController()/getTeamPairing() return nullptr (idf_chat_facade.cpp), so
+# team::ui::runtime::enter() builds the REAL page at a guarded 'You are not in a
+# team' status; the page's runtime port guards the null controller/pairing
+# everywhere (team_page_runtime_port.cpp's controller_/pairing_ null checks), and
+# the Create/Join actions are disabled + labeled '(soon)' on the status screen
+# when no controller is present (touch-only device: no dead buttons).
+#
+# is_available() == app::hasAppFacade() (true at boot), so enter() runs
+# team_page_create(); exit() runs team_page_destroy() which tears down
+# synchronously (no queued lv_async_call: cleanup_team_input + lv_group_del +
+# deferred_dispatch.clearAll() + lv_obj_del of the root), so the boot self-test
+# enters+exits cleanly.
+#
+# These 26 team screen TUs were NOT compiled before. Their backend closure --
+# the team controller/service + team_* protocol codecs
+# (TRAILMATE_ESP_IDF_CORE_TEAM_SOURCES) and the IDF team UI snapshot store
+# (platform_ui_team_ui_store_runtime.cpp, in the PLATFORM block) -- is ALREADY
+# linked (the chat screen's team-action plumbing drags it in), so the UI TUs
+# link without adding backend sources. team_topbar.c is intentionally NOT added
+# here (it is a different, already-compiled symbol); the IDF team UI store is
+# likewise already compiled, so its arduino store shell is not added (would be a
+# duplicate symbol). The launcher icon descriptor (team_icon, in
+# ui/assets/team.c) is added to TRAILMATE_ESP_IDF_UI_SHARED_SOURCES alongside
+# Chat.c / walkie_talkie.c.
+set(TRAILMATE_ESP_IDF_TEAM_UI_SOURCES
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_activity_adapters.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_activity_sink.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_command_reducer.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_components.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_create_team_action.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_deferred_dispatch.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_deferred_dispatch_adapters.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_event_effect_sink.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_event_reducer.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_flow_controller.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_input.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_key_event_log.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_key_request_action.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_kick_confirm_action.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_layout.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_lvgl_renderer.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_pairing_command_action.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_read_model.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_request_keys_action.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_runtime.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_runtime_adapters.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_runtime_port.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_shell.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_state_store.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_styles.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_transfer_leader_action.cpp")
+
 # Chat-screen LVGL renderers from the ux-pack common layer (modal + picker the
 # chat controller wires).
 set(TRAILMATE_ESP_IDF_CHAT_UX_PACK_SOURCES
@@ -565,7 +622,11 @@ set(TRAILMATE_ESP_IDF_UI_SHARED_SOURCES
     # idf_common walkie runtime in TRAILMATE_ESP_IDF_WALKIE_SOURCES (P4 only).
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/walkie_talkie/walkie_talkie_page_shell.cpp"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/walkie_talkie/walkie_talkie_page_runtime.cpp"
-    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/walkie_talkie.c")
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/walkie_talkie.c"
+    # Team launcher icon descriptor (team_icon, lv_image_dsc_t). Referenced as an
+    # extern "C" symbol by s_team_app in esp32_lvgl_idf_app_registry.cpp; the team
+    # screen TUs that use it are in TRAILMATE_ESP_IDF_TEAM_UI_SOURCES.
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/team.c")
 
 set(TRAILMATE_ESP_IDF_UI_PRESENTATION_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_presentation/src/gps/gps_status_model.cpp"

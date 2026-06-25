@@ -15,6 +15,7 @@
 #include "ui/screens/gps/gps_page_shell.h"
 #include "ui/screens/pc_link/pc_link_page_shell.h"
 #include "ui/screens/settings/settings_page_shell.h"
+#include "ui/screens/team/team_page_shell.h"
 #include "ui/screens/tracker/tracker_page_shell.h"
 #include "ui/screens/walkie_talkie/walkie_talkie_page_shell.h"
 #include "ui/ui_theme.h"
@@ -58,6 +59,10 @@ extern "C"
     // modules/ui_shared/src/ui/assets/walkie_talkie.c (added to the IDF UI-shared
     // source set), referenced by s_walkie_app below.
     extern const lv_image_dsc_t walkie_talkie;
+    // Team launcher icon descriptor; defined in
+    // modules/ui_shared/src/ui/assets/team.c (added to the IDF UI-shared source
+    // set), referenced by s_team_app below.
+    extern const lv_image_dsc_t team_icon;
 }
 
 struct CompanionPageState
@@ -4816,6 +4821,35 @@ ui::CallbackAppScreen s_pc_link_app("pc_link",
                                     pc_link::ui::shell::exit,
                                     &s_pc_link_menu_host);
 
+// Team (team-coordination screen: shared-map/team-awareness status + create/join/
+// manage flow). stable_id = 'team'. SAFE-SCREEN BIND ONLY: the functional team
+// controller + pairing service are a separate owner-verified follow-up. Mirrors
+// the chat/contacts/settings/pc_link binding: the team page shell's enter/exit
+// take a ui::page::Host* (team::ui::shell::Host is an alias of ::ui::page::Host)
+// as user_data and route the back request through ui_request_exit_to_menu() via
+// the menu host. team::ui::runtime::is_available() == app::hasAppFacade() == true
+// at boot, so enter() builds the REAL page; but app::teamFacade().getTeamController()
+// /getTeamPairing() return nullptr on this IDF build (idf_chat_facade.cpp), so the
+// initial page is the guarded 'You are not in a team' status and the runtime port
+// null-guards the controller/pairing everywhere (team_page_runtime_port.cpp). The
+// Create/Join controls on that status page are disabled + labeled '(soon)' when no
+// controller is present (touch-only device: no dead button). exit() runs
+// team_page_destroy(), which tears down synchronously (cleanup_team_input +
+// lv_group_del + deferred_dispatch.clearAll() + lv_obj_del of the root, no queued
+// lv_async_call), so it is self-test safe. The 26 team UI TUs are compiled via
+// TRAILMATE_ESP_IDF_TEAM_UI_SOURCES; their team controller/service + protocol
+// codec backend (TRAILMATE_ESP_IDF_CORE_TEAM_SOURCES) and the IDF team UI snapshot
+// store (platform_ui_team_ui_store_runtime.cpp) are already linked by the chat
+// app's team-action plumbing, so the UI TUs link.
+ui::page::Host s_team_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_team_app("team",
+                                 "Team",
+                                 &team_icon,
+                                 team::ui::shell::enter,
+                                 team::ui::shell::exit,
+                                 &s_team_menu_host);
+
 // Walkie-Talkie (push-to-talk FSK voice between units over the SX1262, codec2
 // 3200 vocoder, ES8311 audio). stable_id = 'walkie_talkie'. Mirrors the
 // chat/contacts/settings/pc_link binding: the walkie page shell's enter/exit take
@@ -4845,6 +4879,7 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_tracker_app,
                        &s_energy_sweep_app,
                        &s_pc_link_app,
+                       &s_team_app,
                        &s_companion_app,
                        &s_snake_app,
                        &s_tetris_app,

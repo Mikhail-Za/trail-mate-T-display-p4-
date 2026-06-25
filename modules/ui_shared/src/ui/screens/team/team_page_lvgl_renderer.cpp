@@ -64,7 +64,7 @@ void TeamPageLvglRenderer::render(
     switch (input.page)
     {
     case TeamPage::StatusNotInTeam:
-        renderStatusNotInTeam(context, handlers);
+        renderStatusNotInTeam(context, handlers, input.actions_enabled);
         break;
     case TeamPage::StatusInTeam:
         renderStatusInTeam(context, input.read_model, handlers);
@@ -88,7 +88,7 @@ void TeamPageLvglRenderer::render(
         renderKickedOut(context, handlers);
         break;
     default:
-        renderStatusNotInTeam(context, handlers);
+        renderStatusNotInTeam(context, handlers, input.actions_enabled);
         break;
     }
 }
@@ -300,7 +300,8 @@ void TeamPageLvglRenderer::renderMemberChipsOrEmpty(
 
 void TeamPageLvglRenderer::renderStatusNotInTeam(
     TeamPageLvglRendererContext& context,
-    const TeamPageLvglRendererHandlers& handlers) const
+    const TeamPageLvglRendererHandlers& handlers,
+    bool actions_enabled) const
 {
     updateTopBarTitle(context, ::ui::i18n::tr("Team"));
 
@@ -308,16 +309,41 @@ void TeamPageLvglRenderer::renderStatusNotInTeam(
     addLabel(context.body, ::ui::i18n::tr("- No shared map\n- No team awareness"), false, true);
     addLabel(context.body, ::ui::i18n::tr("Keep devices within 5m"), false, false);
 
+    // When the live team controller/pairing backend is absent (the IDF
+    // safe-screen bind), Create/Join have nothing functional to drive, so present
+    // them as clearly-disabled "(soon)" controls rather than tappable-but-dead
+    // buttons. This mirrors the management_actions_enabled gating used for the
+    // Kick / Transfer Leader buttons on the member-detail page.
+    if (!actions_enabled)
+    {
+        addLabel(context.body,
+                 ::ui::i18n::tr("Team pairing is not available on this build yet"),
+                 false,
+                 true);
+    }
+
     if (context.action_btns && context.action_btn_count > 0)
     {
-        context.action_btns[0] =
-            createActionButton(context, "Create Team", handlers.create_team);
+        context.action_btns[0] = createActionButton(
+            context,
+            actions_enabled ? "Create Team" : "Create Team (soon)",
+            actions_enabled ? handlers.create_team : nullptr);
+        if (!actions_enabled)
+        {
+            lv_obj_add_state(context.action_btns[0], LV_STATE_DISABLED);
+        }
         registerFocus(context, context.action_btns[0], true);
     }
     if (context.action_btns && context.action_btn_count > 1)
     {
-        context.action_btns[1] =
-            createActionButton(context, "Join Team", handlers.join_team);
+        context.action_btns[1] = createActionButton(
+            context,
+            actions_enabled ? "Join Team" : "Join Team (soon)",
+            actions_enabled ? handlers.join_team : nullptr);
+        if (!actions_enabled)
+        {
+            lv_obj_add_state(context.action_btns[1], LV_STATE_DISABLED);
+        }
         registerFocus(context, context.action_btns[1]);
     }
 }
