@@ -22,11 +22,19 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 
 #include "app/app_config.h"
 #include "app/app_facades.h"
 #include "chat/domain/chat_types.h"
 #include "platform/esp/idf_common/idf_chat_factory.h"
+#include "platform/esp/idf_common/team/idf_team_crypto.h"
+#include "platform/esp/idf_common/team/idf_team_event_sinks.h"
+#include "platform/esp/idf_common/team/idf_team_track_source.h"
+#include "platform/esp/idf_common/team/team_runtime_idf.h"
+#include "team/usecase/team_controller.h"
+#include "team/usecase/team_service.h"
+#include "team/usecase/team_track_sampler.h"
 
 class BoardBase;
 class LoraBoard;
@@ -117,6 +125,14 @@ class IdfChatFacade final : public ::app::IAppFacade
   private:
     void pumpMeshAndDrainEvents(std::size_t max_events);
 
+    // Construct the team services (crypto/runtime/track-source/event-sink ->
+    // TeamService -> TeamController + TeamTrackSampler) so getTeamController()/
+    // getTeamService() return real objects. Mirrors create_team_services() in
+    // platform/esp/arduino_common/.../app_context_platform_bindings.cpp. Called
+    // from initialize() once runtime_.mesh_adapter is valid. The LoRa pairing
+    // transport/service is deferred (Phase 2): getTeamPairing() stays nullptr.
+    void initTeamServices();
+
     LoraBoard& lora_board_;
     BoardBase* board_ = nullptr;
     ::app::AppConfig config_{};
@@ -125,6 +141,21 @@ class IdfChatFacade final : public ::app::IAppFacade
     ::chat::NodeId self_node_id_ = 0;
     bool initialized_ = false;
     bool bound_ = false;
+
+    // -- Team services (Phase 1). Members are owned here and outlive the UI; the
+    //    services hold references to the runtime/crypto/sink/track-source, so
+    //    declaration order matters: ports first, then service, then controller/
+    //    sampler that reference the service. team_pairing_ is intentionally not
+    //    constructed yet (Phase 2 LoRa pairing).
+    team_infra::TeamRuntimeIdf team_runtime_{};
+    team_infra::IdfTeamCrypto team_crypto_{};
+    team_infra::IdfTeamTrackSource team_track_source_{};
+    team_infra::IdfTeamEventBusSink team_event_sink_{};
+    team_infra::IdfTeamPairingEventQueue team_pairing_event_sink_{};
+    std::unique_ptr<::team::TeamService> team_service_;
+    std::unique_ptr<::team::TeamController> team_controller_;
+    std::unique_ptr<::team::TeamTrackSampler> team_track_sampler_;
+    bool team_mode_active_ = false;
 };
 
 } // namespace platform::esp::idf_common

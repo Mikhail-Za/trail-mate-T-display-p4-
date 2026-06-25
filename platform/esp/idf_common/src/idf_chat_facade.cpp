@@ -170,6 +170,11 @@ bool IdfChatFacade::initialize()
     // peers rendered us as a hex id.
     applyUserInfo();
 
+    // Construct the team services now that runtime_.mesh_adapter is valid. This
+    // makes getTeamController()/getTeamService() return real objects, so the Team
+    // screen enables Create/Join (its actions are gated on a non-null controller).
+    initTeamServices();
+
     if (!::app::hasAppFacade())
     {
         ::app::bindAppFacade(*this);
@@ -178,6 +183,38 @@ bool IdfChatFacade::initialize()
 
     initialized_ = true;
     return true;
+}
+
+void IdfChatFacade::initTeamServices()
+{
+    if (runtime_.mesh_adapter == nullptr)
+    {
+        return;
+    }
+
+    // One-time crypto self-check: if mbedtls ChaCha20-Poly1305/SHA256 is misbuilt
+    // (e.g. the Kconfig flags are off), this logs FAILED so team frames that would
+    // silently fail to interop with the rweather peers are caught loudly. It does
+    // not block construction (the UI still enables; only on-air interop depends on
+    // crypto correctness).
+    (void)team_infra::IdfTeamCrypto::runSelfTest();
+
+    // Mirror create_team_services() (Arduino app_context_platform_bindings.cpp):
+    // TeamService(crypto, mesh_adapter, event_sink, runtime) -> TeamController ->
+    // TeamTrackSampler(runtime, track_source). The ports are facade members
+    // (team_crypto_/team_runtime_/team_event_sink_/team_track_source_) and outlive
+    // these services.
+    team_service_.reset(new ::team::TeamService(
+        team_crypto_, *runtime_.mesh_adapter, team_event_sink_, team_runtime_));
+    team_controller_.reset(new ::team::TeamController(*team_service_));
+    team_track_sampler_.reset(
+        new ::team::TeamTrackSampler(team_runtime_, team_track_source_));
+
+    // appselftest harness + owner-facing trace: prove the controller is live so a
+    // serial capture confirms the Team screen will enable Create/Join.
+    ESP_LOGI("idf-team", "team services constructed controller=%p service=%p (pairing deferred)",
+             static_cast<void*>(team_controller_.get()),
+             static_cast<void*>(team_service_.get()));
 }
 
 void IdfChatFacade::shutdown()
@@ -315,37 +352,45 @@ const ::chat::IMeshAdapter* IdfChatFacade::getMeshAdapter() const
 }
 
 // ---------------------------------------------------------------------------
-// IAppTeamFacade -- stubbed (the chat screen guards a null team controller)
+// IAppTeamFacade -- Phase 1: real TeamService/TeamController/TeamTrackSampler.
+// getTeamPairing() stays null until Phase 2 (LoRa pairing transport); the team
+// page guards a null pairing service everywhere.
 // ---------------------------------------------------------------------------
 
 ::team::TeamController* IdfChatFacade::getTeamController()
 {
-    return nullptr;
+    return team_controller_.get();
 }
 
 ::team::TeamPairingService* IdfChatFacade::getTeamPairing()
 {
+    // Phase 2: the LoRa pairing transport + TeamPairingService are not wired yet.
+    // The team UI null-guards this everywhere; Create/Join still enable (they gate
+    // on the controller, not pairing).
     return nullptr;
 }
 
 ::team::TeamService* IdfChatFacade::getTeamService()
 {
-    return nullptr;
+    return team_service_.get();
 }
 
 const ::team::TeamService* IdfChatFacade::getTeamService() const
 {
-    return nullptr;
+    return team_service_.get();
 }
 
 ::team::TeamTrackSampler* IdfChatFacade::getTeamTrackSampler()
 {
-    return nullptr;
+    return team_track_sampler_.get();
 }
 
 void IdfChatFacade::setTeamModeActive(bool active)
 {
-    (void)active;
+    // Track the flag so the per-tick pump can drive the track sampler only while
+    // team mode is active (the Arduino app_runtime_support.cpp does the same). On
+    // a board without a GPS fix the sampler degrades gracefully (no shared point).
+    team_mode_active_ = active;
 }
 
 // ---------------------------------------------------------------------------
@@ -504,6 +549,33 @@ void IdfChatFacade::pumpMeshAndDrainEvents(std::size_t max_events)
     //    ChatEventBusBridge, which publishes ChatNewMessage / node events.
     chat_service.processIncoming();
     chat_service.flushStore();
+
+    // 2b. Team service tick. TeamService::processIncoming() ALSO polls the
+    //     adapter's data queue (the same single queue ChatService polls) and
+    //     dispatches TEAM_MGMT/TEAM_POSITION/TEAM_WAYPOINT/TEAM_TRACK/TEAM_CHAT
+    //     frames (portnums 300-304), emitting team events onto the EventBus that
+    //     step 3 below drains this same tick. This is SAFE because ChatService's
+    //     data-observer list is empty in this facade, so chat_service
+    //     .processIncoming() never drains the data queue (it polls only text +
+    //     early-returns on no data observers); the team frames are still present
+    //     when team polls. Mirrors app_runtime_support.cpp::updateCoreServices
+    //     (chat then team). The pairing update() is intentionally OMITTED here
+    //     (Phase 2). If an exclusive radio hold is active (walkie voice), the
+    //     adapter queue is simply empty, so this is a cheap no-op.
+    if (team_service_)
+    {
+        team_service_->processIncoming();
+
+        // Drive team-mode + the track sampler exactly as the Arduino path does:
+        // team is "active" once keys are set, and the sampler periodically reads
+        // the GPS fix to share position (degrades to no-op without a fix).
+        const bool team_active = team_service_->hasKeys();
+        setTeamModeActive(team_active);
+        if (team_track_sampler_)
+        {
+            team_track_sampler_->update(team_controller_.get(), team_active);
+        }
+    }
 
     // 3. Drain the event bus. Ownership rule: subscribe() yields a heap Event*
     //    that we must delete unless we hand it to chat_ui_runtime_->onChatEvent(),

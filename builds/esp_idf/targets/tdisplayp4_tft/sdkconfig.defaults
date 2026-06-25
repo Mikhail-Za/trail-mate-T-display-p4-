@@ -34,3 +34,11 @@ CONFIG_LV_FONT_MONTSERRAT_24=y
 # ES8311 audio codec (esp_codec_dev): compile in the ES8311 driver so
 # es8311_codec_new is available for the P4 PTT/audio subsystem.
 CONFIG_CODEC_ES8311_SUPPORT=y
+# ChaCha20-Poly1305 + SHA-256 for team-mode AEAD (IdfTeamCrypto). These three
+# mbedtls modules default to OFF in ESP-IDF's Kconfig; the team protocol's
+# authenticated key distribution / encrypted mgmt frames need them, and they
+# must be byte-compatible with the rweather/Crypto peers on the Arduino nodes.
+# ChaChaPoly depends on both Chacha20 and Poly1305.
+CONFIG_MBEDTLS_CHACHA20_C=y
+CONFIG_MBEDTLS_POLY1305_C=y
+CONFIG_MBEDTLS_CHACHAPOLY_C=y

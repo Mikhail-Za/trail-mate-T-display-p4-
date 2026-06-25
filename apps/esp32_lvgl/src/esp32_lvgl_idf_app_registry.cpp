@@ -4983,21 +4983,21 @@ ui::CallbackAppScreen s_pc_link_app("pc_link",
                                     &s_pc_link_menu_host);
 
 // Team (team-coordination screen: shared-map/team-awareness status + create/join/
-// manage flow). stable_id = 'team'. SAFE-SCREEN BIND ONLY: the functional team
-// controller + pairing service are a separate owner-verified follow-up. Mirrors
-// the chat/contacts/settings/pc_link binding: the team page shell's enter/exit
-// take a ui::page::Host* (team::ui::shell::Host is an alias of ::ui::page::Host)
-// as user_data and route the back request through ui_request_exit_to_menu() via
-// the menu host. team::ui::runtime::is_available() == app::hasAppFacade() == true
-// at boot, so enter() builds the REAL page; but app::teamFacade().getTeamController()
-// /getTeamPairing() return nullptr on this IDF build (idf_chat_facade.cpp), so the
-// initial page is the guarded 'You are not in a team' status and the runtime port
-// null-guards the controller/pairing everywhere (team_page_runtime_port.cpp). The
-// Create/Join controls on that status page are disabled + labeled '(soon)' when no
-// controller is present (touch-only device: no dead button). exit() runs
-// team_page_destroy(), which tears down synchronously (cleanup_team_input +
-// lv_group_del + deferred_dispatch.clearAll() + lv_obj_del of the root, no queued
-// lv_async_call), so it is self-test safe. The 26 team UI TUs are compiled via
+// manage flow). stable_id = 'team'. Mirrors the chat/contacts/settings/pc_link
+// binding: the team page shell's enter/exit take a ui::page::Host*
+// (team::ui::shell::Host is an alias of ::ui::page::Host) as user_data and route
+// the back request through ui_request_exit_to_menu() via the menu host.
+// team::ui::runtime::is_available() == app::hasAppFacade() == true at boot, so
+// enter() builds the REAL page. PHASE 1 (team services wired):
+// app::teamFacade().getTeamController()/getTeamService() now return REAL objects
+// (IdfChatFacade::initTeamServices), so the status page ENABLES Create/Join with
+// live handlers (actions_enabled = getTeamController() != nullptr). getTeamPairing()
+// still returns nullptr until Phase 2 (LoRa pairing transport); the runtime port
+// null-guards pairing everywhere (team_page_runtime_port.cpp), so the self-test
+// enter/exit stays clean. exit() runs team_page_destroy(), which tears down
+// synchronously (cleanup_team_input + lv_group_del + deferred_dispatch.clearAll() +
+// lv_obj_del of the root, no queued lv_async_call), so it is self-test safe.
+// The 26 team UI TUs are compiled via
 // TRAILMATE_ESP_IDF_TEAM_UI_SOURCES; their team controller/service + protocol
 // codec backend (TRAILMATE_ESP_IDF_CORE_TEAM_SOURCES) and the IDF team UI snapshot
 // store (platform_ui_team_ui_store_runtime.cpp) are already linked by the chat

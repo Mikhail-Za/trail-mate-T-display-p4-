@@ -60,6 +60,28 @@ set(TRAILMATE_ESP_IDF_CORE_TEAM_SOURCES
     "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_position.cpp"
     "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_track.cpp")
 
+# IDF team-service construction layer (Phase 1: make getTeamController() non-null
+# so the Team screen's Create/Join enable). These are the IDF-portable ITeam*
+# port implementations the facade injects into TeamService/TeamController/
+# TeamTrackSampler -- the IDF analogues of the Arduino team_platform_bundle:
+#   - team_runtime_idf.cpp     ITeamRuntime  (sys clock + esp_random)
+#   - idf_team_crypto.cpp      ITeamCrypto   (mbedtls ChaCha20-Poly1305 + SHA256,
+#                                            wire-compatible with the rweather peers)
+#   - idf_team_track_source.cpp ITeamTrackSource (IDF GNSS get_data -> lat/lng*1e7)
+#   - idf_team_event_sinks.cpp  ITeamEventSink + ITeamPairingEventSink -> sys::EventBus
+# Plus team_track_sampler.cpp (the TeamTrackSampler usecase the facade now
+# constructs; it was not previously compiled). mbedtls is already in main's
+# REQUIRES; ChaCha20/Poly1305/ChaChaPoly are enabled in the target
+# sdkconfig.defaults. The LoRa pairing transport + TeamPairingService
+# (team_pairing_coordinator.cpp) are intentionally NOT here: getTeamPairing()
+# stays nullptr until the separate Phase 2.
+set(TRAILMATE_ESP_IDF_TEAM_SVC_SOURCES
+    "${TRAILMATE_ROOT}/modules/core_team/src/usecase/team_track_sampler.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/team_runtime_idf.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_team_crypto.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_team_track_source.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_team_event_sinks.cpp")
+
 # ---------------------------------------------------------------------------
 # Minimal LoRa-chat producer set (consumed by the IDF chat facade/factory in
 # TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES). Scope = Meshtastic text chat only:
