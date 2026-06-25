@@ -1,5 +1,6 @@
 #include "ui/app_registry.h"
 
+#include "platform/ui/gps_runtime.h"
 #include "platform/ui/wireless_companion_runtime.h"
 #include "ui/app_catalog.h"
 #include "ui/app_runtime.h"
@@ -22,6 +23,7 @@
 #include "esp_heap_caps.h"
 #include "esp_system.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 
@@ -2009,6 +2011,306 @@ void systest_exit(void* user_data, lv_obj_t* parent)
 ui::CallbackAppScreen s_systest_app("systest", "System Test", &Setting, systest_enter,
                                     systest_exit, &s_systest_state);
 
+// ---------------------------------------------------------------------------
+// GPS Position: a fully self-contained NUMERIC GPS read-out, built inline the
+// same way as the C6 Companion / Help / System Test apps above (file-static
+// state, enter()/exit() that build/tear-down a root sized LV_PCT(100), and a
+// CallbackAppScreen added to s_apps[]). stable_id = "gps_position" so the boot
+// self-test logs appselftest:gps_position:ok when it enters then immediately
+// exits this screen once.
+//
+// Unlike the Map (screens/gps) and Satellites (screens/gnss) apps, this is a
+// plain scrollable column of text labels: one line each for Latitude, Longitude,
+// Altitude, Speed, Heading/Course, Fix status, HDOP, Satellites (in use / in
+// view), and Last-fix age. The values are read live from the SAME producers the
+// sky-plot and map apps use: platform::ui::gps::get_data() (a gps::GpsState with
+// lat/lng/alt_m+has_alt/speed_mps+has_speed/course_deg+has_course/satellites/
+// valid/age) and platform::ui::gps::get_gnss_snapshot(out,max,&count,&status)
+// (which fills a gps::GnssStatus with sats_in_use/sats_in_view/hdop/fix). Both
+// are already compiled into this build via platform_ui_gps_runtime.cpp in the
+// PLATFORM cmake block, so no new producer is needed.
+//
+// The labels are created once in enter() and then refreshed every ~1000 ms by an
+// lv_timer (gps_position_tick). The producer degrades gracefully with no fix
+// (valid==false, has_* flags false), in which case the lines show "--", so the
+// boot self-test (which has no satellite fix) still enters cleanly. gps_position_
+// exit deletes the timer and the root with the same null/validity guards
+// companion_exit/snake_exit use, so the boot self-test's bare enter->exit leaves
+// nothing dangling.
+// ---------------------------------------------------------------------------
+struct GpsPositionPageState
+{
+    lv_obj_t* root = nullptr;
+    lv_timer_t* timer = nullptr;
+
+    // One value label per metric; created once in enter(), updated each tick.
+    lv_obj_t* lat_label = nullptr;
+    lv_obj_t* lng_label = nullptr;
+    lv_obj_t* alt_label = nullptr;
+    lv_obj_t* speed_label = nullptr;
+    lv_obj_t* course_label = nullptr;
+    lv_obj_t* fix_label = nullptr;
+    lv_obj_t* hdop_label = nullptr;
+    lv_obj_t* sats_label = nullptr;
+    lv_obj_t* age_label = nullptr;
+};
+
+GpsPositionPageState s_gps_position_state;
+
+// A labeled metric row: a "<title>" caption in the muted color above a value
+// label (returned) that the tick handler rewrites. Both wrap at full width so
+// long values never clip on the 540px portrait panel.
+lv_obj_t* gps_position_make_row(lv_obj_t* parent, const char* title)
+{
+    lv_obj_t* row = lv_obj_create(parent);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_width(row, LV_PCT(100));
+    lv_obj_set_height(row, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(row, 2, 0);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* caption = lv_label_create(row);
+    lv_label_set_text(caption, title ? title : "");
+    lv_obj_set_width(caption, LV_PCT(100));
+    lv_label_set_long_mode(caption, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(caption, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(caption, ui::theme::text_muted(), 0);
+
+    lv_obj_t* value = lv_label_create(row);
+    lv_label_set_text(value, "--");
+    lv_obj_set_width(value, LV_PCT(100));
+    lv_label_set_long_mode(value, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(value, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(value, ui::theme::text(), 0);
+    return value;
+}
+
+const char* gps_position_fix_name(gps::GnssFix fix)
+{
+    switch (fix)
+    {
+    case gps::GnssFix::FIX2D: return "2D fix";
+    case gps::GnssFix::FIX3D: return "3D fix";
+    case gps::GnssFix::NOFIX:
+    default: return "No fix";
+    }
+}
+
+void gps_position_set(lv_obj_t* label, const char* text)
+{
+    if (label && lv_obj_is_valid(label))
+    {
+        lv_label_set_text(label, text ? text : "--");
+    }
+}
+
+void gps_position_refresh(GpsPositionPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+
+    const gps::GpsState fix = platform::ui::gps::get_data();
+
+    // GNSS status (fix kind / HDOP / sats-in-view). get_gnss_snapshot also fills a
+    // satellite array we do not display here, but the API requires the buffer; the
+    // in-view count and the in-use count both come from the GnssStatus it writes.
+    gps::GnssSatInfo sats[gps::kMaxGnssSats]{};
+    std::size_t sat_count = 0;
+    gps::GnssStatus status{};
+    const bool have_status =
+        platform::ui::gps::get_gnss_snapshot(sats, gps::kMaxGnssSats, &sat_count, &status);
+
+    char buf[96];
+
+    // Latitude / Longitude: 6 decimal places (~0.11 m) when a fix is valid.
+    if (fix.valid)
+    {
+        std::snprintf(buf, sizeof(buf), "%.6f deg", fix.lat);
+        gps_position_set(st->lat_label, buf);
+        std::snprintf(buf, sizeof(buf), "%.6f deg", fix.lng);
+        gps_position_set(st->lng_label, buf);
+    }
+    else
+    {
+        gps_position_set(st->lat_label, "--");
+        gps_position_set(st->lng_label, "--");
+    }
+
+    if (fix.has_alt)
+    {
+        std::snprintf(buf, sizeof(buf), "%.1f m", fix.alt_m);
+        gps_position_set(st->alt_label, buf);
+    }
+    else
+    {
+        gps_position_set(st->alt_label, "--");
+    }
+
+    if (fix.has_speed)
+    {
+        std::snprintf(buf, sizeof(buf), "%.2f m/s", fix.speed_mps);
+        gps_position_set(st->speed_label, buf);
+    }
+    else
+    {
+        gps_position_set(st->speed_label, "--");
+    }
+
+    if (fix.has_course)
+    {
+        std::snprintf(buf, sizeof(buf), "%.1f deg", fix.course_deg);
+        gps_position_set(st->course_label, buf);
+    }
+    else
+    {
+        gps_position_set(st->course_label, "--");
+    }
+
+    // Fix status: prefer the richer GNSS fix kind when the snapshot is available,
+    // otherwise fall back to the GpsState valid flag.
+    if (have_status)
+    {
+        gps_position_set(st->fix_label, gps_position_fix_name(status.fix));
+        std::snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(status.hdop));
+        gps_position_set(st->hdop_label, buf);
+        std::snprintf(buf, sizeof(buf), "%u in use / %u in view",
+                      static_cast<unsigned>(status.sats_in_use),
+                      static_cast<unsigned>(status.sats_in_view));
+        gps_position_set(st->sats_label, buf);
+    }
+    else
+    {
+        gps_position_set(st->fix_label, fix.valid ? "Fix" : "No fix");
+        gps_position_set(st->hdop_label, "--");
+        std::snprintf(buf, sizeof(buf), "%u in use / -- in view",
+                      static_cast<unsigned>(fix.satellites));
+        gps_position_set(st->sats_label, buf);
+    }
+
+    // Last-fix age: milliseconds reported by the producer, shown as seconds.
+    if (fix.valid)
+    {
+        std::snprintf(buf, sizeof(buf), "%.1f s ago",
+                      static_cast<double>(fix.age) / 1000.0);
+        gps_position_set(st->age_label, buf);
+    }
+    else
+    {
+        gps_position_set(st->age_label, "--");
+    }
+}
+
+void gps_position_tick(lv_timer_t* timer)
+{
+    auto* st = static_cast<GpsPositionPageState*>(lv_timer_get_user_data(timer));
+    gps_position_refresh(st);
+}
+
+void gps_position_enter(void* user_data, lv_obj_t* parent)
+{
+    auto* state = static_cast<GpsPositionPageState*>(user_data);
+    if (!state || !parent || (state->root && lv_obj_is_valid(state->root)))
+    {
+        return;
+    }
+
+    state->root = lv_obj_create(parent);
+    lv_obj_set_size(state->root, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(state->root, ui::theme::white(), 0);
+    lv_obj_set_style_bg_opa(state->root, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(state->root, 0, 0);
+    lv_obj_set_style_radius(state->root, 0, 0);
+    lv_obj_set_style_pad_left(state->root, 18, 0);
+    lv_obj_set_style_pad_right(state->root, 18, 0);
+    lv_obj_set_style_pad_top(state->root, 18, 0);
+    lv_obj_set_style_pad_bottom(state->root, 18, 0);
+    lv_obj_set_flex_flow(state->root, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(state->root, 10, 0);
+    // Vertically scrollable: the nine metric rows are taller than the screen, so
+    // allow the page to be dragged on Y (same pattern as the Help page).
+    lv_obj_set_scroll_dir(state->root, LV_DIR_VER);
+    lv_obj_add_flag(state->root, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Back button: routes to the launcher menu via the same exit the Chat app
+    // uses (exactly like companion_enter/help_enter/systest_enter).
+    lv_obj_t* back_btn = lv_button_create(state->root);
+    lv_obj_set_width(back_btn, LV_PCT(45));
+    lv_obj_t* back_lbl = lv_label_create(back_btn);
+    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(
+        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+
+    // Page title.
+    lv_obj_t* title = lv_label_create(state->root);
+    lv_obj_set_width(title, LV_PCT(100));
+    lv_label_set_long_mode(title, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(title, ui::theme::accent(), 0);
+    lv_label_set_text(title, "Position");
+
+    // One value label per metric (created once, rewritten each tick).
+    state->lat_label = gps_position_make_row(state->root, "Latitude");
+    state->lng_label = gps_position_make_row(state->root, "Longitude");
+    state->alt_label = gps_position_make_row(state->root, "Altitude (m)");
+    state->speed_label = gps_position_make_row(state->root, "Speed (m/s)");
+    state->course_label = gps_position_make_row(state->root, "Heading / Course (deg)");
+    state->fix_label = gps_position_make_row(state->root, "Fix status");
+    state->hdop_label = gps_position_make_row(state->root, "HDOP");
+    state->sats_label = gps_position_make_row(state->root, "Satellites (in use / in view)");
+    state->age_label = gps_position_make_row(state->root, "Last-fix age");
+
+    // Populate immediately, then refresh once a second.
+    gps_position_refresh(state);
+    state->timer = lv_timer_create(gps_position_tick, 1000, state);
+}
+
+void gps_position_exit(void* user_data, lv_obj_t* parent)
+{
+    (void)parent;
+    auto* state = static_cast<GpsPositionPageState*>(user_data);
+    if (!state)
+    {
+        return;
+    }
+    if (state->timer)
+    {
+        lv_timer_del(state->timer);
+        state->timer = nullptr;
+    }
+    if (!state->root || !lv_obj_is_valid(state->root))
+    {
+        state->root = nullptr;
+        state->lat_label = nullptr;
+        state->lng_label = nullptr;
+        state->alt_label = nullptr;
+        state->speed_label = nullptr;
+        state->course_label = nullptr;
+        state->fix_label = nullptr;
+        state->hdop_label = nullptr;
+        state->sats_label = nullptr;
+        state->age_label = nullptr;
+        return;
+    }
+    lv_obj_del(state->root);
+    state->root = nullptr;
+    state->lat_label = nullptr;
+    state->lng_label = nullptr;
+    state->alt_label = nullptr;
+    state->speed_label = nullptr;
+    state->course_label = nullptr;
+    state->fix_label = nullptr;
+    state->hdop_label = nullptr;
+    state->sats_label = nullptr;
+    state->age_label = nullptr;
+}
+
+ui::CallbackAppScreen s_gps_position_app("gps_position", "Position", &Setting, gps_position_enter,
+                                         gps_position_exit, &s_gps_position_state);
+
 // Chat shell entry. Mirrors modules/ui_shared/src/ui/app_catalog_builder.cpp:
 // the chat page shell's enter/exit take a ui::page::Host* as user_data, and the
 // menu host routes the page's back/exit request to ui_request_exit_to_menu().
@@ -2213,7 +2515,8 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_snake_app,
                        &s_tetris_app,
                        &s_help_app,
-                       &s_systest_app};
+                       &s_systest_app,
+                       &s_gps_position_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 
