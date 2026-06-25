@@ -83,6 +83,23 @@ class IAppTeamFacade
     virtual const team::TeamService* getTeamService() const = 0;
     virtual team::TeamTrackSampler* getTeamTrackSampler() = 0;
     virtual void setTeamModeActive(bool active) = 0;
+
+    /**
+     * @brief Set the shared LoRa-pairing passphrase (Option A confidentiality).
+     *
+     * Defaulted no-op so only platforms that carry pairing over a long-range link
+     * (the ESP-IDF P4 LoRa pairing service) need implement it; the
+     * ESP-NOW/Wi-Fi-bootstrap platforms whose pairing is already short-range do
+     * not. When set on the P4, both units derive PSK = sha256(passphrase||team_id)
+     * locally and the PSK is never put on the air. Pass nullptr/empty to clear.
+     *
+     * @return true if the platform applied it (P4); false if unsupported (default).
+     */
+    virtual bool setTeamPairingPassphrase(const char* passphrase)
+    {
+        (void)passphrase;
+        return false;
+    }
 };
 
 class IAppAdminFacade

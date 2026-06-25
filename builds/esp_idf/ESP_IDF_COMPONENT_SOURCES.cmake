@@ -52,6 +52,15 @@ set(TRAILMATE_ESP_IDF_CORE_SYS_SOURCES
 set(TRAILMATE_ESP_IDF_CORE_TEAM_SOURCES
     "${TRAILMATE_ROOT}/modules/core_team/src/usecase/team_controller.cpp"
     "${TRAILMATE_ROOT}/modules/core_team/src/usecase/team_service.cpp"
+    # Phase 2 (LoRa pairing): the shared, cross-platform pairing state machine
+    # (3-msg Beacon/Join/Key handshake, nonce binding, retries, timeouts) and the
+    # pairing wire codec it encodes/decodes with. Both were ABSENT from the IDF
+    # build until now (the Arduino build dragged them in via the ESP-NOW pairing
+    # service). The IDF LoRa pairing service/transport in
+    # TRAILMATE_ESP_IDF_TEAM_SVC_SOURCES below drive the coordinator over the live
+    # chat::IMeshAdapter instead of ESP-NOW. The coordinator is REUSED UNCHANGED.
+    "${TRAILMATE_ROOT}/modules/core_team/src/usecase/team_pairing_coordinator.cpp"
+    "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_pairing_wire.cpp"
     "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_chat.cpp"
     "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_location_marker.cpp"
     "${TRAILMATE_ROOT}/modules/core_team/src/protocol/team_mgmt.cpp"
@@ -72,15 +81,30 @@ set(TRAILMATE_ESP_IDF_CORE_TEAM_SOURCES
 # Plus team_track_sampler.cpp (the TeamTrackSampler usecase the facade now
 # constructs; it was not previously compiled). mbedtls is already in main's
 # REQUIRES; ChaCha20/Poly1305/ChaChaPoly are enabled in the target
-# sdkconfig.defaults. The LoRa pairing transport + TeamPairingService
-# (team_pairing_coordinator.cpp) are intentionally NOT here: getTeamPairing()
-# stays nullptr until the separate Phase 2.
+# sdkconfig.defaults.
+#
+# Phase 2 (LoRa pairing) adds the two IDF impls that make getTeamPairing() return
+# non-null so the Team screen's Create/Join actually pair two units over LoRa:
+#   - idf_lora_pairing_transport.cpp  ITeamPairingTransport over chat::IMeshAdapter
+#                                     (synthetic 6-byte MAC <-> 32-bit NodeId bridge;
+#                                     broadcast MAC -> sendAppData(TEAM_PAIR_APP,dest=0),
+#                                     unicast -> the decoded NodeId; RX is fed by the
+#                                     facade pump, the transport owns no radio loop).
+#   - idf_lora_pairing_service.cpp    wraps the shared TeamPairingCoordinator (the
+#                                     IDF analogue of EspNowTeamPairingService) and
+#                                     adds the Option-A passphrase floor: both units
+#                                     derive PSK = sha256(passphrase||team_id)[:16]
+#                                     LOCALLY, so the PSK never crosses LoRa in the
+#                                     clear (ESP-NOW's ~5 m range was the old secrecy
+#                                     boundary; LoRa reaches km).
 set(TRAILMATE_ESP_IDF_TEAM_SVC_SOURCES
     "${TRAILMATE_ROOT}/modules/core_team/src/usecase/team_track_sampler.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/team_runtime_idf.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_team_crypto.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_team_track_source.cpp"
-    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_team_event_sinks.cpp")
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_team_event_sinks.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_lora_pairing_transport.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_lora_pairing_service.cpp")
 
 # ---------------------------------------------------------------------------
 # Minimal LoRa-chat producer set (consumed by the IDF chat facade/factory in

@@ -28,6 +28,7 @@
 #include "app/app_facades.h"
 #include "chat/domain/chat_types.h"
 #include "platform/esp/idf_common/idf_chat_factory.h"
+#include "platform/esp/idf_common/team/idf_lora_pairing_service.h"
 #include "platform/esp/idf_common/team/idf_team_crypto.h"
 #include "platform/esp/idf_common/team/idf_team_event_sinks.h"
 #include "platform/esp/idf_common/team/idf_team_track_source.h"
@@ -100,6 +101,7 @@ class IdfChatFacade final : public ::app::IAppFacade
     const ::team::TeamService* getTeamService() const override;
     ::team::TeamTrackSampler* getTeamTrackSampler() override;
     void setTeamModeActive(bool active) override;
+    bool setTeamPairingPassphrase(const char* passphrase) override;
 
     // -- IAppAdminFacade ----------------------------------------------------
     void broadcastNodeInfo() override;
@@ -129,9 +131,25 @@ class IdfChatFacade final : public ::app::IAppFacade
     // TeamService -> TeamController + TeamTrackSampler) so getTeamController()/
     // getTeamService() return real objects. Mirrors create_team_services() in
     // platform/esp/arduino_common/.../app_context_platform_bindings.cpp. Called
-    // from initialize() once runtime_.mesh_adapter is valid. The LoRa pairing
-    // transport/service is deferred (Phase 2): getTeamPairing() stays nullptr.
+    // from initialize() once runtime_.mesh_adapter is valid. Phase 2 also
+    // constructs the LoRa pairing service here so getTeamPairing() is non-null.
     void initTeamServices();
+
+    // Routes TeamService's "unhandled app data" (any portnum it does not consume)
+    // to the LoRa pairing service when the portnum is TEAM_PAIR_APP. TeamService's
+    // processIncoming() drains the single adapter data queue and dispatches its own
+    // portnums (TEAM_MGMT/POSITION/WAYPOINT/CHAT/TRACK); pairing frames fall through
+    // to here. This is how TEAM_PAIR_APP frames reach the pairing transport without
+    // the facade racing TeamService for the shared pollIncomingData queue.
+    class PairingAppDataRouter final : public ::team::TeamService::UnhandledAppDataObserver
+    {
+      public:
+        explicit PairingAppDataRouter(IdfChatFacade& facade) : facade_(facade) {}
+        void onUnhandledAppData(const ::chat::MeshIncomingData& msg) override;
+
+      private:
+        IdfChatFacade& facade_;
+    };
 
     LoraBoard& lora_board_;
     BoardBase* board_ = nullptr;
@@ -155,6 +173,13 @@ class IdfChatFacade final : public ::app::IAppFacade
     std::unique_ptr<::team::TeamService> team_service_;
     std::unique_ptr<::team::TeamController> team_controller_;
     std::unique_ptr<::team::TeamTrackSampler> team_track_sampler_;
+    // Phase 2: LoRa pairing service (drives TeamPairingCoordinator over the mesh
+    // adapter on TEAM_PAIR_APP). Non-null after initTeamServices(), so
+    // getTeamPairing() returns it and the Team screen's pairing UX is live. The
+    // router forwards TEAM_PAIR_APP frames from TeamService's unhandled-app-data
+    // hook into team_pairing_'s transport.
+    std::unique_ptr<team_infra::IdfLoraTeamPairingService> team_pairing_;
+    std::unique_ptr<PairingAppDataRouter> pairing_app_data_router_;
     bool team_mode_active_ = false;
 };
 

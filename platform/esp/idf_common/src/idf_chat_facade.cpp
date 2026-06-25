@@ -27,6 +27,7 @@
 #include "platform/esp/boards/board_runtime.h"
 #include "platform/esp/idf_common/sx126x_radio.h"
 #include "sys/event_bus.h"
+#include "team/protocol/team_portnum.h"
 #include "ui/chat_ui_runtime.h"
 
 namespace platform::esp::idf_common
@@ -210,11 +211,43 @@ void IdfChatFacade::initTeamServices()
     team_track_sampler_.reset(
         new ::team::TeamTrackSampler(team_runtime_, team_track_source_));
 
-    // appselftest harness + owner-facing trace: prove the controller is live so a
-    // serial capture confirms the Team screen will enable Create/Join.
-    ESP_LOGI("idf-team", "team services constructed controller=%p service=%p (pairing deferred)",
+    // Phase 2: construct the LoRa pairing service so getTeamPairing() is non-null
+    // and the Team screen's Create/Join actually pair two units over LoRa. It
+    // drives the shared TeamPairingCoordinator over the same mesh adapter on
+    // TEAM_PAIR_APP. The coordinator publishes pairing events through the service
+    // (which applies the Option-A passphrase PSK derivation) and on to the real
+    // pairing event sink. RX: TeamService::processIncoming() drains the adapter
+    // data queue and hands any portnum it does not own (i.e. TEAM_PAIR_APP) to the
+    // router below, which forwards it into the pairing transport.
+    team_pairing_.reset(new team_infra::IdfLoraTeamPairingService(
+        team_runtime_, team_pairing_event_sink_, team_crypto_, *runtime_.mesh_adapter));
+    pairing_app_data_router_.reset(new PairingAppDataRouter(*this));
+    team_service_->setUnhandledAppDataObserver(pairing_app_data_router_.get());
+
+    // appselftest harness + owner-facing trace: prove the controller AND pairing
+    // service are live so a serial capture confirms the Team screen will enable
+    // Create/Join AND can pair over LoRa.
+    ESP_LOGI("idf-team", "team services constructed controller=%p service=%p pairing=%p",
              static_cast<void*>(team_controller_.get()),
-             static_cast<void*>(team_service_.get()));
+             static_cast<void*>(team_service_.get()),
+             static_cast<void*>(team_pairing_.get()));
+}
+
+void IdfChatFacade::PairingAppDataRouter::onUnhandledAppData(const ::chat::MeshIncomingData& msg)
+{
+    // Only LoRa pairing frames are routed to the pairing transport; every other
+    // unhandled portnum is ignored here (the IDF build has no other unhandled-app
+    // consumer). The coordinator/transport re-validate the wire, so a spurious
+    // frame on this port is harmless.
+    if (msg.portnum != ::team::proto::TEAM_PAIR_APP)
+    {
+        return;
+    }
+    if (facade_.team_pairing_)
+    {
+        facade_.team_pairing_->deliverPairingFrame(
+            msg.from, msg.payload.data(), msg.payload.size());
+    }
 }
 
 void IdfChatFacade::shutdown()
@@ -364,10 +397,11 @@ const ::chat::IMeshAdapter* IdfChatFacade::getMeshAdapter() const
 
 ::team::TeamPairingService* IdfChatFacade::getTeamPairing()
 {
-    // Phase 2: the LoRa pairing transport + TeamPairingService are not wired yet.
-    // The team UI null-guards this everywhere; Create/Join still enable (they gate
-    // on the controller, not pairing).
-    return nullptr;
+    // Phase 2: the LoRa pairing service is live. Returning it non-null makes the
+    // Team screen's pairing UX (TeamPagePairingPortAdapter) active so Create
+    // beacons and Join scans over LoRa (TEAM_PAIR_APP). Confidentiality (the PSK
+    // off the air) is enforced inside the service via the Option-A passphrase.
+    return team_pairing_.get();
 }
 
 ::team::TeamService* IdfChatFacade::getTeamService()
@@ -391,6 +425,20 @@ void IdfChatFacade::setTeamModeActive(bool active)
     // team mode is active (the Arduino app_runtime_support.cpp does the same). On
     // a board without a GPS fix the sampler degrades gracefully (no shared point).
     team_mode_active_ = active;
+}
+
+bool IdfChatFacade::setTeamPairingPassphrase(const char* passphrase)
+{
+    // Option A floor: forward the shared passphrase to the LoRa pairing service so
+    // both units derive PSK = sha256(passphrase||team_id) locally and the PSK
+    // never crosses the air. Callable from any UI seam (e.g. a settings/team text
+    // modal) without changing the cross-platform team-pairing port signatures.
+    if (!team_pairing_)
+    {
+        return false;
+    }
+    team_pairing_->setPassphrase(passphrase);
+    return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -559,12 +607,23 @@ void IdfChatFacade::pumpMeshAndDrainEvents(std::size_t max_events)
     //     .processIncoming() never drains the data queue (it polls only text +
     //     early-returns on no data observers); the team frames are still present
     //     when team polls. Mirrors app_runtime_support.cpp::updateCoreServices
-    //     (chat then team). The pairing update() is intentionally OMITTED here
-    //     (Phase 2). If an exclusive radio hold is active (walkie voice), the
-    //     adapter queue is simply empty, so this is a cheap no-op.
+    //     (chat then team). If an exclusive radio hold is active (walkie voice),
+    //     the adapter queue is simply empty, so this is a cheap no-op.
+    //
+    //     Phase 2: processIncoming() ALSO hands any TEAM_PAIR_APP frame (a portnum
+    //     it does not own) to pairing_app_data_router_, which buffers it in
+    //     team_pairing_. team_pairing_->update() below then drains that buffer into
+    //     the pairing coordinator and advances its state machine (beacon cadence,
+    //     join retries, timeouts). Driving pairing right after team_service_ keeps
+    //     RX-buffer -> coordinator handoff within a single tick.
     if (team_service_)
     {
         team_service_->processIncoming();
+
+        if (team_pairing_)
+        {
+            team_pairing_->update();
+        }
 
         // Drive team-mode + the track sampler exactly as the Arduino path does:
         // team is "active" once keys are set, and the sampler periodically reads
