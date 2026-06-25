@@ -10,7 +10,8 @@
 
 #if (defined(ARDUINO_T_LORA_PAGER) &&                                                 \
      (defined(ARDUINO_LILYGO_LORA_SX1262) || defined(ARDUINO_LILYGO_LORA_LR1121))) || \
-    defined(TRAIL_MATE_ESP_BOARD_TAB5)
+    defined(TRAIL_MATE_ESP_BOARD_TAB5) ||                                             \
+    defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
 
 #include "app/app_config.h"
 #include "app/app_facade_access.h"
@@ -68,6 +69,24 @@ constexpr uint32_t kWalkieTaskStack = 20 * 1024;
 uint32_t now_ms()
 {
     return static_cast<uint32_t>(pdTICKS_TO_MS(xTaskGetTickCount()));
+}
+
+// Yield the walkie audio task for a short slice that is GUARANTEED to be at least
+// one scheduler tick. pdMS_TO_TICKS(2) rounds DOWN to 0 ticks on a 100 Hz tick
+// (CONFIG_FREERTOS_HZ=100, as on the T-Display P4), and vTaskDelay(0) does not
+// block at all -- the priority-7 task would then busy-spin, starve the idle task,
+// and trip the task watchdog (and, during the boot self-test, prevent the
+// enter->exit teardown from observing the task stop). Clamp to >= 1 tick so the
+// loop always sleeps a real interval on every board regardless of tick rate. One
+// tick (10 ms at 100 Hz) is well within the walkie's 20 ms codec frame budget.
+void walkie_yield(uint32_t target_ms)
+{
+    TickType_t ticks = pdMS_TO_TICKS(target_ms);
+    if (ticks == 0)
+    {
+        ticks = 1;
+    }
+    vTaskDelay(ticks);
 }
 
 uint32_t fallback_self_id()
@@ -486,7 +505,7 @@ void walkie_task(void*)
                             tx_in_flight ? 1 : 0);
                 last_audio_log_ms = current_ms;
             }
-            vTaskDelay(pdMS_TO_TICKS(2));
+            walkie_yield(2);
             continue;
         }
 
@@ -733,7 +752,7 @@ void walkie_task(void*)
             last_audio_log_ms = current_ms;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(2));
+        walkie_yield(2);
     }
 
     free(rx_frame_buf);
@@ -828,6 +847,11 @@ bool start()
         cleanup_runtime_session(true);
         return false;
     }
+    // REAL-PATH MARKER: the audio codec (ES8311 on the P4) actually opened inside
+    // the un-gated walkie backend. Emitted unconditionally at the codecOpen success
+    // site (NOT in the is_supported() placeholder fallback), so the boot self-test
+    // proves the live runtime ran and the codec came up. Keep on a single line.
+    std::printf("walkie:start codec_open=ok\n");
     s_volume = kDefaultVolume;
     walkie_runtime::codecSetVolume(&s_runtime_session, s_volume);
     walkie_runtime::codecSetGain(&s_runtime_session, kDefaultGainDb);

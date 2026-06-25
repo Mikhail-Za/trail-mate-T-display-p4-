@@ -555,7 +555,17 @@ set(TRAILMATE_ESP_IDF_UI_SHARED_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/BaseCamp.c"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/GoodFind.c"
     "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/rally.c"
-    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/sos.c")
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/sos.c"
+    # Walkie-talkie (push-to-talk FSK voice) screen: the page shell + live runtime
+    # and its launcher-icon descriptor. Bound into the IDF launcher's hardcoded
+    # s_apps[] as s_walkie_app (see esp32_lvgl_idf_app_registry.cpp). The shell
+    # wraps the runtime with the page_shell_fallback template, whose
+    # placeholder_page::show/hide TU is ALREADY linked via the GNSS UI set, so it is
+    # not repeated here. The runtime's audio/radio backend is the walkie service +
+    # idf_common walkie runtime in TRAILMATE_ESP_IDF_WALKIE_SOURCES (P4 only).
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/walkie_talkie/walkie_talkie_page_shell.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/screens/walkie_talkie/walkie_talkie_page_runtime.cpp"
+    "${TRAILMATE_ROOT}/modules/ui_shared/src/ui/assets/walkie_talkie.c")
 
 set(TRAILMATE_ESP_IDF_UI_PRESENTATION_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_presentation/src/gps/gps_status_model.cpp"
@@ -613,17 +623,36 @@ set(TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_chat_facade.cpp"
     "${TRAILMATE_ROOT}/platform/esp/radio/meshtastic_radio_adapter.cpp")
 
+# Walkie-talkie (push-to-talk FSK voice) backend, shared by every IDF board that
+# has both an audio codec and the SX1262: the platform::ui::walkie facade runtime
+# (delegates to ::walkie::*), the shared ::walkie service (codec2 3200 encode/decode
+# + FSK packetization, the REAL ::walkie::start() with the codec_open marker), and
+# the idf_common walkie runtime (radio + board-codec glue; board-gated internally to
+# CodecCompat on Tab5 / CodecEs8311 on the T-Display P4). Compiled per-board (added
+# to each board source set below) because it references the board-specific codec
+# class. codec2 is pulled in too: the walkie service's real path #include <codec2.h>
+# and calls codec2_* (this is also what links the codec2_* symbol the walkie check
+# asserts).
+include("${TRAILMATE_ROOT}/third_party/codec2/codec2_sources.cmake")
+set(TRAILMATE_ESP_IDF_WALKIE_SOURCES
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_walkie_runtime.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/walkie_runtime.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/walkie/walkie_service.cpp"
+    ${trail_mate_codec2_sources})
+
 set(TRAILMATE_ESP_IDF_TAB5_BOARD_SOURCES
     "${TRAILMATE_ROOT}/boards/tab5/src/codec_compat.cpp"
     "${TRAILMATE_ROOT}/boards/tab5/src/heading_runtime.cpp"
     "${TRAILMATE_ROOT}/boards/tab5/src/rtc_runtime.cpp"
-    "${TRAILMATE_ROOT}/boards/tab5/src/tab5_board.cpp")
+    "${TRAILMATE_ROOT}/boards/tab5/src/tab5_board.cpp"
+    ${TRAILMATE_ESP_IDF_WALKIE_SOURCES})
 
 set(TRAILMATE_ESP_IDF_T_DISPLAY_P4_BOARD_SOURCES
     "${TRAILMATE_ROOT}/boards/t_display_p4/src/rtc_runtime.cpp"
     "${TRAILMATE_ROOT}/boards/t_display_p4/src/runtime_support.cpp"
     "${TRAILMATE_ROOT}/boards/t_display_p4/src/codec_es8311.cpp"
-    "${TRAILMATE_ROOT}/boards/t_display_p4/src/t_display_p4_board.cpp")
+    "${TRAILMATE_ROOT}/boards/t_display_p4/src/t_display_p4_board.cpp"
+    ${TRAILMATE_ESP_IDF_WALKIE_SOURCES})
 
 set(TRAILMATE_ESP_IDF_FINAL_INCLUDE_DIRS
     "${TRAILMATE_ROOT}/apps/esp32_lvgl/src"
@@ -652,6 +681,8 @@ set(TRAILMATE_ESP_IDF_FINAL_INCLUDE_DIRS
     "${TRAILMATE_ROOT}/platform/esp/common/include"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/include"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/third_party/RadioLib/src"
+    # codec2 vocoder headers (codec2.h) for the walkie-talkie voice path.
+    "${TRAILMATE_ROOT}/third_party/codec2/src"
     "${TRAILMATE_ROOT}/platform/shared/include"
     "${TRAILMATE_ROOT}/boards/tab5/include"
     "${TRAILMATE_ROOT}/boards/t_display_p4/include"

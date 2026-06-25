@@ -16,6 +16,7 @@
 #include "ui/screens/pc_link/pc_link_page_shell.h"
 #include "ui/screens/settings/settings_page_shell.h"
 #include "ui/screens/tracker/tracker_page_shell.h"
+#include "ui/screens/walkie_talkie/walkie_talkie_page_shell.h"
 #include "ui/ui_theme.h"
 
 #include "platform/ui/device_runtime.h"
@@ -53,6 +54,10 @@ extern "C"
 {
     extern const lv_image_dsc_t Setting;
     extern const lv_image_dsc_t Chat;
+    // Walkie-talkie launcher icon descriptor; defined in
+    // modules/ui_shared/src/ui/assets/walkie_talkie.c (added to the IDF UI-shared
+    // source set), referenced by s_walkie_app below.
+    extern const lv_image_dsc_t walkie_talkie;
 }
 
 struct CompanionPageState
@@ -4811,6 +4816,26 @@ ui::CallbackAppScreen s_pc_link_app("pc_link",
                                     pc_link::ui::shell::exit,
                                     &s_pc_link_menu_host);
 
+// Walkie-Talkie (push-to-talk FSK voice between units over the SX1262, codec2
+// 3200 vocoder, ES8311 audio). stable_id = 'walkie_talkie'. Mirrors the
+// chat/contacts/settings/pc_link binding: the walkie page shell's enter/exit take
+// a ui::page::Host* (walkie_page::ui::shell::Host is an alias of ::ui::page::Host)
+// as user_data and route the back request through ui_request_exit_to_menu() via
+// the menu host. The shell wraps the runtime with the page_shell_fallback
+// template; runtime::is_available() == platform::ui::walkie::is_supported(), which
+// on the P4 is hasAudio() && Sx126xRadio::isOnline() (un-gated in
+// idf_common/walkie_runtime.cpp), so the live runtime is entered and start() opens
+// the ES8311 codec + configures the radio for FSK. exit() stops the walkie audio
+// task and deletes the root synchronously, so it is self-test safe.
+ui::page::Host s_walkie_menu_host = make_menu_host();
+
+ui::CallbackAppScreen s_walkie_app("walkie_talkie",
+                                   "Walkie Talkie",
+                                   &walkie_talkie,
+                                   walkie_page::ui::shell::enter,
+                                   walkie_page::ui::shell::exit,
+                                   &s_walkie_menu_host);
+
 AppScreen* s_apps[] = {&s_chat_app,
                        &s_contacts_app,
                        &s_settings_app,
@@ -4829,7 +4854,8 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_g2048_app,
                        &s_flashlight_app,
                        &s_stopwatch_app,
-                       &s_node_radar_app};
+                       &s_node_radar_app,
+                       &s_walkie_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 

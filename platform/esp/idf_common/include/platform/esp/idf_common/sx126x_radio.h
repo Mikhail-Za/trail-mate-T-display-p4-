@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
@@ -25,6 +26,16 @@ class Sx126xRadio
     bool acquire();
     void release();
     bool isOnline() const;
+
+    // Exclusive-mode hold. An exclusive radio mode (e.g. the walkie-talkie, which
+    // reconfigures the SX1262 for FSK) sets this while it owns the chip so the
+    // inline mesh/chat radio pump (idf_chat_facade::pumpMeshAndDrainEvents) skips
+    // its RX poll + TX drain and never flips the radio back to LoRa receive
+    // mid-session. The mutex only guards individual SPI transactions; this flag
+    // guards the higher-level mode. Atomic: the holder runs on the walkie path
+    // while the pump runs on the main loop task.
+    void setExclusiveHold(bool held) { exclusive_hold_.store(held, std::memory_order_release); }
+    bool hasExclusiveHold() const { return exclusive_hold_.load(std::memory_order_acquire); }
 
     bool configureLoRaReceive(float freq_mhz,
                               float bw_khz,
@@ -122,6 +133,7 @@ class Sx126xRadio
     bool online_ = false;
     bool lora_configured_ = false;
     uint32_t users_ = 0;
+    std::atomic<bool> exclusive_hold_{false};
 
     // Cached LoRa configuration from the last configureLoRaReceive(), used by
     // begin()/re-arm and the RSSI scale.

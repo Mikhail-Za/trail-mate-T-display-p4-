@@ -25,6 +25,7 @@
 #include "chat/usecase/chat_service.h"
 #include "chat/usecase/contact_service.h"
 #include "platform/esp/boards/board_runtime.h"
+#include "platform/esp/idf_common/sx126x_radio.h"
 #include "sys/event_bus.h"
 #include "ui/chat_ui_runtime.h"
 
@@ -485,7 +486,16 @@ void IdfChatFacade::pumpMeshAndDrainEvents(std::size_t max_events)
     //    polls the SX126x for RX, drains the TX queue, and emits the one-time
     //    NodeInfo broadcast. This is the entire replacement for the Arduino
     //    meshTask loop.
-    if (runtime_.mesh_adapter)
+    //
+    //    EXCEPTION: while an exclusive radio mode holds the chip (walkie-talkie has
+    //    reconfigured the SX1262 for FSK voice), skip the pump entirely. Touching
+    //    the radio here would poll/reconfigure it back toward LoRa receive and
+    //    corrupt the in-flight voice session. The walkie path releases the hold
+    //    (Sx126xRadio::setExclusiveHold(false)) on exit, after which the very next
+    //    tick re-arms LoRa receive. The event drain below is radio-free and still
+    //    runs so the UI stays responsive.
+    if (runtime_.mesh_adapter &&
+        !platform::esp::idf_common::Sx126xRadio::instance().hasExclusiveHold())
     {
         runtime_.mesh_adapter->processSendQueue();
     }

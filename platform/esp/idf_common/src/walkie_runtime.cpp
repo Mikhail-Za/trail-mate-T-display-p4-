@@ -1,13 +1,23 @@
 #include "platform/esp/common/walkie_runtime.h"
-#include "boards/tab5/tab5_board.h"
 
 #include <cstdio>
 #include <cstring>
 
-#include "boards/tab5/codec_compat.h"
 #include "platform/esp/idf_common/sx126x_radio.h"
 
 #if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+#include "boards/tab5/tab5_board.h"
+#include "boards/tab5/codec_compat.h"
+#elif defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+#include "boards/t_display_p4/codec_es8311.h"
+#include "boards/t_display_p4/t_display_p4_board.h"
+#endif
+
+// The walkie backend is built for any IDF board that has BOTH the audio codec and
+// the SX1262 radio: the Tab5 (CodecCompat) and the LilyGo T-Display P4
+// (CodecEs8311). The radio/codec call bodies below are identical across boards --
+// only the codec class and the board's capability query differ, selected here.
+#if defined(TRAIL_MATE_ESP_BOARD_TAB5) || defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
 namespace
 {
 constexpr float kFskBitRateKbps = 9.6f;
@@ -16,18 +26,32 @@ constexpr float kFskRxBwKHz = 156.2f;
 constexpr uint16_t kFskPreambleLen = 16;
 constexpr uint8_t kFskSyncWord[] = {0x2D, 0x01};
 
+#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+using BoardCodec = ::boards::tab5::CodecCompat;
+#else
+using BoardCodec = ::boards::t_display_p4::CodecEs8311;
+#endif
+
 struct BackendState
 {
-    ::boards::tab5::CodecCompat codec;
+    BoardCodec codec;
 };
 
 BackendState s_backend_state;
 
 bool board_supports_walkie()
 {
+#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
     return ::boards::tab5::Tab5Board::hasAudio() &&
            (::boards::tab5::Tab5Board::hasLora() ||
             ::boards::tab5::Tab5Board::hasM5BusLoraRouting());
+#else
+    // T-Display P4: it has the ES8311 audio path and the SX1262; walkie is
+    // available whenever the board profile reports audio AND the shared radio
+    // singleton is actually online (RadioLib brought the SX1262 up).
+    return ::boards::t_display_p4::TDisplayP4Board::hasAudio() &&
+           platform::esp::idf_common::Sx126xRadio::instance().isOnline();
+#endif
 }
 
 platform::esp::idf_common::Sx126xRadio& radio()
@@ -59,7 +83,7 @@ void write_error(char* error_buffer, size_t error_buffer_size, const char* messa
 namespace platform::esp::common::walkie_runtime
 {
 
-#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+#if defined(TRAIL_MATE_ESP_BOARD_TAB5) || defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
 bool isSupported()
 {
     return board_supports_walkie();
@@ -131,6 +155,12 @@ bool configureFsk(Session* session, float freq_mhz, int8_t tx_power, char* error
     }
 
     session->lora_mode_configured = true;
+    // The SX1262 is now in FSK voice mode. Claim the exclusive hold so the inline
+    // mesh/chat radio pump stops touching the chip (no RX poll, no post-TX
+    // re-arm-to-LoRa) until restoreLora() releases it. Without this the chat
+    // loop's processSendQueue() would reconfigure the radio back to LoRa receive
+    // and corrupt the walkie session.
+    radio().setExclusiveHold(true);
     write_error(error_buffer, error_buffer_size, nullptr);
     return true;
 }
@@ -146,6 +176,10 @@ bool restoreLora(Session* session, char* error_buffer, size_t error_buffer_size)
         radio().standby();
         session->lora_mode_configured = false;
     }
+    // Voice session is ending; let the mesh/chat radio pump own the chip again.
+    // applyMeshConfig() (called by the walkie service after restoreLora) will
+    // re-establish LoRa receive on the next pump tick.
+    radio().setExclusiveHold(false);
     write_error(error_buffer, error_buffer_size, nullptr);
     return true;
 }
@@ -270,6 +304,10 @@ void release(Session* session)
     if (acquired)
     {
         radio().release();
+        // Belt-and-suspenders: guarantee the exclusive hold is cleared on every
+        // teardown so a partially-initialized session can never wedge the mesh
+        // pump off permanently.
+        radio().setExclusiveHold(false);
     }
     *session = {};
 }
