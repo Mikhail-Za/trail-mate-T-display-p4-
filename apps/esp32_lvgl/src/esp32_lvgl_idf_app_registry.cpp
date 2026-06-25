@@ -2873,6 +2873,356 @@ void g2048_exit(void* user_data, lv_obj_t* parent)
 
 ui::CallbackAppScreen s_g2048_app("g2048", "2048", &Chat, g2048_enter, g2048_exit, &s_g2048_state);
 
+// ---------------------------------------------------------------------------
+// Flashlight / SOS: a fully self-contained touch-only flashlight, built inline
+// the same way as the C6 Companion / Snake / Tetris / 2048 apps above (file-
+// static state, enter()/exit() that build/tear-down a root sized LV_PCT(100),
+// and a CallbackAppScreen added to s_apps[]). stable_id = "flashlight" so the
+// boot self-test logs appselftest:flashlight:ok when it enters then immediately
+// exits this screen once.
+//
+// The whole screen is a max-brightness white surface you toggle on (white) /
+// off (black) by tapping the light area. A "SOS Strobe" toggle starts an
+// lv_timer that flashes the surface white/black in the International Morse SOS
+// pattern ( ... --- ... ): three short, three long, three short, then a word
+// gap before it repeats. The pattern is a flat table of {lit, duration_ms}
+// segments; one variable-period lv_timer advances one segment per fire and
+// re-arms itself to that segment's duration (the same lv_timer_set_period
+// technique the Tetris soft-drop and System-Test apps use), so the timing is
+// exact (dot = kDotMs, dash = 3 dots, intra-symbol gap = 1 dot, inter-letter
+// gap = 3 dots, word gap = 7 dots) without busy-waiting.
+//
+// While the app is active it drives the backlight to maximum through the
+// portable platform::ui::device brightness API (supports_screen_brightness() /
+// screen_brightness() / set_screen_brightness()), capturing the prior level on
+// enter and restoring it on exit. set_screen_brightness() maps the level to a
+// percent that the board runtime clamps to 0..100, so passing a saturating
+// 0xFF reliably yields full brightness without needing the per-board max macro.
+//
+// flashlight_exit deletes the strobe timer and lv_obj_del the root with the
+// same null/validity guards companion_exit/snake_exit use, and restores the
+// captured backlight level, so the boot self-test's bare enter->exit leaves
+// nothing dangling and the screen brightness unchanged.
+// ---------------------------------------------------------------------------
+struct FlashlightPageState
+{
+    // Morse timing. A dot is the base unit; a dash is three dots; the gap
+    // between the dots/dashes inside one letter is one dot; the gap between
+    // letters is three dots; the gap between words (here, before the SOS
+    // pattern repeats) is seven dots. 200ms/dot gives a clearly readable strobe.
+    static constexpr uint32_t kDotMs = 200;
+    static constexpr uint32_t kDashMs = kDotMs * 3;        // 600
+    static constexpr uint32_t kSymbolGapMs = kDotMs;       // 200 (within a letter)
+    static constexpr uint32_t kLetterGapMs = kDotMs * 3;   // 600 (between letters)
+    static constexpr uint32_t kWordGapMs = kDotMs * 7;     // 1400 (before repeat)
+
+    lv_obj_t* root = nullptr;       // the app container (control bar lives here)
+    lv_obj_t* light = nullptr;      // the tappable full-bleed light surface
+    lv_obj_t* mode_label = nullptr; // text on the SOS toggle button
+
+    lv_timer_t* timer = nullptr;    // SOS strobe timer (null unless SOS active)
+    int seg = 0;                    // current index into the SOS segment table
+
+    bool light_on = true;           // manual mode: is the surface lit (white)?
+    bool sos = false;               // is SOS strobe mode active?
+
+    bool brightness_saved = false;  // did we capture + raise the backlight?
+    uint8_t prev_brightness = 0;    // backlight level captured on enter
+};
+
+FlashlightPageState s_flashlight_state;
+
+// One SOS cycle as a flat list of {lit, duration} segments:
+//   S = dot . dot . dot  -> three (on dot)(off symbol-gap) pairs
+//   (letter gap)
+//   O = dash _ dash _ dash
+//   (letter gap)
+//   S = dot . dot . dot
+//   (word gap, then the table repeats)
+// The trailing gap after each dot/dash within a letter is the symbol gap; the
+// last symbol of each letter is instead followed by the letter gap (or, after
+// the final S, the word gap). Lit segments paint white, unlit paint black.
+struct FlashlightSegment
+{
+    bool lit;
+    uint32_t duration_ms;
+};
+
+const FlashlightSegment kSosPattern[] = {
+    // S: . . .
+    {true, FlashlightPageState::kDotMs},  {false, FlashlightPageState::kSymbolGapMs},
+    {true, FlashlightPageState::kDotMs},  {false, FlashlightPageState::kSymbolGapMs},
+    {true, FlashlightPageState::kDotMs},  {false, FlashlightPageState::kLetterGapMs},
+    // O: - - -
+    {true, FlashlightPageState::kDashMs}, {false, FlashlightPageState::kSymbolGapMs},
+    {true, FlashlightPageState::kDashMs}, {false, FlashlightPageState::kSymbolGapMs},
+    {true, FlashlightPageState::kDashMs}, {false, FlashlightPageState::kLetterGapMs},
+    // S: . . .
+    {true, FlashlightPageState::kDotMs},  {false, FlashlightPageState::kSymbolGapMs},
+    {true, FlashlightPageState::kDotMs},  {false, FlashlightPageState::kSymbolGapMs},
+    {true, FlashlightPageState::kDotMs},  {false, FlashlightPageState::kWordGapMs},
+};
+
+constexpr int kSosPatternLen =
+    static_cast<int>(sizeof(kSosPattern) / sizeof(kSosPattern[0]));
+
+// Paint the light surface white (lit) or black (dark).
+void flashlight_paint(FlashlightPageState* st, bool lit)
+{
+    if (!st || !st->light || !lv_obj_is_valid(st->light))
+    {
+        return;
+    }
+    lv_obj_set_style_bg_color(st->light, lit ? lv_color_hex(0xFFFFFF) : lv_color_hex(0x000000),
+                              0);
+    lv_obj_set_style_bg_opa(st->light, LV_OPA_COVER, 0);
+}
+
+// Drive the backlight to maximum (capturing the prior level once so exit can
+// restore it). set_screen_brightness maps the level to a percent the board
+// clamps to 0..100, so 0xFF saturates to full brightness on any board max.
+void flashlight_raise_brightness(FlashlightPageState* st)
+{
+    if (!st || st->brightness_saved)
+    {
+        return;
+    }
+    if (!platform::ui::device::supports_screen_brightness())
+    {
+        return;
+    }
+    st->prev_brightness = platform::ui::device::screen_brightness();
+    st->brightness_saved = true;
+    platform::ui::device::set_screen_brightness(0xFF);
+}
+
+// Restore the backlight level captured by flashlight_raise_brightness (no-op if
+// it was never raised). Safe to call repeatedly.
+void flashlight_restore_brightness(FlashlightPageState* st)
+{
+    if (!st || !st->brightness_saved)
+    {
+        return;
+    }
+    if (platform::ui::device::supports_screen_brightness())
+    {
+        platform::ui::device::set_screen_brightness(st->prev_brightness);
+    }
+    st->brightness_saved = false;
+}
+
+// SOS strobe tick: paint the current segment, advance to the next (wrapping at
+// the end of the table), and re-arm the timer to the next segment's duration so
+// each dot/dash/gap lasts exactly its Morse length.
+void flashlight_sos_tick(lv_timer_t* timer)
+{
+    auto* st = static_cast<FlashlightPageState*>(lv_timer_get_user_data(timer));
+    if (!st)
+    {
+        return;
+    }
+    if (st->seg < 0 || st->seg >= kSosPatternLen)
+    {
+        st->seg = 0;
+    }
+    const FlashlightSegment& s = kSosPattern[st->seg];
+    flashlight_paint(st, s.lit);
+    lv_timer_set_period(timer, s.duration_ms);
+    st->seg = (st->seg + 1) % kSosPatternLen;
+}
+
+void flashlight_update_mode_label(FlashlightPageState* st)
+{
+    if (st && st->mode_label && lv_obj_is_valid(st->mode_label))
+    {
+        lv_label_set_text(st->mode_label, st->sos ? "SOS: ON" : "SOS: OFF");
+    }
+}
+
+// Start the SOS strobe: create the variable-period timer (if not already
+// running) and fire the first segment immediately so the pattern starts at once.
+void flashlight_start_sos(FlashlightPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    st->sos = true;
+    st->seg = 0;
+    if (!st->timer)
+    {
+        // Initial period is a placeholder; the first tick re-arms it from the
+        // segment table. Fire it now so the strobe begins on the first dot.
+        st->timer = lv_timer_create(flashlight_sos_tick, FlashlightPageState::kDotMs, st);
+        if (st->timer)
+        {
+            flashlight_sos_tick(st->timer);
+        }
+    }
+    flashlight_update_mode_label(st);
+}
+
+// Stop the SOS strobe: delete the timer and return the surface to the manual
+// on/off state.
+void flashlight_stop_sos(FlashlightPageState* st)
+{
+    if (!st)
+    {
+        return;
+    }
+    st->sos = false;
+    if (st->timer)
+    {
+        lv_timer_del(st->timer);
+        st->timer = nullptr;
+    }
+    flashlight_paint(st, st->light_on);
+    flashlight_update_mode_label(st);
+}
+
+void flashlight_enter(void* user_data, lv_obj_t* parent)
+{
+    auto* state = static_cast<FlashlightPageState*>(user_data);
+    if (!state || !parent || (state->root && lv_obj_is_valid(state->root)))
+    {
+        return;
+    }
+
+    state->timer = nullptr;
+    state->seg = 0;
+    state->light_on = true;
+    state->sos = false;
+    state->brightness_saved = false;
+    state->prev_brightness = 0;
+
+    // Root: a full-bleed black container with no padding so the light surface
+    // can cover the entire 540x1168 panel for the brightest possible flood.
+    state->root = lv_obj_create(parent);
+    lv_obj_set_size(state->root, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(state->root, lv_color_hex(0x000000), 0);
+    lv_obj_set_style_bg_opa(state->root, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(state->root, 0, 0);
+    lv_obj_set_style_radius(state->root, 0, 0);
+    lv_obj_set_style_pad_all(state->root, 0, 0);
+    lv_obj_clear_flag(state->root, LV_OBJ_FLAG_SCROLLABLE);
+
+    // The tappable light surface fills the whole root; tapping toggles it
+    // on/off (white/black) when not in SOS mode. It sits at the back so the
+    // control bar (added after) stays on top and clickable.
+    state->light = lv_obj_create(state->root);
+    lv_obj_remove_style_all(state->light);
+    lv_obj_set_size(state->light, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_pos(state->light, 0, 0);
+    lv_obj_clear_flag(state->light, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(state->light, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(
+        state->light,
+        [](lv_event_t* e)
+        {
+            auto* st = static_cast<FlashlightPageState*>(lv_event_get_user_data(e));
+            if (!st || st->sos)
+            {
+                return;  // taps are inert while the SOS strobe is running
+            }
+            st->light_on = !st->light_on;
+            flashlight_paint(st, st->light_on);
+        },
+        LV_EVENT_CLICKED, state);
+
+    // Control bar pinned to the top, above the light surface. Holds the Back
+    // button and the SOS strobe toggle. Semi-transparent dark pill so the
+    // controls stay legible whether the light behind them is white or black.
+    lv_obj_t* bar = lv_obj_create(state->root);
+    lv_obj_set_size(bar, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_pos(bar, 0, 0);
+    lv_obj_set_style_bg_color(bar, lv_color_hex(0x202020), 0);
+    lv_obj_set_style_bg_opa(bar, LV_OPA_70, 0);
+    lv_obj_set_style_border_width(bar, 0, 0);
+    lv_obj_set_style_radius(bar, 0, 0);
+    lv_obj_set_style_pad_all(bar, 10, 0);
+    lv_obj_set_flex_flow(bar, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(bar, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(bar, 12, 0);
+    lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Back button: routes to the launcher menu via the same exit the Chat app
+    // uses (exactly like companion_enter/help_enter/systest_enter).
+    lv_obj_t* back_btn = lv_button_create(bar);
+    lv_obj_t* back_lbl = lv_label_create(back_btn);
+    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(
+        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+
+    // SOS strobe toggle: flips between the steady flashlight and the Morse SOS
+    // strobe. The label reflects the current mode.
+    lv_obj_t* sos_btn = lv_button_create(bar);
+    lv_obj_set_style_pad_top(sos_btn, 14, 0);
+    lv_obj_set_style_pad_bottom(sos_btn, 14, 0);
+    state->mode_label = lv_label_create(sos_btn);
+    lv_obj_set_style_text_font(state->mode_label, &lv_font_montserrat_14, 0);
+    lv_label_set_text(state->mode_label, "SOS: OFF");
+    lv_obj_center(state->mode_label);
+    lv_obj_add_event_cb(
+        sos_btn,
+        [](lv_event_t* e)
+        {
+            auto* st = static_cast<FlashlightPageState*>(lv_event_get_user_data(e));
+            if (!st)
+            {
+                return;
+            }
+            if (st->sos)
+            {
+                flashlight_stop_sos(st);
+            }
+            else
+            {
+                flashlight_start_sos(st);
+            }
+        },
+        LV_EVENT_CLICKED, state);
+
+    // Drive the backlight to maximum for the brightest flood, then show the
+    // light in its initial (on) state.
+    flashlight_raise_brightness(state);
+    flashlight_paint(state, state->light_on);
+}
+
+void flashlight_exit(void* user_data, lv_obj_t* parent)
+{
+    (void)parent;
+    auto* state = static_cast<FlashlightPageState*>(user_data);
+    if (!state)
+    {
+        return;
+    }
+    // Delete the strobe timer first so it can never fire against a freed root.
+    if (state->timer)
+    {
+        lv_timer_del(state->timer);
+        state->timer = nullptr;
+    }
+    // Restore the backlight level we captured on enter (no-op if never raised).
+    flashlight_restore_brightness(state);
+    state->sos = false;
+    if (!state->root || !lv_obj_is_valid(state->root))
+    {
+        state->root = nullptr;
+        state->light = nullptr;
+        state->mode_label = nullptr;
+        return;
+    }
+    lv_obj_del(state->root);
+    state->root = nullptr;
+    state->light = nullptr;
+    state->mode_label = nullptr;
+}
+
+ui::CallbackAppScreen s_flashlight_app("flashlight", "Flashlight", &Setting, flashlight_enter,
+                                       flashlight_exit, &s_flashlight_state);
+
 // Chat shell entry. Mirrors modules/ui_shared/src/ui/app_catalog_builder.cpp:
 // the chat page shell's enter/exit take a ui::page::Host* as user_data, and the
 // menu host routes the page's back/exit request to ui_request_exit_to_menu().
@@ -3079,7 +3429,8 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_help_app,
                        &s_systest_app,
                        &s_gps_position_app,
-                       &s_g2048_app};
+                       &s_g2048_app,
+                       &s_flashlight_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 
