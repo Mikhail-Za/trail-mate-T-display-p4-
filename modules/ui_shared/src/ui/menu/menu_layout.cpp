@@ -40,7 +40,13 @@ constexpr const char* kTag = "ui-menu-layout";
 #define MENU_LAYOUT_DIAG(...)
 #endif
 
-constexpr size_t kMaxMenuApps = 16;
+// Max app cards the home menu will create + track. The catalog now holds 20 apps
+// (through the walkie-talkie/PTT app); a cap of 16 silently dropped every entry past
+// the 16th (Flashlight, Stopwatch, Node Radar, Walkie) -- they passed the boot
+// self-test (which walks the full catalog) but never rendered on the home grid.
+// The P4/tab5 profile has vertical_scroll + wrap_grid, so extra rows scroll if they
+// overflow; 32 gives comfortable headroom for future apps.
+constexpr size_t kMaxMenuApps = 32;
 
 struct MenuAppUi
 {
