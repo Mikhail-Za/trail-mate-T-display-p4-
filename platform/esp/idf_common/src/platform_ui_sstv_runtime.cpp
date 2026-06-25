@@ -83,6 +83,7 @@ Status get_status()
     status.progress = source.progress;
     status.audio_level = source.audio_level;
     status.has_image = source.has_image;
+    status.clipping = source.clipping;
     return status;
 }
 

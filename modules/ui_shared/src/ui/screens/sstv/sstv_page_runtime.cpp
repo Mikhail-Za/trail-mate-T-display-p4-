@@ -228,6 +228,10 @@ constexpr uint32_t kColorOk = 0x3E7D3E;
 constexpr uint32_t kColorWarn = 0xB94A2C;
 constexpr uint32_t kColorGray = 0x6E6E6E;
 constexpr uint32_t kColorMeterMid = 0xC18B2C;
+// Bright, unmistakable red for the audio meter when the mic input is clipping
+// (overdriving). Distinct from kColorWarn so a clip reads as an alarm, not just
+// a hot top segment.
+constexpr uint32_t kColorClip = 0xE51E1E;
 
 struct SstvUi
 {
@@ -248,11 +252,17 @@ struct SstvUi
     lv_obj_t* label_gain = nullptr;
     lv_obj_t* btn_gain_minus = nullptr;
     lv_obj_t* btn_gain_plus = nullptr;
+    lv_obj_t* label_clip = nullptr;
 };
 
 SstvUi s_ui;
 lv_timer_t* s_refresh_timer = nullptr;
 int s_last_meter_active = -1;
+// When true, the audio meter renders its active segments RED to warn that the
+// mic input is overdriving (clipping). Driven from refresh_cb via the SSTV
+// Status.clipping flag; consumed by ui_sstv_set_audio_level.
+bool s_meter_clipping = false;
+bool s_last_meter_clipping = false;
 platform::ui::sstv::State s_last_state = platform::ui::sstv::State::Idle;
 uint16_t s_last_line = 0;
 char s_last_mode[24] = "";
@@ -363,6 +373,7 @@ void refresh_cb(lv_timer_t*)
 {
     update_battery_labels();
     platform::ui::sstv::Status st = platform::ui::sstv::get_status();
+    s_meter_clipping = st.clipping;
     ui_sstv_set_audio_level(st.audio_level);
 
     const char* mode = platform::ui::sstv::mode_name();
@@ -684,6 +695,22 @@ void build_main_area(lv_obj_t* parent)
         s_ui.meter_segments[i] = seg;
     }
 
+    // "CLIP" caption, parented to the info panel and positioned just above the
+    // meter box. Hidden until the input clips, then shown in red alongside the
+    // RED meter so the overdrive warning is unmistakable.
+    s_ui.label_clip = lv_label_create(s_ui.info_area);
+    apply_label_style(s_ui.label_clip, s_layout.placeholder_font, kColorClip);
+    ::ui::i18n::set_label_text(s_ui.label_clip, "CLIP");
+    {
+        lv_coord_t clip_y = static_cast<lv_coord_t>(s_layout.meter_y - 16);
+        if (clip_y < 0)
+        {
+            clip_y = 0;
+        }
+        lv_obj_set_pos(s_ui.label_clip, s_layout.meter_x, clip_y);
+    }
+    lv_obj_add_flag(s_ui.label_clip, LV_OBJ_FLAG_HIDDEN);
+
     if (s_ui.progress)
     {
         lv_obj_move_foreground(s_ui.progress);
@@ -694,6 +721,8 @@ void reset_ui_pointers()
 {
     s_ui = {};
     s_last_meter_active = -1;
+    s_meter_clipping = false;
+    s_last_meter_clipping = false;
     s_last_state = platform::ui::sstv::State::Idle;
     s_last_line = 0;
     s_last_mode[0] = '\0';
@@ -897,11 +926,16 @@ void ui_sstv_set_audio_level(float level_0_1)
     {
         active = kMeterSegments;
     }
-    if (active == s_last_meter_active)
+    // Re-render when either the level OR the clip state changed. The clip flag
+    // recolors every active segment, so a clip transition with an unchanged level
+    // must still repaint.
+    const bool clipping = s_meter_clipping;
+    if (active == s_last_meter_active && clipping == s_last_meter_clipping)
     {
         return;
     }
     s_last_meter_active = active;
+    s_last_meter_clipping = clipping;
 
     for (int i = 0; i < kMeterSegments; ++i)
     {
@@ -911,8 +945,14 @@ void ui_sstv_set_audio_level(float level_0_1)
             continue;
         }
         bool on = (i < active);
-        uint32_t color = kColorLine;
-        if (i >= 8)
+        uint32_t color;
+        // When the input is clipping, every lit segment goes RED so the whole
+        // meter reads as an alarm; the owner drops GAIN until it clears.
+        if (clipping)
+        {
+            color = kColorClip;
+        }
+        else if (i >= 8)
         {
             color = kColorWarn;
         }
@@ -933,6 +973,19 @@ void ui_sstv_set_audio_level(float level_0_1)
         {
             lv_obj_set_style_bg_color(seg, lv_color_hex(kColorLine), 0);
             lv_obj_set_style_bg_opa(seg, LV_OPA_40, 0);
+        }
+    }
+
+    // Small "CLIP" caption above the meter, shown only while clipping.
+    if (s_ui.label_clip)
+    {
+        if (clipping)
+        {
+            lv_obj_clear_flag(s_ui.label_clip, LV_OBJ_FLAG_HIDDEN);
+        }
+        else
+        {
+            lv_obj_add_flag(s_ui.label_clip, LV_OBJ_FLAG_HIDDEN);
         }
     }
 }

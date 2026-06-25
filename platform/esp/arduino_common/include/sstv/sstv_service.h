@@ -21,6 +21,7 @@ struct Status
     float progress = 0.0f;    // 0..1
     float audio_level = 0.0f; // 0..1
     bool has_image = false;
+    bool clipping = false;    // true when the mic input is overdriving (full-scale samples)
 };
 
 bool start();

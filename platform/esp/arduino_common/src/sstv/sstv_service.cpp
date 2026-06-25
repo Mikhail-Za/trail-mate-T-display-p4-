@@ -212,6 +212,20 @@ constexpr bool kStretch = true;
 constexpr int kSamplesPerBlock = 1024;
 constexpr int kResampleMaxOut = 4096;
 
+// Clip (overdrive) detection for the on-screen audio meter. A post-gain int16
+// sample with magnitude >= kClipSampleThreshold (of 32767 full scale) counts as
+// "pinned at the rail". If at least kClipFractionNum/kClipFractionDen of the
+// samples in a read block are pinned, the block is flagged as clipping and the
+// meter turns RED. A small fraction is enough -- a few percent of full-scale
+// samples already means the input is being driven into the rails.
+constexpr int kClipSampleThreshold = 31000;
+constexpr int kClipFractionNum = 1;   // numerator   -> 1/64 ~= 1.5% of the block
+constexpr int kClipFractionDen = 64;  // denominator
+// Hold the RED clip state for this many read blocks after the last clipping block
+// so a brief overdrive transient is still visible and the meter doesn't strobe.
+// Each block is kSamplesPerBlock frames; ~6 blocks holds RED for a few hundred ms.
+constexpr int kClipHoldBlocks = 6;
+
 struct LinearResampler
 {
     double step = 1.0;
@@ -633,7 +647,8 @@ bool save_frame_to_sd()
     return true;
 }
 
-void set_status(sstv::State state, uint16_t line, float progress, float audio_level, bool has_image)
+void set_status(sstv::State state, uint16_t line, float progress, float audio_level,
+                bool has_image, bool clipping = false)
 {
     portENTER_CRITICAL(&s_lock);
     s_status.state = state;
@@ -641,6 +656,7 @@ void set_status(sstv::State state, uint16_t line, float progress, float audio_le
     s_status.progress = progress;
     s_status.audio_level = audio_level;
     s_status.has_image = has_image;
+    s_status.clipping = clipping;
     portEXIT_CRITICAL(&s_lock);
 }
 
@@ -1020,6 +1036,7 @@ void sstv_task(void*)
     uint32_t clip_samples = 0;
 
     float audio_level = 0.0f;
+    int clip_hold_blocks = 0; // counts down; >0 => RED clip indicator held this block
     int16_t dc = 0;
     GoertzelState g1200;
     GoertzelState g1900;
@@ -1049,6 +1066,7 @@ void sstv_task(void*)
         s_read_iter += 1;
 
         int block_peak = 0;
+        int block_fullscale = 0; // post-gain samples this block sitting at/near full scale
         bool had_pixel = false;
         for (int i = 0; i < frames_per_read; ++i)
         {
@@ -1083,6 +1101,13 @@ void sstv_task(void*)
             if (sample_mag >= 32000)
             {
                 clip_samples += 1;
+            }
+            // True clipping detection for the on-screen RED meter: count post-gain
+            // samples pinned at/near full scale (|s| >= ~31000 of 32767) within this
+            // read block. A sustained fraction of full-scale samples => overdrive.
+            if (sample_mag >= kClipSampleThreshold)
+            {
+                block_fullscale += 1;
             }
             mono_buf[i] = sample;
         }
@@ -1232,6 +1257,22 @@ void sstv_task(void*)
             audio_level = 1.0f;
         }
 
+        // Clip indicator: this block is "clipping" if a sustained fraction of its
+        // samples were pinned at/near full scale. Hold the RED state for a few
+        // blocks (kClipHoldBlocks) so a brief transient still registers visibly
+        // and the meter doesn't strobe; it clears once the input stops railing.
+        const bool block_clipping =
+            (block_fullscale * kClipFractionDen) >= (frames_per_read * kClipFractionNum);
+        if (block_clipping)
+        {
+            clip_hold_blocks = kClipHoldBlocks;
+        }
+        else if (clip_hold_blocks > 0)
+        {
+            clip_hold_blocks -= 1;
+        }
+        const bool clipping_now = (clip_hold_blocks > 0);
+
         if (had_pixel)
         {
             s_image_in_progress = true;
@@ -1275,7 +1316,7 @@ void sstv_task(void*)
             state = sstv::State::Complete;
         }
 
-        set_status(state, s_last_line, s_last_progress, audio_level, s_has_image);
+        set_status(state, s_last_line, s_last_progress, audio_level, s_has_image, clipping_now);
 
         s_log_samples += decode_samples;
         if (s_log_samples >= static_cast<int64_t>(kSampleRate))

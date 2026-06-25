@@ -23,6 +23,11 @@ struct Status
     float progress = 0.0f;
     float audio_level = 0.0f;
     bool has_image = false;
+    // True when the mic input is overdriving (a sustained fraction of the
+    // captured PCM samples sit at/near full scale within a read block). The
+    // screen colors the audio meter RED on this so the owner can drop GAIN until
+    // the input is no longer clipping. Computed in the SSTV capture task.
+    bool clipping = false;
 };
 
 bool is_supported();
