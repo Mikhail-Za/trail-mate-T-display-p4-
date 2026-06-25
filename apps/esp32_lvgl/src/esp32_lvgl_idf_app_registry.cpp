@@ -2311,6 +2311,568 @@ void gps_position_exit(void* user_data, lv_obj_t* parent)
 ui::CallbackAppScreen s_gps_position_app("gps_position", "Position", &Setting, gps_position_enter,
                                          gps_position_exit, &s_gps_position_state);
 
+// ---------------------------------------------------------------------------
+// 2048: a fully self-contained touch-only 2048 sliding-tile game, built inline
+// the same way as the C6 Companion / Snake / Tetris apps above (file-static
+// state, enter()/exit() that build/tear-down a root sized LV_PCT(100), and a
+// CallbackAppScreen added to s_apps[]). stable_id = "g2048" so the boot self-test
+// logs appselftest:g2048:ok when it enters then immediately exits this screen
+// once. This app holds NO repeating timer (moves are event-driven), so g2048_exit
+// only needs to lv_obj_del the root with the same null/validity guards
+// companion_exit uses; there is nothing else to tear down.
+//
+// Board model: a flat 4x4 int array (0 = empty, otherwise the tile value: 2, 4,
+// 8 ...). A move slides every tile toward the chosen edge and merges equal
+// neighbours once each (classic 2048 rules), implemented by extracting each of
+// the four lines in travel order, compacting + merging it, and writing it back.
+// If the board changed, a new tile (2 at 90%, 4 at 10%) is spawned on a random
+// empty cell and merged values are added to the score. Game over is declared when
+// the board is full AND no orthogonally-adjacent equal pair exists (no legal move
+// in any direction). Input comes from BOTH swipe gestures on the board
+// (LV_EVENT_GESTURE on the root -> lv_indev_get_gesture_dir, exactly like
+// watch_face.cpp) AND four large on-screen arrow buttons, so it is fully usable by
+// touch alone. The 4x4 grid plus header and controls fit within the 540x1168
+// portrait panel, so the root is intentionally NOT scrollable (a scroll container
+// would swallow the swipe gesture before it could be read).
+// ---------------------------------------------------------------------------
+struct G2048PageState
+{
+    static constexpr int kSize = 4;                 // 4x4 board
+    static constexpr int kCellCount = kSize * kSize;  // 16 tiles
+    // Tile geometry: the 540px portrait panel minus the root's 2*kRootPad side
+    // margins gives 540 - 2*16 = 508px for the board. With kTileGap between/around
+    // tiles: 4 tiles + 5 gaps. 5*10 = 50px of gap -> (508 - 50)/4 = 114px tiles, so
+    // the board fills the screen width and the digits are large and legible.
+    static constexpr int kRootPad = 16;
+    static constexpr int kScreenW = 540;
+    static constexpr int kTileGap = 10;
+    static constexpr int kBoardInner = kScreenW - 2 * kRootPad;  // = 508
+    static constexpr int kTilePx =
+        (kBoardInner - (kSize + 1) * kTileGap) / kSize;  // = 114
+    static constexpr int kBoardPx = kSize * kTilePx + (kSize + 1) * kTileGap;  // = 506
+
+    lv_obj_t* root = nullptr;
+    lv_obj_t* score_label = nullptr;
+    lv_obj_t* status_label = nullptr;
+    lv_obj_t* cells[kCellCount] = {nullptr};         // tile background objects
+    lv_obj_t* tile_labels[kCellCount] = {nullptr};   // number label inside each tile
+
+    int board[kCellCount] = {0};  // 0 = empty, else the tile value (2,4,8,...)
+
+    unsigned int score = 0;
+    bool game_over = false;
+    uint32_t rng = 0;  // small LCG state
+};
+
+G2048PageState s_g2048_state;
+
+uint32_t g2048_rand(G2048PageState* st)
+{
+    // Numerical Recipes LCG; deterministic per-seed, no global state (same scheme
+    // the Snake/Tetris apps use).
+    st->rng = st->rng * 1664525u + 1013904223u;
+    return st->rng;
+}
+
+int g2048_index(int x, int y)
+{
+    return y * G2048PageState::kSize + x;
+}
+
+// Classic 2048 tile colors keyed by value. Larger values fold back onto the
+// 2048 color so very deep games still render. Returns the background; the text
+// color is chosen separately (dark for the pale 2/4 tiles, light otherwise).
+lv_color_t g2048_tile_color(int value)
+{
+    switch (value)
+    {
+    case 0: return lv_color_hex(0xCDC1B4);     // empty cell
+    case 2: return lv_color_hex(0xEEE4DA);
+    case 4: return lv_color_hex(0xEDE0C8);
+    case 8: return lv_color_hex(0xF2B179);
+    case 16: return lv_color_hex(0xF59563);
+    case 32: return lv_color_hex(0xF67C5F);
+    case 64: return lv_color_hex(0xF65E3B);
+    case 128: return lv_color_hex(0xEDCF72);
+    case 256: return lv_color_hex(0xEDCC61);
+    case 512: return lv_color_hex(0xEDC850);
+    case 1024: return lv_color_hex(0xEDC53F);
+    case 2048: return lv_color_hex(0xEDC22E);
+    default: return lv_color_hex(0x3C3A32);    // >2048: dark "super" tile
+    }
+}
+
+lv_color_t g2048_text_color(int value)
+{
+    // The pale 2 and 4 tiles take the dark 2048 text color; everything else
+    // (including empty, which has no label text anyway) takes the off-white.
+    if (value == 2 || value == 4)
+    {
+        return lv_color_hex(0x776E65);
+    }
+    return lv_color_hex(0xF9F6F2);
+}
+
+void g2048_update_score(G2048PageState* st)
+{
+    if (st->score_label && lv_obj_is_valid(st->score_label))
+    {
+        char buf[32];
+        std::snprintf(buf, sizeof(buf), "Score: %u", st->score);
+        lv_label_set_text(st->score_label, buf);
+    }
+}
+
+void g2048_render(G2048PageState* st)
+{
+    for (int i = 0; i < G2048PageState::kCellCount; ++i)
+    {
+        const int v = st->board[i];
+        if (st->cells[i] && lv_obj_is_valid(st->cells[i]))
+        {
+            lv_obj_set_style_bg_color(st->cells[i], g2048_tile_color(v), 0);
+        }
+        if (st->tile_labels[i] && lv_obj_is_valid(st->tile_labels[i]))
+        {
+            if (v == 0)
+            {
+                lv_label_set_text(st->tile_labels[i], "");
+            }
+            else
+            {
+                char buf[12];
+                std::snprintf(buf, sizeof(buf), "%d", v);
+                lv_label_set_text(st->tile_labels[i], buf);
+            }
+            lv_obj_set_style_text_color(st->tile_labels[i], g2048_text_color(v), 0);
+        }
+    }
+}
+
+// Spawn a new tile (2 at 90%, 4 at 10%) on a uniformly random empty cell.
+// Returns false if the board is full (no empty cell). Bounded scan over the 16
+// cells, so it always terminates.
+bool g2048_spawn(G2048PageState* st)
+{
+    int empties[G2048PageState::kCellCount];
+    int n = 0;
+    for (int i = 0; i < G2048PageState::kCellCount; ++i)
+    {
+        if (st->board[i] == 0)
+        {
+            empties[n++] = i;
+        }
+    }
+    if (n == 0)
+    {
+        return false;
+    }
+    const int pick = empties[g2048_rand(st) % static_cast<uint32_t>(n)];
+    st->board[pick] = (g2048_rand(st) % 10u == 0u) ? 4 : 2;  // 1-in-10 -> 4
+    return true;
+}
+
+// True if any legal move remains: an empty cell exists, or some orthogonally
+// adjacent pair is equal (and could therefore merge).
+bool g2048_moves_available(G2048PageState* st)
+{
+    for (int i = 0; i < G2048PageState::kCellCount; ++i)
+    {
+        if (st->board[i] == 0)
+        {
+            return true;
+        }
+    }
+    for (int y = 0; y < G2048PageState::kSize; ++y)
+    {
+        for (int x = 0; x < G2048PageState::kSize; ++x)
+        {
+            const int v = st->board[g2048_index(x, y)];
+            if (x + 1 < G2048PageState::kSize && st->board[g2048_index(x + 1, y)] == v)
+            {
+                return true;
+            }
+            if (y + 1 < G2048PageState::kSize && st->board[g2048_index(x, y + 1)] == v)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Compact + merge one extracted line of kSize values toward index 0 (the leading
+// edge in travel order). Non-zero values slide to the front; equal neighbours
+// merge once (left-to-right, so each tile participates in at most one merge per
+// move). Adds merged values to *score_gain and returns true if the line changed.
+bool g2048_collapse_line(int* line, unsigned int* score_gain)
+{
+    int compact[G2048PageState::kSize];
+    int n = 0;
+    for (int i = 0; i < G2048PageState::kSize; ++i)
+    {
+        if (line[i] != 0)
+        {
+            compact[n++] = line[i];
+        }
+    }
+    int merged[G2048PageState::kSize];
+    int m = 0;
+    for (int i = 0; i < n; ++i)
+    {
+        if (i + 1 < n && compact[i] == compact[i + 1])
+        {
+            const int v = compact[i] * 2;
+            merged[m++] = v;
+            *score_gain += static_cast<unsigned int>(v);
+            ++i;  // consume the partner so it cannot merge again this move
+        }
+        else
+        {
+            merged[m++] = compact[i];
+        }
+    }
+    bool changed = false;
+    for (int i = 0; i < G2048PageState::kSize; ++i)
+    {
+        const int v = (i < m) ? merged[i] : 0;
+        if (line[i] != v)
+        {
+            changed = true;
+        }
+        line[i] = v;
+    }
+    return changed;
+}
+
+// Apply a move in direction (dx,dy) in {(-1,0)=Left,(1,0)=Right,(0,-1)=Up,
+// (0,1)=Down}. Extracts each line in travel order (so collapse always pushes
+// toward index 0), collapses it, and writes it back. On any change: spawns a new
+// tile, adds the merge score, repaints, and re-tests for game over.
+void g2048_move(G2048PageState* st, int dx, int dy)
+{
+    if (!st || st->game_over)
+    {
+        return;
+    }
+
+    bool changed = false;
+    unsigned int gain = 0;
+
+    if (dx != 0)
+    {
+        // Horizontal: each row is a line. Travel order runs from the leading edge:
+        // Left -> read columns 0..3; Right -> read columns 3..0.
+        for (int y = 0; y < G2048PageState::kSize; ++y)
+        {
+            int line[G2048PageState::kSize];
+            for (int k = 0; k < G2048PageState::kSize; ++k)
+            {
+                const int x = (dx < 0) ? k : (G2048PageState::kSize - 1 - k);
+                line[k] = st->board[g2048_index(x, y)];
+            }
+            if (g2048_collapse_line(line, &gain))
+            {
+                changed = true;
+            }
+            for (int k = 0; k < G2048PageState::kSize; ++k)
+            {
+                const int x = (dx < 0) ? k : (G2048PageState::kSize - 1 - k);
+                st->board[g2048_index(x, y)] = line[k];
+            }
+        }
+    }
+    else
+    {
+        // Vertical: each column is a line. Up -> read rows 0..3; Down -> 3..0.
+        for (int x = 0; x < G2048PageState::kSize; ++x)
+        {
+            int line[G2048PageState::kSize];
+            for (int k = 0; k < G2048PageState::kSize; ++k)
+            {
+                const int y = (dy < 0) ? k : (G2048PageState::kSize - 1 - k);
+                line[k] = st->board[g2048_index(x, y)];
+            }
+            if (g2048_collapse_line(line, &gain))
+            {
+                changed = true;
+            }
+            for (int k = 0; k < G2048PageState::kSize; ++k)
+            {
+                const int y = (dy < 0) ? k : (G2048PageState::kSize - 1 - k);
+                st->board[g2048_index(x, y)] = line[k];
+            }
+        }
+    }
+
+    if (!changed)
+    {
+        return;  // illegal move: nothing slid or merged, so no new tile spawns
+    }
+
+    st->score += gain;
+    g2048_update_score(st);
+    g2048_spawn(st);
+    g2048_render(st);
+
+    if (!g2048_moves_available(st))
+    {
+        st->game_over = true;
+        if (st->status_label && lv_obj_is_valid(st->status_label))
+        {
+            char buf[48];
+            std::snprintf(buf, sizeof(buf), "Game Over - Score %u", st->score);
+            lv_label_set_text(st->status_label, buf);
+        }
+    }
+}
+
+void g2048_reset(G2048PageState* st)
+{
+    for (int i = 0; i < G2048PageState::kCellCount; ++i)
+    {
+        st->board[i] = 0;
+    }
+    st->score = 0;
+    st->game_over = false;
+    // Two starting tiles, exactly like the classic game.
+    g2048_spawn(st);
+    g2048_spawn(st);
+    g2048_update_score(st);
+    if (st->status_label && lv_obj_is_valid(st->status_label))
+    {
+        lv_label_set_text(st->status_label, "");
+    }
+    g2048_render(st);
+}
+
+// Map a swipe direction to a move. Attached to the root so a swipe anywhere on
+// the board is read (mirrors watch_face.cpp's gesture handling).
+void g2048_gesture_cb(lv_event_t* e)
+{
+    auto* st = static_cast<G2048PageState*>(lv_event_get_user_data(e));
+    if (!st)
+    {
+        return;
+    }
+    lv_indev_t* indev = lv_indev_active();
+    if (!indev)
+    {
+        return;
+    }
+    const lv_dir_t dir = lv_indev_get_gesture_dir(indev);
+    switch (dir)
+    {
+    case LV_DIR_LEFT: g2048_move(st, -1, 0); break;
+    case LV_DIR_RIGHT: g2048_move(st, 1, 0); break;
+    case LV_DIR_TOP: g2048_move(st, 0, -1); break;
+    case LV_DIR_BOTTOM: g2048_move(st, 0, 1); break;
+    default: break;
+    }
+}
+
+lv_obj_t* g2048_make_arrow(lv_obj_t* parent,
+                           G2048PageState* st,
+                           const char* text,
+                           lv_event_cb_t cb)
+{
+    // Large touch target (96x80) bound to CLICKED so a tap fires one move (a move
+    // is discrete, unlike Snake's held-direction d-pad). The whole button is the
+    // hitbox, not just the glyph.
+    lv_obj_t* btn = lv_button_create(parent);
+    lv_obj_set_size(btn, 96, 80);
+    lv_obj_t* lbl = lv_label_create(btn);
+    lv_obj_set_style_text_font(lbl, &lv_font_montserrat_14, 0);
+    lv_label_set_text(lbl, text);
+    lv_obj_center(lbl);
+    lv_obj_add_event_cb(btn, cb, LV_EVENT_CLICKED, st);
+    return btn;
+}
+
+void g2048_enter(void* user_data, lv_obj_t* parent)
+{
+    auto* state = static_cast<G2048PageState*>(user_data);
+    if (!state || !parent || (state->root && lv_obj_is_valid(state->root)))
+    {
+        return;
+    }
+
+    state->root = lv_obj_create(parent);
+    lv_obj_set_size(state->root, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_style_bg_color(state->root, ui::theme::white(), 0);
+    lv_obj_set_style_bg_opa(state->root, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(state->root, 0, 0);
+    lv_obj_set_style_radius(state->root, 0, 0);
+    lv_obj_set_style_pad_all(state->root, G2048PageState::kRootPad, 0);
+    lv_obj_set_flex_flow(state->root, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(state->root, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(state->root, 10, 0);
+    // Intentionally NOT scrollable: the header + 506px board + control pad fit the
+    // 1168px panel, and a scroll container would consume the swipe gesture before
+    // g2048_gesture_cb could read it. The gesture is bound to the root below.
+    lv_obj_clear_flag(state->root, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(state->root, g2048_gesture_cb, LV_EVENT_GESTURE, state);
+
+    // Top row: Back button + score label.
+    lv_obj_t* top = lv_obj_create(state->root);
+    lv_obj_set_size(top, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(top, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(top, 0, 0);
+    lv_obj_set_style_pad_all(top, 0, 0);
+    lv_obj_set_flex_flow(top, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(top, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(top, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t* back_btn = lv_button_create(top);
+    lv_obj_t* back_lbl = lv_label_create(back_btn);
+    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    lv_obj_center(back_lbl);
+    lv_obj_add_event_cb(
+        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+
+    state->score_label = lv_label_create(top);
+    lv_obj_set_style_text_color(state->score_label, ui::theme::text(), 0);
+    lv_obj_set_style_text_font(state->score_label, &lv_font_montserrat_24, 0);
+    lv_label_set_text(state->score_label, "Score: 0");
+
+    // Status (Game Over) line.
+    state->status_label = lv_label_create(state->root);
+    lv_obj_set_style_text_color(state->status_label, ui::theme::error(), 0);
+    lv_obj_set_style_text_font(state->status_label, &lv_font_montserrat_14, 0);
+    lv_label_set_text(state->status_label, "");
+
+    // Board: a fixed-size container holding the 4x4 tiles, positioned absolutely
+    // (created once, recolored/relabeled each move). Classic 2048 board frame.
+    lv_obj_t* board = lv_obj_create(state->root);
+    lv_obj_set_size(board, G2048PageState::kBoardPx, G2048PageState::kBoardPx);
+    lv_obj_set_style_bg_color(board, lv_color_hex(0xBBADA0), 0);
+    lv_obj_set_style_bg_opa(board, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(board, 0, 0);
+    lv_obj_set_style_radius(board, 6, 0);
+    lv_obj_set_style_pad_all(board, 0, 0);
+    lv_obj_clear_flag(board, LV_OBJ_FLAG_SCROLLABLE);
+
+    for (int y = 0; y < G2048PageState::kSize; ++y)
+    {
+        for (int x = 0; x < G2048PageState::kSize; ++x)
+        {
+            lv_obj_t* cell = lv_obj_create(board);
+            lv_obj_remove_style_all(cell);
+            lv_obj_set_size(cell, G2048PageState::kTilePx, G2048PageState::kTilePx);
+            const int px = G2048PageState::kTileGap +
+                           x * (G2048PageState::kTilePx + G2048PageState::kTileGap);
+            const int py = G2048PageState::kTileGap +
+                           y * (G2048PageState::kTilePx + G2048PageState::kTileGap);
+            lv_obj_set_pos(cell, px, py);
+            lv_obj_set_style_bg_color(cell, g2048_tile_color(0), 0);
+            lv_obj_set_style_bg_opa(cell, LV_OPA_COVER, 0);
+            lv_obj_set_style_radius(cell, 4, 0);
+            lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
+
+            lv_obj_t* lbl = lv_label_create(cell);
+            lv_obj_set_style_text_font(lbl, &lv_font_montserrat_24, 0);
+            lv_obj_set_style_text_color(lbl, g2048_text_color(0), 0);
+            lv_label_set_text(lbl, "");
+            lv_obj_center(lbl);
+
+            const int ci = g2048_index(x, y);
+            state->cells[ci] = cell;
+            state->tile_labels[ci] = lbl;
+        }
+    }
+
+    // Arrow pad: Up on its own row, then Left/Down/Right (same layout as Snake's
+    // d-pad). Each arrow is a discrete one-move tap.
+    lv_obj_t* pad_up_row = lv_obj_create(state->root);
+    lv_obj_set_size(pad_up_row, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(pad_up_row, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(pad_up_row, 0, 0);
+    lv_obj_set_style_pad_all(pad_up_row, 0, 0);
+    lv_obj_set_flex_flow(pad_up_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(pad_up_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(pad_up_row, LV_OBJ_FLAG_SCROLLABLE);
+    g2048_make_arrow(
+        pad_up_row, state, LV_SYMBOL_UP,
+        [](lv_event_t* e)
+        { g2048_move(static_cast<G2048PageState*>(lv_event_get_user_data(e)), 0, -1); });
+
+    lv_obj_t* pad_mid_row = lv_obj_create(state->root);
+    lv_obj_set_size(pad_mid_row, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(pad_mid_row, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(pad_mid_row, 0, 0);
+    lv_obj_set_style_pad_all(pad_mid_row, 0, 0);
+    lv_obj_set_flex_flow(pad_mid_row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(pad_mid_row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                          LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(pad_mid_row, 12, 0);
+    lv_obj_clear_flag(pad_mid_row, LV_OBJ_FLAG_SCROLLABLE);
+    g2048_make_arrow(
+        pad_mid_row, state, LV_SYMBOL_LEFT,
+        [](lv_event_t* e)
+        { g2048_move(static_cast<G2048PageState*>(lv_event_get_user_data(e)), -1, 0); });
+    g2048_make_arrow(
+        pad_mid_row, state, LV_SYMBOL_DOWN,
+        [](lv_event_t* e)
+        { g2048_move(static_cast<G2048PageState*>(lv_event_get_user_data(e)), 0, 1); });
+    g2048_make_arrow(
+        pad_mid_row, state, LV_SYMBOL_RIGHT,
+        [](lv_event_t* e)
+        { g2048_move(static_cast<G2048PageState*>(lv_event_get_user_data(e)), 1, 0); });
+
+    // Restart button.
+    lv_obj_t* restart_btn = lv_button_create(state->root);
+    lv_obj_t* restart_lbl = lv_label_create(restart_btn);
+    lv_label_set_text(restart_lbl, LV_SYMBOL_REFRESH " Restart");
+    lv_obj_center(restart_lbl);
+    lv_obj_add_event_cb(
+        restart_btn,
+        [](lv_event_t* e)
+        { g2048_reset(static_cast<G2048PageState*>(lv_event_get_user_data(e))); },
+        LV_EVENT_CLICKED, state);
+
+    // Seed the LCG from the tick counter, then deal the opening board.
+    state->rng = lv_tick_get() ^ 0x68C2A4B7u;
+    g2048_reset(state);
+}
+
+void g2048_exit(void* user_data, lv_obj_t* parent)
+{
+    (void)parent;
+    auto* state = static_cast<G2048PageState*>(user_data);
+    if (!state)
+    {
+        return;
+    }
+    // No repeating timer to delete (moves are event-driven); just tear down the
+    // root with companion_exit-style guards and clear the cached child pointers.
+    if (!state->root || !lv_obj_is_valid(state->root))
+    {
+        state->root = nullptr;
+        state->score_label = nullptr;
+        state->status_label = nullptr;
+        for (int i = 0; i < G2048PageState::kCellCount; ++i)
+        {
+            state->cells[i] = nullptr;
+            state->tile_labels[i] = nullptr;
+        }
+        return;
+    }
+    lv_obj_del(state->root);
+    state->root = nullptr;
+    state->score_label = nullptr;
+    state->status_label = nullptr;
+    for (int i = 0; i < G2048PageState::kCellCount; ++i)
+    {
+        state->cells[i] = nullptr;
+        state->tile_labels[i] = nullptr;
+    }
+}
+
+ui::CallbackAppScreen s_g2048_app("g2048", "2048", &Chat, g2048_enter, g2048_exit, &s_g2048_state);
+
 // Chat shell entry. Mirrors modules/ui_shared/src/ui/app_catalog_builder.cpp:
 // the chat page shell's enter/exit take a ui::page::Host* as user_data, and the
 // menu host routes the page's back/exit request to ui_request_exit_to_menu().
@@ -2516,7 +3078,8 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_tetris_app,
                        &s_help_app,
                        &s_systest_app,
-                       &s_gps_position_app};
+                       &s_gps_position_app,
+                       &s_g2048_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 
