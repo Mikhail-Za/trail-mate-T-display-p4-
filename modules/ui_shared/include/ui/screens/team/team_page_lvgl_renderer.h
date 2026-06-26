@@ -126,7 +126,8 @@ class TeamPageLvglRenderer
                            const ITeamPageLvglNameResolver& names) const;
     void renderMembers(TeamPageLvglRendererContext& context,
                        const TeamPageReadModelInput& input,
-                       const TeamPageLvglRendererHandlers& handlers) const;
+                       const TeamPageLvglRendererHandlers& handlers,
+                       const ITeamPageLvglNameResolver& names) const;
     void renderMemberDetail(TeamPageLvglRendererContext& context,
                             const TeamPageReadModelInput& input,
                             const TeamPageLvglRendererHandlers& handlers) const;

@@ -76,7 +76,7 @@ void TeamPageLvglRenderer::render(
         renderJoinPending(context, input, handlers, names);
         break;
     case TeamPage::Members:
-        renderMembers(context, input.read_model, handlers);
+        renderMembers(context, input.read_model, handlers, names);
         break;
     case TeamPage::MemberDetail:
         renderMemberDetail(context, input.read_model, handlers);
@@ -548,7 +548,8 @@ void TeamPageLvglRenderer::renderJoinPending(
 void TeamPageLvglRenderer::renderMembers(
     TeamPageLvglRendererContext& context,
     const TeamPageReadModelInput& input,
-    const TeamPageLvglRendererHandlers& handlers) const
+    const TeamPageLvglRendererHandlers& handlers,
+    const ITeamPageLvglNameResolver& names) const
 {
     updateTopBarTitle(context, ::ui::i18n::tr("Members"));
     const auto rows = TeamPageReadModel(now_s_).buildMemberRows(input.members);
@@ -559,8 +560,18 @@ void TeamPageLvglRenderer::renderMembers(
     }
     for (const auto& member : rows)
     {
-        const char* dot = member.online ? "\xE2\x97\x8F " : "\xE2\x97\x8B ";
-        std::string left = std::string(dot) + member.name;
+        // ASCII status marker. The previous U+25CF/U+25CB dots are not in the
+        // compiled Montserrat fonts (only 14/20/24: Latin + the LV_SYMBOL set), so
+        // they rendered as a missing-glyph "tofu" box.
+        const char* marker = member.online ? "* " : "o ";
+        // A LoRa-paired peer often has no NodeInfo-exchanged roster name, and a later
+        // presence re-sync can blank it, so member.name may be empty -> the row would
+        // render blank. Fall back to the SAME resolver the pairing screen uses
+        // (contact name, else an 8-hex node id), which is never empty, so a member is
+        // always identifiable.
+        const std::string display_name =
+            member.name.empty() ? names.resolveNodeName(member.node_id) : member.name;
+        std::string left = std::string(marker) + display_name;
         if (member.leader)
         {
             left += " (" + std::string(::ui::i18n::tr("Leader")) + ")";
