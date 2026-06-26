@@ -63,6 +63,16 @@ struct GPSPageState
     double lat = 0.0;
     double lng = 0.0;
     bool has_fix = false;
+
+    // Last-known GPS position: captured on each valid fix, persisted to /sdcard so it
+    // survives reboot, and drawn as a distinct marker when the live fix is unavailable
+    // (so you can still see where you last had signal after going indoors).
+    double last_known_lat = 0.0;
+    double last_known_lng = 0.0;
+    bool has_last_known = false;
+    uint64_t last_known_epoch = 0;
+    lv_obj_t* last_known_marker = nullptr;
+
     int pan_x = 0;
     int pan_y = 0;
     bool follow_position = true;

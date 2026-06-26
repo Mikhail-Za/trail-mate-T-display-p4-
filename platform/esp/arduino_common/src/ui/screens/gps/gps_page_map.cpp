@@ -39,6 +39,60 @@ extern "C"
     extern const lv_image_dsc_t sos;
 }
 
+namespace
+{
+// Last-known GPS position: a tiny fixed-size record persisted to the SD card via the LVGL
+// "A:" filesystem (cross-platform; avoids any IDF-only NVS dependency in this shared file).
+// Saved on a fresh or coarse fix and reloaded on boot, so the last-known marker survives a
+// power cycle.
+struct LastFixRecord
+{
+    uint32_t magic;
+    double lat;
+    double lng;
+    uint64_t epoch;
+};
+constexpr uint32_t kLastFixMagic = 0x4C465831u; // 'LFX1'
+constexpr char kLastFixPath[] = "A:/lastfix.dat";
+
+void save_last_fix_file(double lat, double lng, uint64_t epoch)
+{
+    LastFixRecord rec{kLastFixMagic, lat, lng, epoch};
+    lv_fs_file_t f;
+    if (lv_fs_open(&f, kLastFixPath, LV_FS_MODE_WR) != LV_FS_RES_OK)
+    {
+        return;
+    }
+    uint32_t bw = 0;
+    lv_fs_write(&f, &rec, sizeof(rec), &bw);
+    lv_fs_close(&f);
+}
+
+bool load_last_fix_file(double& lat, double& lng, uint64_t& epoch)
+{
+    lv_fs_file_t f;
+    if (lv_fs_open(&f, kLastFixPath, LV_FS_MODE_RD) != LV_FS_RES_OK)
+    {
+        return false;
+    }
+    LastFixRecord rec{};
+    uint32_t br = 0;
+    lv_fs_res_t r = lv_fs_read(&f, &rec, sizeof(rec), &br);
+    lv_fs_close(&f);
+    if (r != LV_FS_RES_OK || br != sizeof(rec) || rec.magic != kLastFixMagic)
+    {
+        return false;
+    }
+    lat = rec.lat;
+    lng = rec.lng;
+    epoch = rec.epoch;
+    return true;
+}
+} // namespace
+
+// Defined after hide_gps_marker(); forward-declared so update_map_tiles() can call it.
+static void update_last_known_marker_position();
+
 #define GPS_DEBUG 0
 #if GPS_DEBUG
 #define GPS_LOG(...) std::printf(__VA_ARGS__)
@@ -718,6 +772,7 @@ void update_map_tiles(bool lightweight)
         {
             update_gps_marker_position();
         }
+        update_last_known_marker_position();
         update_team_marker_positions();
         update_team_signal_marker_positions();
     }
@@ -803,6 +858,55 @@ void hide_gps_marker()
     if (g_gps_state.gps_marker != NULL)
     {
         lv_obj_add_flag(g_gps_state.gps_marker, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+// Last-known position marker: a distinct hollow grey ring (vs the solid live-position pin),
+// shown only when there is a stored last-known position AND no current live fix, so you can
+// still see where you last had signal after going indoors.
+static void update_last_known_marker_position()
+{
+    if (!is_alive() || g_gps_state.map == NULL)
+    {
+        return;
+    }
+    const bool show = g_gps_state.has_last_known && !g_gps_state.has_fix &&
+                      g_gps_state.tile_ctx.anchor != nullptr && g_gps_state.tile_ctx.anchor->valid;
+    if (!show)
+    {
+        if (g_gps_state.last_known_marker != NULL)
+        {
+            lv_obj_add_flag(g_gps_state.last_known_marker, LV_OBJ_FLAG_HIDDEN);
+        }
+        return;
+    }
+    if (g_gps_state.last_known_marker == NULL)
+    {
+        lv_obj_t* m = lv_obj_create(g_gps_state.map);
+        lv_obj_set_size(m, 18, 18);
+        lv_obj_set_style_bg_opa(m, LV_OPA_TRANSP, LV_PART_MAIN);
+        lv_obj_set_style_border_color(m, lv_color_hex(0x808080), LV_PART_MAIN);
+        lv_obj_set_style_border_width(m, 2, LV_PART_MAIN);
+        lv_obj_set_style_radius(m, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+        lv_obj_clear_flag(m, LV_OBJ_FLAG_SCROLLABLE);
+        g_gps_state.last_known_marker = m;
+    }
+    int screen_x = 0;
+    int screen_y = 0;
+    double map_lat = 0.0;
+    double map_lon = 0.0;
+    gps_map_transform(g_gps_state.last_known_lat, g_gps_state.last_known_lng, map_lat, map_lon);
+    if (gps_screen_pos(g_gps_state.tile_ctx, map_lat, map_lon, screen_x, screen_y))
+    {
+        const int marker_size = 18;
+        lv_obj_set_pos(
+            g_gps_state.last_known_marker, screen_x - marker_size / 2, screen_y - marker_size / 2);
+        lv_obj_clear_flag(g_gps_state.last_known_marker, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_move_foreground(g_gps_state.last_known_marker);
+    }
+    else
+    {
+        lv_obj_add_flag(g_gps_state.last_known_marker, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
@@ -1501,6 +1605,24 @@ void tick_gps_update(bool allow_map_refresh)
     bool sd_ready = platform::ui::device::sd_ready();
     uint32_t now_ms = sys::millis_now();
 
+    // Load the persisted last-known position once (survives reboot), so the marker can show
+    // even before this session's first live fix.
+    static bool last_fix_loaded = false;
+    if (!last_fix_loaded)
+    {
+        last_fix_loaded = true;
+        double llat = 0.0;
+        double llng = 0.0;
+        uint64_t lepoch = 0;
+        if (load_last_fix_file(llat, llng, lepoch))
+        {
+            g_gps_state.last_known_lat = llat;
+            g_gps_state.last_known_lng = llng;
+            g_gps_state.last_known_epoch = lepoch;
+            g_gps_state.has_last_known = true;
+        }
+    }
+
     bool gps_state_changed = false;
     if (gps_data.valid)
     {
@@ -1518,6 +1640,28 @@ void tick_gps_update(bool allow_map_refresh)
             g_gps_state.lng = new_lng;
             g_gps_state.has_fix = true;
             gps_state_changed = true;
+
+            // Remember this as the last-known position (in memory immediately; persisted to
+            // the SD card on a coarse throttle so we don't hammer the card on every update).
+            g_gps_state.last_known_lat = new_lat;
+            g_gps_state.last_known_lng = new_lng;
+            g_gps_state.last_known_epoch = sys::epoch_seconds_now();
+            g_gps_state.has_last_known = true;
+
+            static uint32_t last_fix_save_ms = 0;
+            static double last_fix_save_lat = 0.0;
+            static double last_fix_save_lng = 0.0;
+            const bool save_due =
+                just_got_fix ||
+                approx_distance_m(last_fix_save_lat, last_fix_save_lng, new_lat, new_lng) >= 100.0 ||
+                (now_ms - last_fix_save_ms) >= 60000;
+            if (save_due)
+            {
+                save_last_fix_file(new_lat, new_lng, g_gps_state.last_known_epoch);
+                last_fix_save_ms = now_ms;
+                last_fix_save_lat = new_lat;
+                last_fix_save_lng = new_lng;
+            }
         }
 
         if (just_got_fix && g_gps_state.zoom_level == 0)
@@ -1611,8 +1755,13 @@ void tick_gps_update(bool allow_map_refresh)
     }
 
     // Update GPS marker position if marker exists and GPS data changed
-    if (gps_state_changed && g_gps_state.gps_marker != NULL)
+    if (gps_state_changed)
     {
-        update_gps_marker_position();
+        if (g_gps_state.gps_marker != NULL)
+        {
+            update_gps_marker_position();
+        }
+        // Keep the last-known marker in sync: it appears only when the live fix is lost.
+        update_last_known_marker_position();
     }
 }

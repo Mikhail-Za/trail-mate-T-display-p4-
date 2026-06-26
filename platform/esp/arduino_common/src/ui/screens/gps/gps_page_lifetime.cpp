@@ -138,6 +138,11 @@ void on_root_deleted(lv_event_t* e)
     g_gps_state.route_btn = nullptr;
     g_gps_state.resolution_label = nullptr;
     g_gps_state.altitude_label = nullptr;
+    // The map (and therefore its child markers) was destroyed above, so null the marker
+    // handles too; they are recreated lazily on the next fix. Without this the pointers
+    // dangle into freed objects on GPS-page re-entry.
+    g_gps_state.gps_marker = nullptr;
+    g_gps_state.last_known_marker = nullptr;
 }
 
 } // namespace
