@@ -88,11 +88,16 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE
 if(TRAIL_MATE_IDF_TARGET STREQUAL "tab5")
     target_compile_definitions(${COMPONENT_LIB} PRIVATE TRAIL_MATE_ESP_BOARD_TAB5=1)
 elseif(TRAIL_MATE_IDF_TARGET STREQUAL "tdisplayp4_tft")
-    target_compile_definitions(${COMPONENT_LIB} PRIVATE TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4=1)
+    # USING_INPUT_DEV_TOUCHPAD: the P4 is a touchscreen; enables the polled touch-drag map
+    # pan (gps_page_input.cpp bind_map_touch_input) + touch list scroll, which were compiled
+    # out for the P4 (the macro was defined only for tdeck/twatch). This restores drag-to-pan.
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE
+        TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4=1 USING_INPUT_DEV_TOUCHPAD)
 elseif(TRAIL_MATE_IDF_TARGET STREQUAL "tdisplayp4_amoled")
     target_compile_definitions(${COMPONENT_LIB} PRIVATE
         TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4=1
-        TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4_AMOLED=1)
+        TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4_AMOLED=1
+        USING_INPUT_DEV_TOUCHPAD)
 endif()
 
 target_compile_features(${COMPONENT_LIB} PUBLIC cxx_std_17)

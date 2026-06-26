@@ -185,7 +185,10 @@ static bool point_hits_obj(lv_obj_t* obj, const lv_point_t& point)
 
     lv_area_t coords{};
     lv_obj_get_coords(obj, &coords);
-    return lv_area_is_point_on(&coords, &point, 0);
+    // Inline point-in-rect: lv_area_is_point_on is exposed as _lv_area_is_point_on on the
+    // IDF LVGL build, so avoid the name mismatch across LVGL versions.
+    return point.x >= coords.x1 && point.x <= coords.x2 &&
+           point.y >= coords.y1 && point.y <= coords.y2;
 }
 
 static bool point_hits_map_blocker(const lv_point_t& point)
