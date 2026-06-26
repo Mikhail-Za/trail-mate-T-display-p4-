@@ -97,6 +97,15 @@ bool RuntimeMapWorkspaceSource::buildMapWorkspaceSnapshot(
     {
         out.viewport.zoom = request.requested_viewport.zoom;
     }
+    if (!state_.has_viewport)
+    {
+        // No manual pan yet: default to a wide view of the continental US (where the
+        // offline tiles live) instead of the upstream UK default, so the map is usable
+        // without a GPS fix. A real GPS fix (below) or any manual pan/zoom overrides this.
+        out.viewport.center_lat = 39.8283;   // US geographic center (Kansas)
+        out.viewport.center_lon = -98.5795;
+        out.viewport.zoom = 5;               // whole-US overview; zoom/pan to your area
+    }
     out.layers = state_.layers;
     out.measurement = state_.measurement;
     out.active_tool = request.active_tool;
