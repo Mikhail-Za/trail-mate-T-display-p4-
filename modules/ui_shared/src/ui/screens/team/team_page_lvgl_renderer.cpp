@@ -569,8 +569,12 @@ void TeamPageLvglRenderer::renderMembers(
         // render blank. Fall back to the SAME resolver the pairing screen uses
         // (contact name, else an 8-hex node id), which is never empty, so a member is
         // always identifiable.
+        // Treat empty OR whitespace-only roster names as blank and fall back to the
+        // resolver (contact name, else 8-hex node id), which is never empty.
+        const bool name_blank =
+            member.name.find_first_not_of(" \t\r\n") == std::string::npos;
         const std::string display_name =
-            member.name.empty() ? names.resolveNodeName(member.node_id) : member.name;
+            name_blank ? names.resolveNodeName(member.node_id) : member.name;
         std::string left = std::string(marker) + display_name;
         if (member.leader)
         {

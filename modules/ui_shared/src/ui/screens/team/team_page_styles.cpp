@@ -106,6 +106,12 @@ void init_once()
     lv_style_init(&s_list_item);
     lv_style_set_bg_color(&s_list_item, lv_color_hex(kListBg));
     lv_style_set_bg_opa(&s_list_item, LV_OPA_COVER);
+    // Explicit dark text color. Without this, list-item label text fell back to the
+    // LVGL default theme color (light), which made UNFOCUSED rows invisible on the
+    // cream background -- the real cause of "blank member" rows (a peer member shows
+    // blank while "You" holds focus). Applies to both states; on the focused yellow
+    // bg dark text reads fine too.
+    lv_style_set_text_color(&s_list_item, lv_color_hex(kTextMain));
     lv_style_set_border_width(&s_list_item, 1);
     lv_style_set_border_color(&s_list_item, lv_color_hex(kListBorder));
     lv_style_set_radius(&s_list_item, list_radius);
