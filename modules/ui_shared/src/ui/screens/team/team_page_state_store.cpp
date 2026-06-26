@@ -97,8 +97,16 @@ void TeamPageStateStore::applySnapshot(TeamPagePersistentState& state,
     state.last_update_s = snapshot.last_update_s;
     state.team_psk = snapshot.team_psk;
     state.has_team_psk = snapshot.has_team_psk;
-    state.members = snapshot.members;
-    assignTeamPageMemberColors(state.members, color_context);
+    // Preserve a live, presence-built roster across periodic re-applies. The persisted
+    // (NVS) snapshot carries NO member list -- the roster rebuilds from presence -- so
+    // blindly re-applying it every refresh would wipe members we've already learned,
+    // which kept "Members" at 0 after a reboot/restore. Only overwrite when the snapshot
+    // actually has members, or when it represents leaving/clearing the team (not in_team).
+    if (!snapshot.members.empty() || !snapshot.in_team)
+    {
+        state.members = snapshot.members;
+        assignTeamPageMemberColors(state.members, color_context);
+    }
 }
 
 } // namespace ui

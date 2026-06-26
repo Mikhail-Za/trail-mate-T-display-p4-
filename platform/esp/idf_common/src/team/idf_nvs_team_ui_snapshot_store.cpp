@@ -133,9 +133,16 @@ bool IdfNvsTeamUiSnapshotStore::load(::team::ui::TeamUiSnapshot& out)
 
     // members intentionally left empty: the roster rebuilds from live presence.
 
-    ESP_LOGI(kTag, "loaded team keys from NVS (key_id=%lu leader=%d in_team=%d)",
-             static_cast<unsigned long>(key_id), out.self_is_leader ? 1 : 0,
-             out.in_team ? 1 : 0);
+    // The team page refresh re-loads this every few seconds; log only the first success
+    // so the boot-time restore is visible without spamming the console.
+    static bool logged_once = false;
+    if (!logged_once)
+    {
+        logged_once = true;
+        ESP_LOGI(kTag, "loaded team keys from NVS (key_id=%lu leader=%d in_team=%d)",
+                 static_cast<unsigned long>(key_id), out.self_is_leader ? 1 : 0,
+                 out.in_team ? 1 : 0);
+    }
     return true;
 }
 
