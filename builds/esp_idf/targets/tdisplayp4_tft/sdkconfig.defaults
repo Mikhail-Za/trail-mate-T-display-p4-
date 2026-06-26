@@ -42,3 +42,15 @@ CONFIG_CODEC_ES8311_SUPPORT=y
 CONFIG_MBEDTLS_CHACHA20_C=y
 CONFIG_MBEDTLS_POLY1305_C=y
 CONFIG_MBEDTLS_CHACHAPOLY_C=y
+# Offline map tiles: LVGL filesystem driver. The map tile loader opens each tile via
+# lv_fs_open("A:/maps/base/osm/{z}/{x}/{y}.png"), but the IDF build registered NO LVGL
+# filesystem driver for drive 'A' -- that driver only existed in the Arduino-only
+# LV_Helper, which this firmware does not compile. Every tile open therefore returned
+# "unknown driver letter" and the map drew a blank placeholder, even though the tiles
+# are present on the card. Enable LVGL's built-in POSIX FS backend and map drive 'A' to
+# the SD mount at /sdcard: lv_fs strips the "A:" prefix and the POSIX driver prepends
+# LV_FS_POSIX_PATH, so "A:/maps/..." resolves to "/sdcard/maps/..." (LV_FS_POSIX_LETTER
+# 65 = ASCII 'A'). LVGL auto-registers the driver from lv_init() -> lv_fs_posix_init().
+CONFIG_LV_USE_FS_POSIX=y
+CONFIG_LV_FS_POSIX_LETTER=65
+CONFIG_LV_FS_POSIX_PATH="/sdcard"
