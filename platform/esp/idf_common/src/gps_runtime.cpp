@@ -33,6 +33,16 @@ constexpr uint32_t kProbeWarmupMs = 1500;
 constexpr uint32_t kProbeListenMs = 3500;
 constexpr uint32_t kNoDataWarnMs = 5000;
 
+// Baud auto-probe: cycle these candidate rates until real NMEA is decoded, then
+// lock. The L76K on the T-Display P4 should stream at 9600, but bench captures
+// showed zero NMEA even after switching 38400->9600, so the module may actually
+// be at a different rate (115200 or 4800). Cycling all four with no LOCK points
+// at a pin/power fault rather than a baud mismatch.
+constexpr uint32_t kBaudProbeCandidates[] = {9600, 38400, 115200, 4800};
+constexpr std::size_t kBaudProbeCount = sizeof(kBaudProbeCandidates) / sizeof(kBaudProbeCandidates[0]);
+// How long to listen on a candidate baud before advancing to the next one.
+constexpr uint32_t kBaudProbeWindowMs = 3500;
+
 enum class CollectorSlot : size_t
 {
     GPS = 0,
@@ -183,6 +193,18 @@ GpsUartPins gps_uart_pins()
     return {uart.port, uart.tx, uart.rx};
 #else
     return {-1, -1, -1};
+#endif
+}
+
+// Returns the live UART port that the worker reads from. The driver is already
+// installed by configure_uart_hardware(); the auto-probe only changes the baud
+// divisor on this port (uart_set_baudrate), so it must use the same port handle.
+uart_port_t gps_uart_port()
+{
+#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
+    return ::boards::tab5::Tab5Board::instance().gpsUartPort();
+#else
+    return static_cast<uart_port_t>(gps_uart_pins().port);
 #endif
 }
 
@@ -644,16 +666,48 @@ void worker_task(void*)
     std::size_t line_length = 0;
     uint8_t rx_buffer[kRxBufferSize] = {};
 
+    // Baud auto-probe state (worker-local; only this task touches it). Start on
+    // the first candidate, which configure_uart_hardware() already applied, and
+    // advance through the list until a real NMEA sentence is decoded.
+    const uart_port_t gps_port = gps_uart_port();
+    std::size_t baud_index = 0;
+    bool baud_locked = false;
+    uint32_t probe_window_start_ms = now_ms();
+    ESP_LOGI(kTag, "GNSS probe: trying baud=%u", kBaudProbeCandidates[baud_index]);
+
     while (true)
     {
-        const auto gps_uart = gps_uart_pins();
-#if defined(TRAIL_MATE_ESP_BOARD_TAB5)
-        const auto port = ::boards::tab5::Tab5Board::instance().gpsUartPort();
-#else
-        const auto port = static_cast<uart_port_t>(gps_uart.port);
-#endif
-        int read_len = uart_read_bytes(port, rx_buffer, sizeof(rx_buffer), pdMS_TO_TICKS(200));
+        int read_len = uart_read_bytes(gps_port, rx_buffer, sizeof(rx_buffer), pdMS_TO_TICKS(200));
         if (read_len > 0) append_bytes_and_process(rx_buffer, read_len, line_buffer, &line_length);
+
+        // Baud auto-probe. last_rx_ms is bumped only by a checksum-valid NMEA
+        // sentence, so a non-zero value is proof the current baud is correct.
+        uint32_t probe_last_rx_ms = 0;
+        {
+            std::lock_guard<std::mutex> lock(s_mutex);
+            probe_last_rx_ms = s_runtime.last_rx_ms;
+        }
+        const uint32_t probe_now = now_ms();
+        if (!baud_locked && probe_last_rx_ms != 0)
+        {
+            baud_locked = true;
+            ESP_LOGI(kTag, "GNSS LOCKED baud=%u", kBaudProbeCandidates[baud_index]);
+        }
+        else if (!baud_locked && (probe_now - probe_window_start_ms) >= kBaudProbeWindowMs)
+        {
+            baud_index = (baud_index + 1) % kBaudProbeCount;
+            const uint32_t next_baud = kBaudProbeCandidates[baud_index];
+            probe_window_start_ms = probe_now;
+            line_length = 0;
+            if (uart_set_baudrate(gps_port, next_baud) == ESP_OK)
+            {
+                ESP_LOGI(kTag, "GNSS probe: trying baud=%u", next_baud);
+            }
+            else
+            {
+                ESP_LOGW(kTag, "GNSS probe: uart_set_baudrate(%u) failed on port=%d", next_baud, static_cast<int>(gps_port));
+            }
+        }
 
         bool should_exit = false;
         bool enabled = false;

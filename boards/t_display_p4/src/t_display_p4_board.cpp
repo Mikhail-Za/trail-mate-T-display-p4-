@@ -644,6 +644,18 @@ bool TDisplayP4Board::prepareGpsRuntime()
     }
 
     const auto& io = ioExpanderPins();
+    // Mirror LilyGo's official l76k bring-up (T-Display-P4 main/examples/l76k/main.cpp):
+    // power the L76K's rails and let them SETTLE before waking/talking to it. Our cold-
+    // boot sequence enables these rails once, but the GPS worker starts seconds later and
+    // got ZERO bytes at every baud + both pin orderings -- the signature of an UNPOWERED
+    // module, not a baud/pin issue. Re-asserting the rails here makes GPS power self-
+    // contained, independent of cold-boot state surviving.
+    const auto& p = profile();
+    (void)expanderPinMode(io.power_5v, true);
+    (void)expanderPinMode(io.power_3v3, true);
+    (void)expanderWriteActive(io.power_5v, true, p.power_5v_active_high);    // 5V rail ON (HIGH)
+    (void)expanderWriteActive(io.power_3v3, true, p.power_3v3_active_high);  // 3V3 rail ON (active-low)
+    vTaskDelay(pdMS_TO_TICKS(100));                                          // LilyGo's 100 ms settle
     if (!expanderPinMode(io.gps_wake, true))
     {
         return false;
@@ -652,6 +664,7 @@ bool TDisplayP4Board::prepareGpsRuntime()
     {
         return false;
     }
+    vTaskDelay(pdMS_TO_TICKS(50));  // let the L76K start streaming before the worker reads
     if (!configureGpsUart(gpsUart().baud_rate))
     {
         return false;
@@ -1160,7 +1173,7 @@ bool TDisplayP4Board::runColdBootPowerSequence()
 
     (void)expanderWriteActive(io.screen_rst, true, !p.screen_reset_active_low);
     (void)expanderWriteActive(io.touch_rst, true, !p.touch_reset_active_low);
-    (void)expanderWriteActive(io.gps_wake, false, p.gps_wake_active_high);
+    (void)expanderWriteActive(io.gps_wake, true, p.gps_wake_active_high);  // keep GPS AWAKE from power-up; cold-boot previously drove it to SLEEP (unlike LilyGo), and the module did not reliably wake from the later HIGH
     (void)expanderWriteActive(io.c6_enable, false, p.c6_enable_active_high);
     (void)expanderWriteActive(io.p4_vcca, true, p.p4_vcca_active_high);
 

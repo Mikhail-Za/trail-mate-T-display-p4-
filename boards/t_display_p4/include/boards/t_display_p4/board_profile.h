@@ -33,7 +33,7 @@ struct BoardProfile
         int tx = -1;
         int rx = -1;
         int aux = -1;
-        uint32_t baud_rate = 38400;
+        uint32_t baud_rate = 9600;
     };
 
     struct SdmmcPins
@@ -182,7 +182,7 @@ inline constexpr BoardProfile makeBoardProfile()
 
     profile.sys_i2c = {0, 7, 8};
     profile.ext_i2c = {1, 20, 21};
-    profile.gps_uart = {1, 22, 23, -1, 38400};
+    profile.gps_uart = {1, 23, 22, -1, 9600};  // TX/RX swapped from {22,23}. Official LilyGo t_display_p4_config.h names GPS_TX=22 / GPS_RX=23 (module-side nets), so the ESP must READ on 22. At {tx=22,rx=23} the ESP read the wrong pin and got 0 bytes at every baud. (gps_runtime.cpp auto-probes the baud rate.)
     profile.sdmmc = {39, 40, 41, 42, 44, 43};
     profile.c6_sdio = {18, 19, 14, 15, 16, 17};
     profile.audio_i2s = {12, 13, 9, 10, 11};
