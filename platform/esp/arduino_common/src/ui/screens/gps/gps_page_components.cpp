@@ -429,6 +429,22 @@ void zoom_popup_cancel_btn_event_cb(lv_event_t* e)
     hide_zoom_popup();
 }
 
+// Tap the dimmed backdrop (outside the window) to close the zoom modal, mirroring
+// on_layer_bg_clicked. Without this the full-screen backdrop swallows taps while the
+// occluded top-bar back arrow is unreachable -> the user was trapped in the modal.
+void on_zoom_bg_clicked(lv_event_t* e)
+{
+    if (lv_event_get_code(e) != LV_EVENT_CLICKED)
+    {
+        return;
+    }
+    if (lv_event_get_target_obj(e) != g_gps_state.zoom_modal.bg)
+    {
+        return;
+    }
+    hide_zoom_popup();
+}
+
 lv_obj_t* create_zoom_popup_action_button(lv_obj_t* parent, const char* text, lv_event_cb_t callback)
 {
     return modal_create_touch_action_button(parent, text, callback, nullptr, LV_PCT(48));
@@ -499,6 +515,11 @@ static void build_zoom_popup_ui(lv_obj_t* win)
     lv_obj_center(title_label);
 
     lv_obj_t* content_area = lv_obj_create(win);
+    // Force a layout pass first: on the P4, lv_obj_get_height(win) returns 0 before the
+    // window has been laid out, which collapsed content_area (and thus the whole level
+    // list) to zero height -- the "empty Select level box" the user got trapped in.
+    // Updating the layout makes the height read the real resized window height.
+    lv_obj_update_layout(win);
     const lv_coord_t win_height = lv_obj_get_height(win);
     const lv_coord_t pad_top = lv_obj_get_style_pad_top(win, LV_PART_MAIN);
     const lv_coord_t pad_bottom = lv_obj_get_style_pad_bottom(win, LV_PART_MAIN);
@@ -595,6 +616,10 @@ void show_zoom_popup()
     if (!modal_open(g_gps_state.zoom_modal, lv_screen_active(), app_g))
     {
         return;
+    }
+    if (g_gps_state.zoom_modal.bg != nullptr)
+    {
+        lv_obj_add_event_cb(g_gps_state.zoom_modal.bg, on_zoom_bg_clicked, LV_EVENT_CLICKED, nullptr);
     }
 
     g_gps_state.popup_zoom = g_gps_state.zoom_level;

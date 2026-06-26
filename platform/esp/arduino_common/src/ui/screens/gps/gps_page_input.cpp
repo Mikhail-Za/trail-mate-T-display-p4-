@@ -795,6 +795,12 @@ static void handle_click(lv_obj_t* target)
     switch (id)
     {
     case ControlId::BackBtn:
+        if (modal_is_open(g_gps_state.zoom_modal))
+        {
+            extern void hide_zoom_popup();
+            hide_zoom_popup();
+            break;
+        }
         if (modal_is_open(g_gps_state.layer_modal))
         {
             extern void hide_layer_popup();
