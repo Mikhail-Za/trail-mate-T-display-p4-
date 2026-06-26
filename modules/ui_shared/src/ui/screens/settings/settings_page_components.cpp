@@ -3114,9 +3114,15 @@ static settings::ui::SettingItem kGpsItems[] = {
     {"Diagnostics", settings::ui::SettingType::Action, nullptr, 0, nullptr, nullptr, nullptr, 0, false, "gps_diagnostics"},
 };
 
+// Static coverage note shown as a read-only Info row in Settings -> Map. Documents which
+// offline tiles ship on the SD card; the live per-layer and per-zoom availability is also
+// shown by checkmarks in the map's Layer and Zoom panels.
+static char kMapCoverageInfo[] = "OSM z0-12 US-wide; z13-14 WI/MN/IL/IA";
+
 static settings::ui::SettingItem kMapItems[] = {
     {"Coordinate System", settings::ui::SettingType::Enum, kMapCoordOptions, 3, &g_settings.map_coord_system, nullptr, nullptr, 0, false, "map_coord"},
     {"Map Source", settings::ui::SettingType::Enum, kMapSourceOptions, 3, &g_settings.map_source, nullptr, nullptr, 0, false, "map_source"},
+    {"Offline Coverage", settings::ui::SettingType::Info, nullptr, 0, nullptr, nullptr, kMapCoverageInfo, sizeof(kMapCoverageInfo), false, "map_coverage"},
     {"Contour Overlay", settings::ui::SettingType::Toggle, nullptr, 0, nullptr, &g_settings.map_contour_enabled, nullptr, 0, false, "map_contour"},
     {"Track Recording", settings::ui::SettingType::Toggle, nullptr, 0, nullptr, &g_settings.map_track_enabled, nullptr, 0, false, "map_track"},
     {"Track Interval", settings::ui::SettingType::Enum, kMapTrackIntervalOptions, 4, &g_settings.map_track_interval, nullptr, nullptr, 0, false, "map_track_interval"},

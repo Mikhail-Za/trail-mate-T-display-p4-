@@ -565,9 +565,27 @@ static void build_zoom_popup_ui(lv_obj_t* win)
         const lv_coord_t level_row_height = zoom_popup_action_button_height() > 58
                                                 ? zoom_popup_action_button_height()
                                                 : 58;
+
+        // Per-level availability: probe whether a tile exists at this zoom for the current
+        // map center, so each level shows a checkmark (tiles here) or X (none). Dynamic --
+        // recomputed every time the panel opens, so it auto-updates as SD coverage grows.
+        double zoom_center_lat = g_gps_state.lat;
+        double zoom_center_lng = g_gps_state.lng;
+        if (g_gps_state.anchor.valid)
+        {
+            get_screen_center_lat_lng(g_gps_state.tile_ctx, zoom_center_lat, zoom_center_lng);
+        }
+        const uint8_t zoom_map_source = sanitize_map_source(app::configFacade().getConfig().map_source);
+
         for (int level = gps_ui::kMinZoom; level <= gps_ui::kMaxZoom; ++level)
         {
-            const std::string level_text = ::ui::i18n::format("Level %d", level);
+            int zt_x = 0;
+            int zt_y = 0;
+            latLngToTile(zoom_center_lat, zoom_center_lng, level, zt_x, zt_y);
+            const bool level_avail = base_tile_available(level, zt_x, zt_y, zoom_map_source);
+            const std::string level_text =
+                std::string(level_avail ? LV_SYMBOL_OK : LV_SYMBOL_CLOSE) +
+                ::ui::i18n::format(" Level %d", level);
 
             lv_obj_t* btn = lv_btn_create(level_list);
             lv_obj_set_width(btn, LV_PCT(100));
@@ -579,6 +597,7 @@ static void build_zoom_popup_ui(lv_obj_t* win)
             lv_obj_t* label = lv_label_create(btn);
             lv_label_set_text(label, level_text.c_str());
             gps::ui::styles::apply_control_button_label(label);
+            lv_obj_set_style_text_opa(label, level_avail ? LV_OPA_COVER : LV_OPA_50, LV_PART_MAIN);
             lv_obj_set_width(label, LV_PCT(100));
             lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
             lv_obj_center(label);
@@ -752,15 +771,50 @@ void refresh_layer_popup_labels()
     for (uint8_t i = 0; i < 3; ++i)
     {
         update_layer_btn_selected(s_layer_source_btns[i], i == map_source);
+        if (s_layer_source_btns[i] != nullptr)
+        {
+            // Availability mark: probe whether this layer's tile directory exists on the
+            // SD card (dynamic -- auto-updates when more tiles are added later). Available
+            // -> checkmark + clickable; missing -> X + greyed + non-tappable so the user
+            // cannot switch to a blank layer.
+            const bool avail = map_source_directory_available(i);
+            lv_obj_t* label = lv_obj_get_child(s_layer_source_btns[i], 0);
+            if (label != nullptr)
+            {
+                std::string txt = std::string(avail ? LV_SYMBOL_OK : LV_SYMBOL_CLOSE) + " " +
+                                  ::ui::i18n::tr(::ui::widgets::map::layer_map_source_label_key(i));
+                ::ui::i18n::set_label_text_raw(label, txt.c_str());
+                lv_obj_set_style_text_opa(label, avail ? LV_OPA_COVER : LV_OPA_50, LV_PART_MAIN);
+            }
+            if (avail)
+            {
+                lv_obj_add_flag(s_layer_source_btns[i], LV_OBJ_FLAG_CLICKABLE);
+            }
+            else
+            {
+                lv_obj_remove_flag(s_layer_source_btns[i], LV_OBJ_FLAG_CLICKABLE);
+            }
+        }
     }
     update_layer_btn_selected(s_layer_contour_btn, contour);
     if (s_layer_contour_btn != nullptr)
     {
+        const bool contour_avail = contour_directory_available();
         lv_obj_t* label = lv_obj_get_child(s_layer_contour_btn, 0);
         if (label != nullptr)
         {
-            ::ui::i18n::set_label_text(label,
-                                       ::ui::widgets::map::layer_contour_status_key(contour));
+            std::string txt = std::string(contour_avail ? LV_SYMBOL_OK : LV_SYMBOL_CLOSE) + " " +
+                              ::ui::i18n::tr(::ui::widgets::map::layer_contour_status_key(contour));
+            ::ui::i18n::set_label_text_raw(label, txt.c_str());
+            lv_obj_set_style_text_opa(label, contour_avail ? LV_OPA_COVER : LV_OPA_50, LV_PART_MAIN);
+        }
+        if (contour_avail)
+        {
+            lv_obj_add_flag(s_layer_contour_btn, LV_OBJ_FLAG_CLICKABLE);
+        }
+        else
+        {
+            lv_obj_remove_flag(s_layer_contour_btn, LV_OBJ_FLAG_CLICKABLE);
         }
     }
 }
