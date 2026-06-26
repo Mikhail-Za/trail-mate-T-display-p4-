@@ -26,6 +26,8 @@
 #include "chat/usecase/contact_service.h"
 #include "platform/esp/boards/board_runtime.h"
 #include "platform/esp/idf_common/sx126x_radio.h"
+#include "platform/esp/idf_common/team/idf_nvs_team_ui_snapshot_store.h"
+#include "platform/ui/team_ui_snapshot_store.h"
 #include "sys/event_bus.h"
 #include "team/protocol/team_mgmt.h"
 #include "team/protocol/team_portnum.h"
@@ -233,6 +235,18 @@ void IdfChatFacade::initTeamServices()
         return;
     }
 
+    // Reboot persistence: install the durable NVS-backed Team UI snapshot store
+    // BEFORE anything builds the team UI, replacing the default RAM-only
+    // TeamUiSnapshotMemoryStore (wiped on every boot). This terminates the
+    // existing team-key save/restore seam (team_ui_save_keys_now -> store.save();
+    // the team page's loadOnce/applySnapshot -> store.load()) in NVS flash, so a
+    // paired team's PSK + key_id + team_id survive reboot / reflash and the team
+    // page rehydrates its state (incl. PSK) from flash. Function-local static: the
+    // store pointer is held globally by team_ui_set_snapshot_store and must outlive
+    // this facade; initTeamServices() runs exactly once.
+    static team_infra::IdfNvsTeamUiSnapshotStore s_nvs_team_ui_store;
+    team::ui::team_ui_set_snapshot_store(&s_nvs_team_ui_store);
+
     // One-time crypto self-check: if mbedtls ChaCha20-Poly1305/SHA256 is misbuilt
     // (e.g. the Kconfig flags are off), this logs FAILED so team frames that would
     // silently fail to interop with the rweather peers are caught loudly. It does
@@ -250,6 +264,26 @@ void IdfChatFacade::initTeamServices()
     team_controller_.reset(new ::team::TeamController(*team_service_));
     team_track_sampler_.reset(
         new ::team::TeamTrackSampler(team_runtime_, team_track_source_));
+
+    // Reboot persistence (part 3): re-inject any persisted team keys into the live
+    // TeamService at boot. The team page's loadOnce/applySnapshot rehydrates the UI
+    // snapshot from the NVS store above, but the TeamService itself starts keyless;
+    // without this, RX decrypt + presence stay dark until the user re-pairs even
+    // though the keys are on flash. setKeysFromPsk re-derives the four sub-keys from
+    // the stored PSK so hasKeys() == true from boot. Idempotent and a safe no-op
+    // when no team was saved (load() returns false).
+    {
+        team::ui::TeamUiSnapshot snap;
+        if (team::ui::team_ui_snapshot_store().load(snap) && snap.has_team_psk &&
+            snap.has_team_id)
+        {
+            const bool keyed = team_controller_->setKeysFromPsk(
+                snap.team_id, snap.security_round, snap.team_psk.data(),
+                snap.team_psk.size());
+            ESP_LOGI("idf-team", "boot key restore from NVS: %s",
+                     keyed ? "keys set" : "no/!invalid keys");
+        }
+    }
 
     // Phase 2: construct the LoRa pairing service so getTeamPairing() is non-null
     // and the Team screen's Create/Join actually pair two units over LoRa. It

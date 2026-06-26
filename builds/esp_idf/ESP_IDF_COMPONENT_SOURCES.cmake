@@ -104,7 +104,12 @@ set(TRAILMATE_ESP_IDF_TEAM_SVC_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_team_track_source.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_team_event_sinks.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_lora_pairing_transport.cpp"
-    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_lora_pairing_service.cpp")
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_lora_pairing_service.cpp"
+    # Reboot persistence for the Team feature: a durable NVS-backed
+    # ITeamUiSnapshotStore that terminates the existing team-key save/restore seam
+    # (team_ui_save_keys_now / team page loadOnce) in flash instead of the default
+    # RAM-only TeamUiSnapshotMemoryStore, so a paired team's PSK survives reboot.
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/team/idf_nvs_team_ui_snapshot_store.cpp")
 
 # ---------------------------------------------------------------------------
 # Minimal LoRa-chat producer set (consumed by the IDF chat facade/factory in
