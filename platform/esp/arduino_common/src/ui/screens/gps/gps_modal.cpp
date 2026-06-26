@@ -97,6 +97,11 @@ lv_obj_t* modal_create_touch_content_area(lv_obj_t* win, lv_coord_t title_height
     }
 
     lv_obj_t* content_area = lv_obj_create(win);
+    // Force a layout pass first: on the P4, lv_obj_get_height(win) returns 0 before the
+    // window is laid out, which collapsed content_area to 0 height and left the modal
+    // (the Layer and Track lists) empty. Updating layout makes the height read the real
+    // value. This shared helper backs every touch modal, so one fix covers all of them.
+    lv_obj_update_layout(win);
     const lv_coord_t win_height = lv_obj_get_height(win);
     const lv_coord_t pad_top = lv_obj_get_style_pad_top(win, LV_PART_MAIN);
     const lv_coord_t pad_bottom = lv_obj_get_style_pad_bottom(win, LV_PART_MAIN);
