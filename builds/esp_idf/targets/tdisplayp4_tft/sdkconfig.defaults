@@ -54,3 +54,17 @@ CONFIG_MBEDTLS_CHACHAPOLY_C=y
 CONFIG_LV_USE_FS_POSIX=y
 CONFIG_LV_FS_POSIX_LETTER=65
 CONFIG_LV_FS_POSIX_PATH="/sdcard"
+# Offline map tiles part 2: PNG decoder + PSRAM-backed allocator. With the FS driver
+# above the tile files now open, but two pieces were still missing and the map drew
+# blank/white:
+#  1) No PNG decoder was compiled in, so the decoded tile produced no pixels. Enable
+#     LVGL's built-in lodepng decoder; lv_init() auto-registers it (lv_lodepng_init()),
+#     and the tile loader decodes through lv_image_decoder_open() (map_tiles.cpp).
+#  2) A decoded 256x256 tile is ~256KB, but LVGL's built-in allocator pool is only 192KB
+#     of INTERNAL RAM, so the lodepng decode buffer AND the tile RAM cache (lv_malloc in
+#     map_tiles.cpp) would both fail. Switch LVGL to the C-library allocator so lv_malloc
+#     maps to the ESP-IDF heap; with SPIRAM_USE_MALLOC + MALLOC_ALWAYSINTERNAL=16384 any
+#     allocation >=16KB (every tile) goes to PSRAM, which has ample room. This makes the
+#     earlier CONFIG_LV_MEM_SIZE_KILOBYTES=192 (builtin-pool only) moot.
+CONFIG_LV_USE_LODEPNG=y
+CONFIG_LV_USE_CLIB_MALLOC=y
