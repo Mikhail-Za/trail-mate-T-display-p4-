@@ -20,3 +20,17 @@ CONFIG_ESP_TASK_WDT_TIMEOUT_S=20
 CONFIG_TASK_WDT_PANIC=y
 CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
 CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
+# The shared IDF app shell (esp32_lvgl_idf_app_registry.cpp) references montserrat 20/24
+# unconditionally since the P4 header/top-bar reflow; only montserrat 14 is compiled by
+# LVGL default, which left this target unbuildable. Same fix as tdisplayp4_tft.
+CONFIG_LV_FONT_MONTSERRAT_20=y
+CONFIG_LV_FONT_MONTSERRAT_24=y
+# ChaCha20-Poly1305 for team-mode AEAD (IdfTeamCrypto): off by default in ESP-IDF's
+# mbedtls Kconfig; without these the link fails on mbedtls_chachapoly_auth_decrypt.
+# Same fix as tdisplayp4_tft. NOTE: this target still does not build fully -- its
+# CONFIG_COMPILER_OPTIMIZATION_PERF (-O2) promotes pre-existing format-truncation
+# warnings to errors in old code (settings_page_components.cpp:337, meshcore_adapter);
+# that cleanup is unrelated to these defaults.
+CONFIG_MBEDTLS_CHACHA20_C=y
+CONFIG_MBEDTLS_POLY1305_C=y
+CONFIG_MBEDTLS_CHACHAPOLY_C=y
