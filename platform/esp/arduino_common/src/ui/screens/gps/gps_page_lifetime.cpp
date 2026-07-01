@@ -143,6 +143,8 @@ void on_root_deleted(lv_event_t* e)
     // dangle into freed objects on GPS-page re-entry.
     g_gps_state.gps_marker = nullptr;
     g_gps_state.last_known_marker = nullptr;
+    g_gps_state.last_known_age_label = nullptr;
+    g_gps_state.no_coverage_label = nullptr;
     // Complete the sweep for the remaining handles into the deleted tree so this hook is a
     // full guard rather than a hand-picked subset. Today every root deletion goes through
     // runtime exit(), whose `g_gps_state = GPSPageState{}` makes these redundant; they only

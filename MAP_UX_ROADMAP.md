@@ -13,6 +13,18 @@ Research deliverable, 2026-06-26. Execute next session when device flashing is a
 ---
 
 ## 1. PINCH-TO-ZOOM - VERDICT: FEASIBLE
+> **STATUS 2026-07-01: BUILT + compile-verified (not yet flashed; devices away).**
+> Implemented exactly per the mechanism below: 2-point reads in both IC paths
+> (Hi8561 13-byte multi-read from the info base; GT9895 finger-1 decode from the
+> already-read buffer), exposed via platform::ui::device::touch_points (inert 0 on
+> non-P4 targets), integer pinch state machine in the 16ms map poll (1.6x/0.625x
+> hysteresis on squared spread, 120ms step debounce, screen-center v1 recentering,
+> pan suppression + lingering-finger cooldown), shared apply_zoom_level_centered
+> with the popup Apply, plus double-tap zoom-in and two-finger-tap zoom-out.
+> Also shipped from section 2: last-known age tag ("2h") under the grey ring and
+> the "No offline tiles here" hint. ON-HARDWARE VERIFY PENDING: the Hi8561
+> two-finger read is the one untested piece (roadmap risk #1); double-tap is the
+> guaranteed single-touch fallback if it proves flaky.
 
 No hardware or driver-ownership obstacle. The touch ICs are multi-touch, and the firmware
 already owns the touch read path via a hand-written LVGL `read_cb` over raw I2C (NOT

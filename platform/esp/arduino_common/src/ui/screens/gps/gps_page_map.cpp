@@ -113,6 +113,36 @@ bool load_last_fix_file(double& lat, double& lng, uint64_t& epoch)
     epoch = rec.epoch;
     return true;
 }
+
+// Compact age text for the last-known marker ("<1m", "42m", "3h", "2d"). Empty when the
+// stored epoch or the clock is not trustworthy (RTC unset stamps epoch 0 / tiny values).
+void format_last_fix_age(uint64_t epoch, char* out, size_t out_size)
+{
+    out[0] = '\0';
+    constexpr uint64_t kMinValidEpoch = 1577836800ULL; // 2020-01-01 UTC
+    const uint64_t now = sys::epoch_seconds_now();
+    if (epoch < kMinValidEpoch || now <= epoch)
+    {
+        return;
+    }
+    const uint64_t age = now - epoch;
+    if (age < 60ULL)
+    {
+        std::snprintf(out, out_size, "<1m");
+    }
+    else if (age < 3600ULL)
+    {
+        std::snprintf(out, out_size, "%llum", static_cast<unsigned long long>(age / 60ULL));
+    }
+    else if (age < 86400ULL)
+    {
+        std::snprintf(out, out_size, "%lluh", static_cast<unsigned long long>(age / 3600ULL));
+    }
+    else
+    {
+        std::snprintf(out, out_size, "%llud", static_cast<unsigned long long>(age / 86400ULL));
+    }
+}
 } // namespace
 
 // Defined after hide_gps_marker(); forward-declared so update_map_tiles() can call it.
@@ -944,12 +974,73 @@ static void update_last_known_marker_position()
         lv_obj_set_style_border_width(m, 2, LV_PART_MAIN);
         lv_obj_set_style_radius(m, LV_RADIUS_CIRCLE, LV_PART_MAIN);
         lv_obj_clear_flag(m, LV_OBJ_FLAG_SCROLLABLE);
+        // The age tag hangs below the ring, outside its 18px box.
+        lv_obj_add_flag(m, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+        lv_obj_t* age = lv_label_create(m);
+        lv_obj_set_style_text_color(age, lv_color_hex(0x808080), LV_PART_MAIN);
+        // Centered under the ring: plain in-parent alignment with a y offset past the
+        // ring's height (OVERFLOW_VISIBLE above lets it draw outside the 18px box).
+        lv_obj_align(age, LV_ALIGN_TOP_MID, 0, kLastKnownMarkerSize + 2);
+        lv_label_set_text(age, "");
+        g_gps_state.last_known_age_label = age;
         g_gps_state.last_known_marker = m;
+    }
+    // Age tag ("2h" since that fix): child of the ring, so it shows/hides/moves with it.
+    if (g_gps_state.last_known_age_label != NULL)
+    {
+        char age_text[16];
+        format_last_fix_age(g_gps_state.last_known_epoch, age_text, sizeof(age_text));
+        lv_label_set_text(g_gps_state.last_known_age_label, age_text);
     }
     place_map_marker(g_gps_state.last_known_marker,
                      g_gps_state.last_known_lat,
                      g_gps_state.last_known_lng,
                      kLastKnownMarkerSize);
+}
+
+// Subtle hint when the current view has no offline tiles for the active layer: a blank
+// map otherwise reads as "broken", not "no coverage here". Driven from tick_loader so it
+// clears the moment the first tile of a view decodes; held briefly before showing so the
+// normal decode latency after a pan/zoom does not flash it.
+static void update_no_coverage_hint()
+{
+    if (!is_alive() || g_gps_state.map == NULL)
+    {
+        return;
+    }
+    static uint32_t s_blank_since_ms = 0;
+    const bool blank = g_gps_state.initial_tiles_loaded && !g_gps_state.has_visible_map_data &&
+                       platform::ui::device::sd_ready();
+    const uint32_t now_ms = sys::millis_now();
+    if (!blank)
+    {
+        s_blank_since_ms = 0;
+    }
+    else if (s_blank_since_ms == 0)
+    {
+        s_blank_since_ms = (now_ms != 0) ? now_ms : 1;
+    }
+    constexpr uint32_t kBlankHoldMs = 1200;
+    const bool show = blank && (now_ms - s_blank_since_ms) >= kBlankHoldMs;
+
+    if (!show)
+    {
+        if (g_gps_state.no_coverage_label != NULL)
+        {
+            lv_obj_add_flag(g_gps_state.no_coverage_label, LV_OBJ_FLAG_HIDDEN);
+        }
+        return;
+    }
+    if (g_gps_state.no_coverage_label == NULL)
+    {
+        lv_obj_t* label = lv_label_create(g_gps_state.map);
+        ::ui::i18n::set_label_text(label, "No offline tiles here");
+        lv_obj_set_style_text_color(label, lv_color_hex(0x9A9A9A), LV_PART_MAIN);
+        lv_obj_align(label, LV_ALIGN_BOTTOM_MID, 0, -72);
+        g_gps_state.no_coverage_label = label;
+    }
+    lv_obj_clear_flag(g_gps_state.no_coverage_label, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(g_gps_state.no_coverage_label);
 }
 
 void clear_team_markers()
@@ -1615,6 +1706,9 @@ void tick_loader()
             show_toast("No tile in this area", 1500);
         }
     }
+
+    // Keep the "no offline tiles here" hint in sync as tiles stream in/out of view.
+    update_no_coverage_hint();
 }
 
 void tick_gps_update(bool allow_map_refresh)
