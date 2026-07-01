@@ -101,6 +101,38 @@ multi-contact feeder. Approach (a) is ~50 lines of integer math reusing primitiv
 
 ---
 
+## 3. CODE-REVIEW FOLLOW-UPS (2026-07-01 max-effort review of the map-tiles session)
+
+15 findings fixed on-branch (persistence rework, Inf-guard, i18n key, engine-level layer
+gate, title-bar overlap, throttle rework, probe caching, sdkconfig pins, pack-scan
+decouple, and cleanups). Items surfaced but deliberately DEFERRED or ACCEPTED:
+
+- Zoom popup does 19 one-shot SD probes at open (~40-150ms behind the modal). Accepted:
+  user-initiated, once per open. Revisit only if the open visibly hitches.
+- update_last_known_marker_position runs twice in a tick when a follow-refresh fires
+  (update_map_tiles + the gps_state_changed tail). Micro cost, accepted.
+- Settings "Offline Coverage" row is a static string by design (Z asked for a written
+  note; the Layer/Zoom checkmarks are the live truth). UPDATE THE STRING when re-rendering
+  tiles for a new region (finish-conus-render.ps1).
+- last_known_epoch is stored but unread -- reserved for the "last fix: Xh ago" label
+  polish (section 2 above).
+- build_zoom_popup_ui carries a pre-existing forked copy of the modal title/content
+  geometry (fixed separately in 866ecd3); consolidate onto modal_create_touch_title_bar/
+  content_area when next touching that popup.
+- Last-fix capture only runs while the GPS page is open. The deeper design is a
+  domain-level last-fix service in the GPS runtime (captures regardless of page, serves
+  future consumers: dashboard widget, compass, waypoints). The bespoke lv_fs file could
+  then move to the chat::infra NVS blob store for SD-independence.
+- Settings -> Map Source enum writes config directly, bypassing the engine availability
+  gate. Accepted as a deliberate escape hatch (force a source despite marks).
+- node_info's layer popup is protected by the engine gate but has no availability
+  checkmarks (optional polish).
+- Layer/zoom availability probes run unguarded by SharedSpiLockGuard (matches the
+  pre-existing missing-tile probe call style; lastfix save/load DO take the guard).
+  On the P4 the guard is a no-op either way.
+
+---
+
 ## Key source references (for execution)
 - Board touch driver: `T-Display-P4/libraries/lilygo_device_driver/src/device/t_display_p4/t_display_p4_driver.cpp` (163-174, 290-299); config `t_display_p4_config.h` (289 Hi8561 0x68, 307 GT9895 0x5D).
 - Touch chip multi-point reference: `T-Display-P4/libraries/cpp_bus_driver/src/chip/i2c/gt9895.cpp` (144-204), `hi8561_touch.cpp` (164+).
