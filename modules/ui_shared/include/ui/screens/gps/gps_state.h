@@ -72,6 +72,10 @@ struct GPSPageState
     bool has_last_known = false;
     uint64_t last_known_epoch = 0;
     lv_obj_t* last_known_marker = nullptr;
+    // One persisted-position load attempt per page entry: lives in the struct (not a
+    // function-local static) precisely so the enter()/exit() `g_gps_state = GPSPageState{}`
+    // resets re-arm it; a function-local latch would survive them and block reloads.
+    bool last_fix_load_attempted = false;
 
     int pan_x = 0;
     int pan_y = 0;

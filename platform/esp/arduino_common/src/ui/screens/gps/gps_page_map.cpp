@@ -3,6 +3,7 @@
 #include "app/app_facade_access.h"
 #include "chat/usecase/contact_service.h"
 #include "lvgl.h"
+#include "platform/esp/common/shared_spi_lock.h"
 #include "platform/ui/device_runtime.h"
 #include "platform/ui/gps_runtime.h"
 #include "platform/ui/team_ui_store_runtime.h"
@@ -43,11 +44,14 @@ namespace
 {
 // Last-known GPS position: a tiny fixed-size record persisted to the SD card via the LVGL
 // "A:" filesystem (cross-platform; avoids any IDF-only NVS dependency in this shared file).
-// Saved on a fresh or coarse fix and reloaded on boot, so the last-known marker survives a
-// power cycle.
+// Saved on a fresh or coarse fix and reloaded per page entry, so the last-known marker
+// survives a power cycle. The layout is versioned by the magic ('LFX1'); reserved0 exists
+// to make the alignment padding after magic explicit and zeroed, so the on-disk bytes are
+// deterministic (no uninitialized stack bytes hit the card) while keeping the same offsets.
 struct LastFixRecord
 {
     uint32_t magic;
+    uint32_t reserved0;
     double lat;
     double lng;
     uint64_t epoch;
@@ -55,21 +59,34 @@ struct LastFixRecord
 constexpr uint32_t kLastFixMagic = 0x4C465831u; // 'LFX1'
 constexpr char kLastFixPath[] = "A:/lastfix.dat";
 
-void save_last_fix_file(double lat, double lng, uint64_t epoch)
+bool save_last_fix_file(double lat, double lng, uint64_t epoch)
 {
-    LastFixRecord rec{kLastFixMagic, lat, lng, epoch};
+    // SD shares a physical SPI bus with other peripherals on some boards built from this
+    // file (no-op lock on the P4); same discipline as load_tile_image in map_tiles.cpp.
+    ::platform::esp::common::SharedSpiLockGuard spi_lock(pdMS_TO_TICKS(20));
+    if (!spi_lock.locked())
+    {
+        return false;
+    }
+    LastFixRecord rec{kLastFixMagic, 0u, lat, lng, epoch};
     lv_fs_file_t f;
     if (lv_fs_open(&f, kLastFixPath, LV_FS_MODE_WR) != LV_FS_RES_OK)
     {
-        return;
+        return false;
     }
     uint32_t bw = 0;
-    lv_fs_write(&f, &rec, sizeof(rec), &bw);
+    const lv_fs_res_t res = lv_fs_write(&f, &rec, sizeof(rec), &bw);
     lv_fs_close(&f);
+    return res == LV_FS_RES_OK && bw == sizeof(rec);
 }
 
 bool load_last_fix_file(double& lat, double& lng, uint64_t& epoch)
 {
+    ::platform::esp::common::SharedSpiLockGuard spi_lock(pdMS_TO_TICKS(20));
+    if (!spi_lock.locked())
+    {
+        return false;
+    }
     lv_fs_file_t f;
     if (lv_fs_open(&f, kLastFixPath, LV_FS_MODE_RD) != LV_FS_RES_OK)
     {
@@ -80,6 +97,14 @@ bool load_last_fix_file(double& lat, double& lng, uint64_t& epoch)
     lv_fs_res_t r = lv_fs_read(&f, &rec, sizeof(rec), &br);
     lv_fs_close(&f);
     if (r != LV_FS_RES_OK || br != sizeof(rec) || rec.magic != kLastFixMagic)
+    {
+        return false;
+    }
+    // Reject corrupted-but-magic-intact payloads: garbage doubles here would otherwise
+    // reach gps_screen_pos, whose longitude wrap loop never terminates on +/-Inf (LVGL
+    // task hang -> watchdog panic that repeats every boot since the file persists).
+    if (!std::isfinite(rec.lat) || !std::isfinite(rec.lng) ||
+        rec.lat < -90.0 || rec.lat > 90.0 || rec.lng < -180.0 || rec.lng > 180.0)
     {
         return false;
     }
@@ -779,6 +804,30 @@ void update_map_tiles(bool lightweight)
 }
 
 /**
+ * Project a lat/lng to screen space and place a map-child marker there (centered),
+ * showing it on success and hiding it when the projection is unavailable. Shared by
+ * the live GPS pin and the last-known ring so their placement math cannot drift.
+ */
+static void place_map_marker(lv_obj_t* marker, double lat, double lng, int size_px)
+{
+    int screen_x = 0;
+    int screen_y = 0;
+    double map_lat = 0.0;
+    double map_lon = 0.0;
+    gps_map_transform(lat, lng, map_lat, map_lon);
+    if (gps_screen_pos(g_gps_state.tile_ctx, map_lat, map_lon, screen_x, screen_y))
+    {
+        lv_obj_set_pos(marker, screen_x - size_px / 2, screen_y - size_px / 2);
+        lv_obj_clear_flag(marker, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_move_foreground(marker);
+    }
+    else
+    {
+        lv_obj_add_flag(marker, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+/**
  * Update GPS marker position based on current GPS coordinates and map anchor
  * Called after map tiles are laid out to ensure marker is rendered on top
  */
@@ -795,23 +844,8 @@ void update_gps_marker_position()
         return;
     }
 
-    // Calculate screen position for GPS coordinates
-    int screen_x, screen_y;
-    double map_lat = 0.0;
-    double map_lon = 0.0;
-    gps_map_transform(g_gps_state.lat, g_gps_state.lng, map_lat, map_lon);
-    if (gps_screen_pos(g_gps_state.tile_ctx, map_lat, map_lon, screen_x, screen_y))
-    {
-        // Center marker on GPS position (marker is typically 24x24, so offset by half)
-        const int marker_size = 24;
-        lv_obj_set_pos(g_gps_state.gps_marker, screen_x - marker_size / 2, screen_y - marker_size / 2);
-        lv_obj_clear_flag(g_gps_state.gps_marker, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_move_foreground(g_gps_state.gps_marker);
-    }
-    else
-    {
-        lv_obj_add_flag(g_gps_state.gps_marker, LV_OBJ_FLAG_HIDDEN);
-    }
+    // Marker is 24x24 (room icon); placed centered on the GPS position.
+    place_map_marker(g_gps_state.gps_marker, g_gps_state.lat, g_gps_state.lng, 24);
 }
 
 /**
@@ -870,6 +904,26 @@ static void update_last_known_marker_position()
     {
         return;
     }
+
+    // Lazily load the persisted position, once per page entry (the flag lives in
+    // GPSPageState so the enter()/exit() struct resets re-arm it). This runs here, not in
+    // tick_gps_update, because the GPS tick never fires with no fix and no modal open
+    // (EspGpsRuntimeRefreshModel::refresh early-returns), which is exactly the no-fix
+    // scenario the persisted marker exists for; this function DOES run on the entry paint
+    // via update_map_tiles. Gated on sd_ready so a pre-mount attempt retries instead of
+    // burning the load, and skipped once a fresher in-memory fix has populated the fields.
+    if (!g_gps_state.last_fix_load_attempted && platform::ui::device::sd_ready())
+    {
+        g_gps_state.last_fix_load_attempted = true;
+        if (!g_gps_state.has_last_known &&
+            load_last_fix_file(g_gps_state.last_known_lat,
+                               g_gps_state.last_known_lng,
+                               g_gps_state.last_known_epoch))
+        {
+            g_gps_state.has_last_known = true;
+        }
+    }
+
     const bool show = g_gps_state.has_last_known && !g_gps_state.has_fix &&
                       g_gps_state.tile_ctx.anchor != nullptr && g_gps_state.tile_ctx.anchor->valid;
     if (!show)
@@ -880,10 +934,11 @@ static void update_last_known_marker_position()
         }
         return;
     }
+    constexpr int kLastKnownMarkerSize = 18;
     if (g_gps_state.last_known_marker == NULL)
     {
         lv_obj_t* m = lv_obj_create(g_gps_state.map);
-        lv_obj_set_size(m, 18, 18);
+        lv_obj_set_size(m, kLastKnownMarkerSize, kLastKnownMarkerSize);
         lv_obj_set_style_bg_opa(m, LV_OPA_TRANSP, LV_PART_MAIN);
         lv_obj_set_style_border_color(m, lv_color_hex(0x808080), LV_PART_MAIN);
         lv_obj_set_style_border_width(m, 2, LV_PART_MAIN);
@@ -891,23 +946,10 @@ static void update_last_known_marker_position()
         lv_obj_clear_flag(m, LV_OBJ_FLAG_SCROLLABLE);
         g_gps_state.last_known_marker = m;
     }
-    int screen_x = 0;
-    int screen_y = 0;
-    double map_lat = 0.0;
-    double map_lon = 0.0;
-    gps_map_transform(g_gps_state.last_known_lat, g_gps_state.last_known_lng, map_lat, map_lon);
-    if (gps_screen_pos(g_gps_state.tile_ctx, map_lat, map_lon, screen_x, screen_y))
-    {
-        const int marker_size = 18;
-        lv_obj_set_pos(
-            g_gps_state.last_known_marker, screen_x - marker_size / 2, screen_y - marker_size / 2);
-        lv_obj_clear_flag(g_gps_state.last_known_marker, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_move_foreground(g_gps_state.last_known_marker);
-    }
-    else
-    {
-        lv_obj_add_flag(g_gps_state.last_known_marker, LV_OBJ_FLAG_HIDDEN);
-    }
+    place_map_marker(g_gps_state.last_known_marker,
+                     g_gps_state.last_known_lat,
+                     g_gps_state.last_known_lng,
+                     kLastKnownMarkerSize);
 }
 
 void clear_team_markers()
@@ -1605,23 +1647,9 @@ void tick_gps_update(bool allow_map_refresh)
     bool sd_ready = platform::ui::device::sd_ready();
     uint32_t now_ms = sys::millis_now();
 
-    // Load the persisted last-known position once (survives reboot), so the marker can show
-    // even before this session's first live fix.
-    static bool last_fix_loaded = false;
-    if (!last_fix_loaded)
-    {
-        last_fix_loaded = true;
-        double llat = 0.0;
-        double llng = 0.0;
-        uint64_t lepoch = 0;
-        if (load_last_fix_file(llat, llng, lepoch))
-        {
-            g_gps_state.last_known_lat = llat;
-            g_gps_state.last_known_lng = llng;
-            g_gps_state.last_known_epoch = lepoch;
-            g_gps_state.has_last_known = true;
-        }
-    }
+    // (The persisted last-known position is loaded lazily in
+    // update_last_known_marker_position(); this tick never runs pre-fix without a modal
+    // open, so a load here would miss the exact scenario the marker exists for.)
 
     bool gps_state_changed = false;
     if (gps_data.valid)
@@ -1648,17 +1676,23 @@ void tick_gps_update(bool allow_map_refresh)
             g_gps_state.last_known_epoch = sys::epoch_seconds_now();
             g_gps_state.has_last_known = true;
 
+            // Persist throttle: the write is a synchronous FAT update on the LVGL task, so
+            // it must stay rare. First successful save per boot happens immediately
+            // (last_fix_save_ms == 0); after that BOTH 100m of movement AND 60s must pass
+            // (OR-ing them would fire every ~3.6s at highway speed = a periodic UI hitch
+            // and ~1000 FAT writes/hour). Throttle state advances only on a successful
+            // write, so a not-ready/failed SD retries instead of counting as saved.
             static uint32_t last_fix_save_ms = 0;
             static double last_fix_save_lat = 0.0;
             static double last_fix_save_lng = 0.0;
             const bool save_due =
-                just_got_fix ||
-                approx_distance_m(last_fix_save_lat, last_fix_save_lng, new_lat, new_lng) >= 100.0 ||
-                (now_ms - last_fix_save_ms) >= 60000;
-            if (save_due)
+                sd_ready &&
+                (last_fix_save_ms == 0 ||
+                 (approx_distance_m(last_fix_save_lat, last_fix_save_lng, new_lat, new_lng) >= 100.0 &&
+                  (now_ms - last_fix_save_ms) >= 60000));
+            if (save_due && save_last_fix_file(new_lat, new_lng, g_gps_state.last_known_epoch))
             {
-                save_last_fix_file(new_lat, new_lng, g_gps_state.last_known_epoch);
-                last_fix_save_ms = now_ms;
+                last_fix_save_ms = (now_ms != 0) ? now_ms : 1;
                 last_fix_save_lat = new_lat;
                 last_fix_save_lng = new_lng;
             }
@@ -1754,14 +1788,11 @@ void tick_gps_update(bool allow_map_refresh)
         prev_satellites = gps_data.satellites;
     }
 
-    // Update GPS marker position if marker exists and GPS data changed
+    // Keep both markers in sync with fix transitions (each self-guards on null/liveness;
+    // the last-known ring appears only when the live fix is lost).
     if (gps_state_changed)
     {
-        if (g_gps_state.gps_marker != NULL)
-        {
-            update_gps_marker_position();
-        }
-        // Keep the last-known marker in sync: it appears only when the live fix is lost.
+        update_gps_marker_position();
         update_last_known_marker_position();
     }
 }
