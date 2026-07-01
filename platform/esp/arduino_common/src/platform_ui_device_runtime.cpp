@@ -169,4 +169,14 @@ int power_tier()
     return board.getPowerTier();
 }
 
+uint8_t touch_points(int32_t out_x[2], int32_t out_y[2])
+{
+    // The Arduino boards' touch runtimes read a single point; report none so
+    // multi-finger gestures (map pinch) stay inert and single-touch paths are
+    // driven by the LVGL pointer exactly as before.
+    (void)out_x;
+    (void)out_y;
+    return 0;
+}
+
 } // namespace platform::ui::device

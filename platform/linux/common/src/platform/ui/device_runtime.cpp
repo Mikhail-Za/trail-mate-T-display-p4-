@@ -353,4 +353,12 @@ int power_tier()
     return platform::linux_runtime::env_int(kPowerTierEnv, 0);
 }
 
+uint8_t touch_points(int32_t out_x[2], int32_t out_y[2])
+{
+    // The desktop sims have no multi-touch source; pinch stays inert there.
+    (void)out_x;
+    (void)out_y;
+    return 0;
+}
+
 } // namespace platform::ui::device

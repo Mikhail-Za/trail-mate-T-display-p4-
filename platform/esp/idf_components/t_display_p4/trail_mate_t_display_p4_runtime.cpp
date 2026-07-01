@@ -50,6 +50,9 @@ constexpr uint32_t kHi8561EsramSectionInfoStartAddress = kHi8561EsramNumStartAdd
 constexpr uint16_t kHi8561MemoryEramSize = 4 * 1024;
 constexpr uint8_t kHi8561TouchPointAddressOffset = 3;
 constexpr uint8_t kHi8561SingleTouchPointDataSize = 5;
+// How many touch points the firmware decodes per read. Two is all the map pinch gesture
+// needs; the controllers themselves report up to 10 (kHi8561MaxTouchFingerCount below).
+constexpr uint8_t kTouchSnapshotMaxPoints = 2;
 constexpr uint8_t kHi8561MaxTouchFingerCount = 10;
 
 constexpr uint32_t kGt9895TouchInfoStartAddress = 0x00010308;
@@ -303,6 +306,17 @@ bool probe_touch_controller()
     return true;
 }
 
+// Latest multi-touch snapshot, refreshed by every read_*_touch call (the same I2C reads
+// that feed the LVGL pointer, so exposing it costs no extra bus traffic). Written and
+// read on the LVGL task only (indev read_cb + UI timers) -- no locking needed.
+struct TouchSnapshot
+{
+    uint8_t count = 0;
+    int32_t x[kTouchSnapshotMaxPoints] = {0, 0};
+    int32_t y[kTouchSnapshotMaxPoints] = {0, 0};
+};
+TouchSnapshot s_touch_snapshot;
+
 bool read_hi8561_touch(int32_t* out_x, int32_t* out_y, bool* out_pressed)
 {
     if (out_x == nullptr || out_y == nullptr || out_pressed == nullptr)
@@ -310,6 +324,7 @@ bool read_hi8561_touch(int32_t* out_x, int32_t* out_y, bool* out_pressed)
         return false;
     }
     *out_pressed = false;
+    s_touch_snapshot.count = 0;
 
     if (!init_hi8561_touch_address_info() ||
         !runtime_support::lock_system_i2c(kTouchI2cLockTimeoutMs))
@@ -317,17 +332,21 @@ bool read_hi8561_touch(int32_t* out_x, int32_t* out_y, bool* out_pressed)
         return false;
     }
 
-    const uint32_t point_address =
-        s_hi8561_touch_info_start_address + kHi8561TouchPointAddressOffset;
+    // Read from the touch-info BASE (finger-count byte + per-finger records), not from
+    // the first point record: layout per the reference Hi8561Touch::GetMultipleTouchPoint
+    // (cpp_bus_driver) -- [0]=finger count, then 5 bytes per finger at offset 3
+    // (x BE16, y BE16, pressure), 0xFFFF/0xFFFF marking an invalid/edge record.
+    const uint32_t base_address = s_hi8561_touch_info_start_address;
     const uint8_t request[] = {
         0xF3,
-        static_cast<uint8_t>(point_address >> 24),
-        static_cast<uint8_t>(point_address >> 16),
-        static_cast<uint8_t>(point_address >> 8),
-        static_cast<uint8_t>(point_address),
+        static_cast<uint8_t>(base_address >> 24),
+        static_cast<uint8_t>(base_address >> 16),
+        static_cast<uint8_t>(base_address >> 8),
+        static_cast<uint8_t>(base_address),
         0x03,
     };
-    uint8_t response[kHi8561SingleTouchPointDataSize] = {};
+    uint8_t response[kHi8561TouchPointAddressOffset +
+                     kTouchSnapshotMaxPoints * kHi8561SingleTouchPointDataSize] = {};
     const esp_err_t err = i2c_master_transmit_receive(
         s_touch_i2c_handle,
         request,
@@ -341,17 +360,38 @@ bool read_hi8561_touch(int32_t* out_x, int32_t* out_y, bool* out_pressed)
         return false;
     }
 
-    const uint16_t raw_x = static_cast<uint16_t>((static_cast<uint16_t>(response[0]) << 8) |
-                                                 response[1]);
-    const uint16_t raw_y = static_cast<uint16_t>((static_cast<uint16_t>(response[2]) << 8) |
-                                                 response[3]);
-    if (raw_x == 0xFFFF && raw_y == 0xFFFF)
+    const uint8_t finger_count = response[0];
+    if (finger_count == 0 || finger_count > kHi8561MaxTouchFingerCount)
     {
         return true;
     }
 
-    *out_x = std::clamp<int32_t>(raw_x, 0, active_panel().width - 1);
-    *out_y = std::clamp<int32_t>(raw_y, 0, active_panel().height - 1);
+    const uint8_t decode_count =
+        finger_count < kTouchSnapshotMaxPoints ? finger_count : kTouchSnapshotMaxPoints;
+    uint8_t valid = 0;
+    for (uint8_t i = 0; i < decode_count; ++i)
+    {
+        const uint8_t off = kHi8561TouchPointAddressOffset + i * kHi8561SingleTouchPointDataSize;
+        const uint16_t raw_x = static_cast<uint16_t>(
+            (static_cast<uint16_t>(response[off]) << 8) | response[off + 1]);
+        const uint16_t raw_y = static_cast<uint16_t>(
+            (static_cast<uint16_t>(response[off + 2]) << 8) | response[off + 3]);
+        if (raw_x == 0xFFFF && raw_y == 0xFFFF)
+        {
+            continue;
+        }
+        s_touch_snapshot.x[valid] = std::clamp<int32_t>(raw_x, 0, active_panel().width - 1);
+        s_touch_snapshot.y[valid] = std::clamp<int32_t>(raw_y, 0, active_panel().height - 1);
+        ++valid;
+    }
+    if (valid == 0)
+    {
+        return true;
+    }
+    s_touch_snapshot.count = valid;
+
+    *out_x = s_touch_snapshot.x[0];
+    *out_y = s_touch_snapshot.y[0];
     *out_pressed = true;
     return true;
 }
@@ -363,6 +403,7 @@ bool read_gt9895_touch(int32_t* out_x, int32_t* out_y, bool* out_pressed)
         return false;
     }
     *out_pressed = false;
+    s_touch_snapshot.count = 0;
 
     if (!ensure_touch_device() || !runtime_support::lock_system_i2c(kTouchI2cLockTimeoutMs))
     {
@@ -410,6 +451,25 @@ bool read_gt9895_touch(int32_t* out_x, int32_t* out_y, bool* out_pressed)
     *out_x = std::clamp<int32_t>(scaled_x, 0, active_panel().width - 1);
     *out_y = std::clamp<int32_t>(scaled_y, 0, active_panel().height - 1);
     *out_pressed = true;
+
+    s_touch_snapshot.count = 1;
+    s_touch_snapshot.x[0] = *out_x;
+    s_touch_snapshot.y[0] = *out_y;
+    // Second finger for gestures: the full buffer is already read; decode finger 1 only
+    // when the REAL finger count reports it (edge_touch synthesizes count 1, never 2).
+    if (finger_count >= 2)
+    {
+        const uint8_t off1 = offset + kGt9895SingleTouchPointDataSize;
+        const uint16_t raw_x1 = static_cast<uint16_t>(
+            response[off1 + 2] | (static_cast<uint16_t>(response[off1 + 3]) << 8));
+        const uint16_t raw_y1 = static_cast<uint16_t>(
+            response[off1 + 4] | (static_cast<uint16_t>(response[off1 + 5]) << 8));
+        s_touch_snapshot.x[1] = std::clamp<int32_t>(
+            static_cast<int32_t>(raw_x1 * s_touch_scale_x), 0, active_panel().width - 1);
+        s_touch_snapshot.y[1] = std::clamp<int32_t>(
+            static_cast<int32_t>(raw_y1 * s_touch_scale_y), 0, active_panel().height - 1);
+        s_touch_snapshot.count = 2;
+    }
     return true;
 }
 
@@ -776,4 +836,19 @@ extern "C" void trail_mate_t_display_p4_display_unlock(void)
 extern "C" esp_err_t trail_mate_t_display_p4_display_set_brightness_percent(int brightness_percent)
 {
     return set_brightness_percent(brightness_percent);
+}
+
+extern "C" uint8_t trail_mate_t_display_p4_touch_points(int32_t out_x[2], int32_t out_y[2])
+{
+    if (out_x == nullptr || out_y == nullptr)
+    {
+        return 0;
+    }
+    const uint8_t count = s_touch_snapshot.count;
+    for (uint8_t i = 0; i < count; ++i)
+    {
+        out_x[i] = s_touch_snapshot.x[i];
+        out_y[i] = s_touch_snapshot.y[i];
+    }
+    return count;
 }

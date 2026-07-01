@@ -45,5 +45,10 @@ bool gps_ready();
 // Stable capability: this target has GPS hardware support and may expose GPS UI.
 bool gps_supported();
 int power_tier();
+// Multi-touch snapshot from the most recent touch-controller read (no extra bus I/O):
+// fills up to two points and returns the finger count (0..2). Targets whose touch
+// runtime reads only one point report 0/1; gestures needing a second finger (map
+// pinch) degrade gracefully to single-touch behavior there. UI-task use only.
+uint8_t touch_points(int32_t out_x[2], int32_t out_y[2]);
 
 } // namespace platform::ui::device

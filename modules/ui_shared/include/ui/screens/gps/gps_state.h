@@ -72,10 +72,14 @@ struct GPSPageState
     bool has_last_known = false;
     uint64_t last_known_epoch = 0;
     lv_obj_t* last_known_marker = nullptr;
+    lv_obj_t* last_known_age_label = nullptr; // child of last_known_marker ("2h" etc.)
     // One persisted-position load attempt per page entry: lives in the struct (not a
     // function-local static) precisely so the enter()/exit() `g_gps_state = GPSPageState{}`
     // resets re-arm it; a function-local latch would survive them and block reloads.
     bool last_fix_load_attempted = false;
+    // Subtle "no offline tiles here" hint (child of map) so a blank view reads as
+    // no-coverage, not breakage.
+    lv_obj_t* no_coverage_label = nullptr;
 
     int pan_x = 0;
     int pan_y = 0;
@@ -183,6 +187,19 @@ struct GPSPageState
         int start_pan_x = 0;
         int start_pan_y = 0;
     } touch_pan;
+    // Two-finger pinch gesture (zoom) driven by platform::ui::device::touch_points.
+    struct TouchPinchState
+    {
+        bool active = false;
+        bool stepped = false;  // a zoom step fired during this pinch (blocks two-finger-tap)
+        bool cooldown = false; // swallow the lingering finger after a pinch ends
+        int64_t start_dist_sq = 0;
+        uint32_t start_ms = 0;
+        uint32_t last_step_ms = 0;
+    } touch_pinch;
+    // Double-tap (single finger, on-map) zoom-in detection.
+    uint32_t last_tap_ms = 0;
+    lv_point_t last_tap_point = {0, 0};
     lv_timer_t* touch_timer = nullptr;
 #endif
 

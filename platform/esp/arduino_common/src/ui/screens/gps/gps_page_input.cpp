@@ -1,4 +1,5 @@
 #include "ui/screens/gps/gps_page_input.h"
+#include "platform/ui/device_runtime.h"
 #include "platform/ui/gps_runtime.h"
 #include "screen_sleep.h"
 #include "sys/clock.h"
@@ -319,6 +320,23 @@ static void handle_map_touch_move(lv_indev_t* indev, const lv_point_t& point)
                  g_gps_state.pan_y);
 }
 
+// Shared zoom-apply used by the popup Apply button and the touch gestures; defined near
+// the popup code below.
+static void apply_zoom_level_centered(int new_level);
+
+// Zoom one step from a gesture (pinch step, double-tap, two-finger tap). No-op at the
+// zoom bounds so a clamped step is not mistaken for a view change.
+static void apply_gesture_zoom_step(int delta)
+{
+    const int target = g_gps_state.zoom_level + delta;
+    if (target < gps_ui::kMinZoom || target > gps_ui::kMaxZoom)
+    {
+        return;
+    }
+    updateUserActivity();
+    apply_zoom_level_centered(target);
+}
+
 static void handle_map_touch_release(lv_indev_t* indev, const lv_point_t& point)
 {
     if (!g_gps_state.touch_pan.pressed)
@@ -340,7 +358,127 @@ static void handle_map_touch_release(lv_indev_t* indev, const lv_point_t& point)
     {
         log_map_tile_state("touch_drag");
     }
+    else
+    {
+        // Double-tap to zoom in: two brief on-map taps close together in time and space.
+        // (Presses on controls never reach here -- handle_map_touch_press filters them.)
+        constexpr uint32_t kDoubleTapMaxIntervalMs = 350;
+        constexpr int kDoubleTapMaxDistPx = 40;
+        const uint32_t now = sys::millis_now();
+        const int tap_dx = coord_abs(static_cast<int>(point.x - g_gps_state.last_tap_point.x));
+        const int tap_dy = coord_abs(static_cast<int>(point.y - g_gps_state.last_tap_point.y));
+        if (g_gps_state.last_tap_ms != 0 &&
+            (now - g_gps_state.last_tap_ms) <= kDoubleTapMaxIntervalMs &&
+            tap_dx <= kDoubleTapMaxDistPx && tap_dy <= kDoubleTapMaxDistPx)
+        {
+            g_gps_state.last_tap_ms = 0;
+            GPS_FLOW_LOG("[GPS][MAP][touch] double_tap zoom_in level=%d\n",
+                         g_gps_state.zoom_level);
+            apply_gesture_zoom_step(+1);
+        }
+        else
+        {
+            g_gps_state.last_tap_ms = now;
+            g_gps_state.last_tap_point = point;
+        }
+    }
     reset_map_touch_pan_state();
+}
+
+// ---- Two-finger pinch zoom ----
+// Points come from platform::ui::device::touch_points (the touch controller's own most
+// recent read; polling it adds no bus traffic). Geometry is integer-only: a zoom step
+// fires on the SQUARED finger distance crossing hysteresis around the re-baselined start
+// spread -- grow past 1.6x (ratio_sq > 2.56 = 256/100) zooms in, shrink past 0.625x
+// (ratio_sq < 0.390625 = 100/256) zooms out, at most one step per 120ms. Re-centering is
+// the screen center (same as the zoom popup Apply), not the pinch midpoint: v1 keeps the
+// math shared and predictable.
+static void handle_map_pinch(const int32_t x[2], const int32_t y[2])
+{
+    auto& pinch = g_gps_state.touch_pinch;
+    const uint32_t now = sys::millis_now();
+
+    const int64_t dx = static_cast<int64_t>(x[0]) - x[1];
+    const int64_t dy = static_cast<int64_t>(y[0]) - y[1];
+    int64_t dist_sq = dx * dx + dy * dy;
+    if (dist_sq < 1)
+    {
+        dist_sq = 1;
+    }
+
+    if (!pinch.active)
+    {
+        // Engage only for touches that start on the map, like the single-finger pan.
+        const lv_point_t p0{static_cast<lv_coord_t>(x[0]), static_cast<lv_coord_t>(y[0])};
+        if (!point_hits_obj(g_gps_state.map, p0) || point_hits_map_blocker(p0))
+        {
+            return;
+        }
+        reset_map_touch_pan_state(); // the second finger cancels any in-progress pan
+        pinch.active = true;
+        pinch.stepped = false;
+        pinch.start_dist_sq = dist_sq;
+        pinch.start_ms = now;
+        pinch.last_step_ms = now;
+        GPS_FLOW_LOG("[GPS][MAP][touch] pinch_begin dist_sq=%lld zoom=%d\n",
+                     static_cast<long long>(dist_sq),
+                     g_gps_state.zoom_level);
+        return;
+    }
+
+    constexpr uint32_t kPinchStepDebounceMs = 120;
+    if (now - pinch.last_step_ms < kPinchStepDebounceMs)
+    {
+        return;
+    }
+
+    if (dist_sq * 100 > pinch.start_dist_sq * 256)
+    {
+        apply_gesture_zoom_step(+1);
+        pinch.start_dist_sq = dist_sq;
+        pinch.last_step_ms = now;
+        pinch.stepped = true;
+        GPS_FLOW_LOG("[GPS][MAP][touch] pinch_in zoom=%d\n", g_gps_state.zoom_level);
+    }
+    else if (dist_sq * 256 < pinch.start_dist_sq * 100)
+    {
+        apply_gesture_zoom_step(-1);
+        pinch.start_dist_sq = dist_sq;
+        pinch.last_step_ms = now;
+        pinch.stepped = true;
+        GPS_FLOW_LOG("[GPS][MAP][touch] pinch_out zoom=%d\n", g_gps_state.zoom_level);
+    }
+}
+
+static void end_map_pinch(bool finger_still_down)
+{
+    auto& pinch = g_gps_state.touch_pinch;
+    if (!pinch.active)
+    {
+        return;
+    }
+    // Two-finger tap: brief two-finger contact that never crossed the pinch hysteresis
+    // zooms OUT one level (the single-touch complement of double-tap zoom-in).
+    constexpr uint32_t kTwoFingerTapMaxMs = 300;
+    const uint32_t now = sys::millis_now();
+    if (!pinch.stepped && (now - pinch.start_ms) <= kTwoFingerTapMaxMs)
+    {
+        GPS_FLOW_LOG("[GPS][MAP][touch] two_finger_tap zoom_out level=%d\n",
+                     g_gps_state.zoom_level);
+        apply_gesture_zoom_step(-1);
+    }
+    pinch.active = false;
+    pinch.stepped = false;
+    // Swallow the lingering finger (if one stays down) so it cannot yank the map into a
+    // pan from wherever that finger happens to rest.
+    pinch.cooldown = finger_still_down;
+}
+
+static void reset_map_pinch_state()
+{
+    g_gps_state.touch_pinch.active = false;
+    g_gps_state.touch_pinch.stepped = false;
+    g_gps_state.touch_pinch.cooldown = false;
 }
 
 static void map_touch_poll_timer_cb(lv_timer_t* timer)
@@ -370,12 +508,37 @@ static void map_touch_poll_timer_cb(lv_timer_t* timer)
                          g_gps_state.pan_y);
         }
         reset_map_touch_pan_state();
+        reset_map_pinch_state();
         return;
     }
 
     lv_point_t point{};
     lv_indev_get_point(indev, &point);
     const bool is_pressed = lv_indev_get_state(indev) == LV_INDEV_STATE_PRESSED;
+
+    // Two-finger gestures first: while a second finger is down, the pinch machine owns
+    // the input and the single-finger pan/tap paths below are suppressed.
+    int32_t mt_x[2] = {0, 0};
+    int32_t mt_y[2] = {0, 0};
+    const uint8_t finger_count = platform::ui::device::touch_points(mt_x, mt_y);
+    if (finger_count >= 2)
+    {
+        handle_map_pinch(mt_x, mt_y);
+        return;
+    }
+    if (g_gps_state.touch_pinch.active)
+    {
+        end_map_pinch(is_pressed);
+        return;
+    }
+    if (g_gps_state.touch_pinch.cooldown)
+    {
+        if (!is_pressed)
+        {
+            g_gps_state.touch_pinch.cooldown = false;
+        }
+        return;
+    }
 
     if (is_pressed && !g_gps_state.touch_pan.pressed)
     {
@@ -1312,20 +1475,25 @@ void zoom_popup_sync_widgets()
     }
 }
 
-void zoom_popup_apply_selection()
+// Shared zoom-apply tail for the popup Apply button and the touch gestures (pinch,
+// double-tap, two-finger tap): re-center on the current screen center (with the same
+// no-anchor fallbacks the popup always used), set the level, reset pan, refresh
+// anchor/tiles/indicators, and remember the view.
+static void apply_zoom_level_centered(int new_level)
 {
-    if (!is_alive())
-    {
-        return;
-    }
-
-    extern void hide_zoom_popup();
     extern void update_map_tiles(bool lightweight);
     extern void update_map_anchor();
     extern void update_resolution_display();
     extern void update_zoom_btn();
 
-    GPS_LOG("[GPS] Applying zoom level %d\n", g_gps_state.popup_zoom);
+    if (new_level < gps_ui::kMinZoom)
+    {
+        new_level = gps_ui::kMinZoom;
+    }
+    if (new_level > gps_ui::kMaxZoom)
+    {
+        new_level = gps_ui::kMaxZoom;
+    }
 
     double center_lat = g_gps_state.lat;
     double center_lng = g_gps_state.lng;
@@ -1343,7 +1511,7 @@ void zoom_popup_apply_selection()
     }
 
     const int previous_zoom = g_gps_state.zoom_level;
-    g_gps_state.zoom_level = g_gps_state.popup_zoom;
+    g_gps_state.zoom_level = new_level;
     g_gps_state.lat = center_lat;
     g_gps_state.lng = center_lng;
     g_gps_state.pan_x = 0;
@@ -1364,6 +1532,19 @@ void zoom_popup_apply_selection()
                  g_gps_state.anchor.valid);
     log_map_tile_state("zoom_apply");
     update_zoom_btn();
+}
+
+void zoom_popup_apply_selection()
+{
+    if (!is_alive())
+    {
+        return;
+    }
+
+    extern void hide_zoom_popup();
+
+    GPS_LOG("[GPS] Applying zoom level %d\n", g_gps_state.popup_zoom);
+    apply_zoom_level_centered(g_gps_state.popup_zoom);
     hide_zoom_popup();
 
     GPS_LOG("[GPS] Zoom applied: level=%d, center=(%.6f, %.6f)\n",

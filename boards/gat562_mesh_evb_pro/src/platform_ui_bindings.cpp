@@ -200,6 +200,14 @@ int power_tier()
     return ::boards::gat562_mesh_evb_pro::Gat562Board::instance().getPowerTier();
 }
 
+uint8_t touch_points(int32_t out_x[2], int32_t out_y[2])
+{
+    // Single-point touch runtime on this board; multi-finger gestures stay inert.
+    (void)out_x;
+    (void)out_y;
+    return 0;
+}
+
 } // namespace platform::ui::device
 
 namespace platform::ui::gps

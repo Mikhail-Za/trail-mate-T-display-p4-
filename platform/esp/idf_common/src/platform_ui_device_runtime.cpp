@@ -5,6 +5,7 @@
 
 #include "boards/t_display_p4/t_display_p4_board.h"
 #include "boards/tab5/tab5_board.h"
+#include "bsp/trail_mate_t_display_p4_runtime.h"
 #include "esp_app_desc.h"
 #include "esp_heap_caps.h"
 #include "esp_system.h"
@@ -175,6 +176,18 @@ int power_tier()
         return 0;
     }
     return info.level <= 15 ? 1 : 0;
+}
+
+uint8_t touch_points(int32_t out_x[2], int32_t out_y[2])
+{
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+    return trail_mate_t_display_p4_touch_points(out_x, out_y);
+#else
+    // No multi-touch runtime wired on this board; pinch degrades to single-touch.
+    (void)out_x;
+    (void)out_y;
+    return 0;
+#endif
 }
 
 } // namespace platform::ui::device
