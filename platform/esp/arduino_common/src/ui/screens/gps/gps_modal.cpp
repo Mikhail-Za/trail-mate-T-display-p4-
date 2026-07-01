@@ -86,6 +86,12 @@ lv_obj_t* modal_create_touch_title_bar(lv_obj_t* win, const char* title)
     ::ui::i18n::set_label_text(title_label, title ? title : "");
     gps::ui::styles::apply_zoom_popup_title_label(title_label);
     lv_obj_center(title_label);
+    // Lay the bar out before returning: every caller immediately reads
+    // lv_obj_get_height(title_bar) to size the content area, and on the P4 a fresh object
+    // reports height 0 until a layout pass (the same behavior that emptied the modals in
+    // modal_create_touch_content_area). Without this, title_height computes as 0 and the
+    // bottom-aligned content area overlaps/covers the title bar.
+    lv_obj_update_layout(title_bar);
     return title_bar;
 }
 

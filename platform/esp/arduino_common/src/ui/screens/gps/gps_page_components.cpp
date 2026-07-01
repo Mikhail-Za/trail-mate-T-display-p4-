@@ -569,11 +569,26 @@ static void build_zoom_popup_ui(lv_obj_t* win)
         // Per-level availability: probe whether a tile exists at this zoom for the current
         // map center, so each level shows a checkmark (tiles here) or X (none). Dynamic --
         // recomputed every time the panel opens, so it auto-updates as SD coverage grows.
-        double zoom_center_lat = g_gps_state.lat;
-        double zoom_center_lng = g_gps_state.lng;
+        // The center must be in the same MAP space the tiles are addressed in and must
+        // match zoom_popup_apply_selection's centering: anchor-derived screen center when
+        // available (already map-space), else the transformed live fix, else the same
+        // default center the apply path re-centers to. A raw g_gps_state.lat/lng fallback
+        // was (0,0) pre-fix, probing Null Island and marking every level X on a card with
+        // full local coverage.
+        double zoom_center_lat = 0.0;
+        double zoom_center_lng = 0.0;
         if (g_gps_state.anchor.valid)
         {
             get_screen_center_lat_lng(g_gps_state.tile_ctx, zoom_center_lat, zoom_center_lng);
+        }
+        else if (g_gps_state.has_fix)
+        {
+            gps_map_transform(g_gps_state.lat, g_gps_state.lng, zoom_center_lat, zoom_center_lng);
+        }
+        else
+        {
+            zoom_center_lat = gps_ui::kDefaultLat;
+            zoom_center_lng = gps_ui::kDefaultLng;
         }
         const uint8_t zoom_map_source = sanitize_map_source(app::configFacade().getConfig().map_source);
 
@@ -583,9 +598,12 @@ static void build_zoom_popup_ui(lv_obj_t* win)
             int zt_y = 0;
             latLngToTile(zoom_center_lat, zoom_center_lng, level, zt_x, zt_y);
             const bool level_avail = base_tile_available(level, zt_x, zt_y, zoom_map_source);
+            // The symbol is prepended OUTSIDE the i18n key: folding it (or a leading
+            // space) into format()'s key breaks the exact-match lookup of "Level %d"
+            // and silently un-translates the rows in every non-English locale.
             const std::string level_text =
-                std::string(level_avail ? LV_SYMBOL_OK : LV_SYMBOL_CLOSE) +
-                ::ui::i18n::format(" Level %d", level);
+                std::string(level_avail ? LV_SYMBOL_OK : LV_SYMBOL_CLOSE) + " " +
+                ::ui::i18n::format("Level %d", level);
 
             lv_obj_t* btn = lv_btn_create(level_list);
             lv_obj_set_width(btn, LV_PCT(100));
@@ -753,10 +771,66 @@ void update_layer_btn_selected(lv_obj_t* btn, bool selected)
     lv_obj_set_style_outline_pad(btn, 0, LV_PART_MAIN);
 }
 
+// Availability probes are cached per popup open: 3 source dir-opens plus up to 10 contour
+// dir-opens per call is a 15-50ms LVGL-task stall re-answering a question (directory
+// existence) that cannot change from tapping buttons. show_layer_popup() invalidates the
+// cache, so coverage added to the card still shows up on the next open.
+bool s_layer_avail_cache_valid = false;
+bool s_layer_source_avail[3] = {false, false, false};
+bool s_layer_contour_avail = false;
+
+void refresh_layer_availability_cache()
+{
+    if (s_layer_avail_cache_valid)
+    {
+        return;
+    }
+    const bool sd = platform::ui::device::sd_ready();
+    for (uint8_t i = 0; i < 3; ++i)
+    {
+        s_layer_source_avail[i] = sd && map_source_directory_available(i);
+    }
+    s_layer_contour_avail = sd && contour_directory_available();
+    s_layer_avail_cache_valid = true;
+}
+
+// One place defines what an unavailable row looks like and how it is locked: mark symbol,
+// 50% text opacity, and LV_STATE_DISABLED -- which pointer, keypad, encoder AND group
+// focus all honor, unlike LV_OBJ_FLAG_CLICKABLE alone (keypad/encoder ENTER delivers
+// CLICKED regardless of that flag). `selectable` is decoupled from `avail` so the contour
+// row can stay tappable to turn an already-enabled overlay OFF after its data vanished.
+void apply_layer_availability_mark(lv_obj_t* btn, bool avail, bool selectable, const char* localized_text)
+{
+    if (btn == nullptr)
+    {
+        return;
+    }
+    lv_obj_t* label = lv_obj_get_child(btn, 0);
+    if (label != nullptr)
+    {
+        std::string txt =
+            std::string(avail ? LV_SYMBOL_OK : LV_SYMBOL_CLOSE) + " " + localized_text;
+        ::ui::i18n::set_label_text_raw(label, txt.c_str());
+        lv_obj_set_style_text_opa(label, avail ? LV_OPA_COVER : LV_OPA_50, LV_PART_MAIN);
+    }
+    if (selectable)
+    {
+        lv_obj_add_flag(btn, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_remove_state(btn, LV_STATE_DISABLED);
+    }
+    else
+    {
+        lv_obj_remove_flag(btn, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_state(btn, LV_STATE_DISABLED);
+    }
+}
+
 void refresh_layer_popup_labels()
 {
     uint8_t map_source = sanitize_map_source(app::configFacade().getConfig().map_source);
     bool contour = app::configFacade().getConfig().map_contour_enabled;
+
+    refresh_layer_availability_cache();
 
     if (s_layer_source_label != nullptr)
     {
@@ -771,52 +845,18 @@ void refresh_layer_popup_labels()
     for (uint8_t i = 0; i < 3; ++i)
     {
         update_layer_btn_selected(s_layer_source_btns[i], i == map_source);
-        if (s_layer_source_btns[i] != nullptr)
-        {
-            // Availability mark: probe whether this layer's tile directory exists on the
-            // SD card (dynamic -- auto-updates when more tiles are added later). Available
-            // -> checkmark + clickable; missing -> X + greyed + non-tappable so the user
-            // cannot switch to a blank layer.
-            const bool avail = map_source_directory_available(i);
-            lv_obj_t* label = lv_obj_get_child(s_layer_source_btns[i], 0);
-            if (label != nullptr)
-            {
-                std::string txt = std::string(avail ? LV_SYMBOL_OK : LV_SYMBOL_CLOSE) + " " +
-                                  ::ui::i18n::tr(::ui::widgets::map::layer_map_source_label_key(i));
-                ::ui::i18n::set_label_text_raw(label, txt.c_str());
-                lv_obj_set_style_text_opa(label, avail ? LV_OPA_COVER : LV_OPA_50, LV_PART_MAIN);
-            }
-            if (avail)
-            {
-                lv_obj_add_flag(s_layer_source_btns[i], LV_OBJ_FLAG_CLICKABLE);
-            }
-            else
-            {
-                lv_obj_remove_flag(s_layer_source_btns[i], LV_OBJ_FLAG_CLICKABLE);
-            }
-        }
+        apply_layer_availability_mark(
+            s_layer_source_btns[i],
+            s_layer_source_avail[i],
+            s_layer_source_avail[i],
+            ::ui::i18n::tr(::ui::widgets::map::layer_map_source_label_key(i)));
     }
     update_layer_btn_selected(s_layer_contour_btn, contour);
-    if (s_layer_contour_btn != nullptr)
-    {
-        const bool contour_avail = contour_directory_available();
-        lv_obj_t* label = lv_obj_get_child(s_layer_contour_btn, 0);
-        if (label != nullptr)
-        {
-            std::string txt = std::string(contour_avail ? LV_SYMBOL_OK : LV_SYMBOL_CLOSE) + " " +
-                              ::ui::i18n::tr(::ui::widgets::map::layer_contour_status_key(contour));
-            ::ui::i18n::set_label_text_raw(label, txt.c_str());
-            lv_obj_set_style_text_opa(label, contour_avail ? LV_OPA_COVER : LV_OPA_50, LV_PART_MAIN);
-        }
-        if (contour_avail)
-        {
-            lv_obj_add_flag(s_layer_contour_btn, LV_OBJ_FLAG_CLICKABLE);
-        }
-        else
-        {
-            lv_obj_remove_flag(s_layer_contour_btn, LV_OBJ_FLAG_CLICKABLE);
-        }
-    }
+    apply_layer_availability_mark(
+        s_layer_contour_btn,
+        s_layer_contour_avail,
+        s_layer_contour_avail || contour,
+        ::ui::i18n::tr(::ui::widgets::map::layer_contour_status_key(contour)));
 }
 
 void layer_set_map_source(uint8_t map_source)
@@ -924,6 +964,9 @@ void show_layer_popup()
     {
         return;
     }
+
+    // Re-probe the SD availability once per open (see refresh_layer_availability_cache).
+    s_layer_avail_cache_valid = false;
 
     if (!modal_open(g_gps_state.layer_modal, lv_screen_active(), app_g))
     {
