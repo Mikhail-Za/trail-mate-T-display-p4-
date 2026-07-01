@@ -24,6 +24,9 @@ CONFIG_TRAIL_MATE_T_DISPLAY_P4_LVGL_BUFFER_LINES=80
 # focus style-transition returns NULL and LVGL writes through it unchecked -> store
 # fault at 0x0 on Settings->Chat. Triple the pool; it lives in internal RAM and there
 # is ~440KB of free internal heap, so this leaves ample headroom.
+# NOTE: INERT while CONFIG_LV_USE_CLIB_MALLOC=y (bottom of this file) routes lv_malloc
+# to the IDF heap -- the builtin pool this sizes is not compiled then. Kept only as the
+# correct fallback sizing if the clib allocator is ever switched off again.
 CONFIG_LV_MEM_SIZE_KILOBYTES=192
 # The P4 camera-cutout header is tall, so the top-bar controls scale up to fill the
 # band below the lens. Only montserrat 14 is compiled by default, so every larger
@@ -68,3 +71,10 @@ CONFIG_LV_FS_POSIX_PATH="/sdcard"
 #     earlier CONFIG_LV_MEM_SIZE_KILOBYTES=192 (builtin-pool only) moot.
 CONFIG_LV_USE_LODEPNG=y
 CONFIG_LV_USE_CLIB_MALLOC=y
+# Pin the two heap options the CLIB-malloc routing above DEPENDS on. Both currently
+# match ESP-IDF defaults, but nothing guaranteed that: an IDF bump or a heap-tuning
+# edit (e.g. switching to SPIRAM_USE_CAPS_ALLOC) would silently break the "every
+# >=16KB tile allocation lands in PSRAM" assumption and exhaust internal RAM at
+# map-open through LVGL's unchecked-NULL alloc paths.
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384

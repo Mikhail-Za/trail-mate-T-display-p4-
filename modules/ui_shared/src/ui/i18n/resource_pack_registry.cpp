@@ -207,7 +207,12 @@ const char* usage_name(FontPackUsage usage)
 
 bool external_pack_scan_enabled()
 {
-#if (defined(LV_USE_FS_POSIX) && LV_USE_FS_POSIX) || UI_FS_HAS_FLASH_PACK_STORAGE
+    // LV_USE_FS_POSIX doubles as "an SD-backed pack store exists" here, but a target can
+    // also enable that driver purely for map tiles. UI_I18N_DISABLE_EXTERNAL_PACK_SCAN
+    // (set by the ESP-IDF build) decouples the two so enabling the FS driver does not
+    // implicitly ship the pack-scan feature.
+#if ((defined(LV_USE_FS_POSIX) && LV_USE_FS_POSIX) || UI_FS_HAS_FLASH_PACK_STORAGE) && \
+    !defined(UI_I18N_DISABLE_EXTERNAL_PACK_SCAN)
     return true;
 #else
     return false;

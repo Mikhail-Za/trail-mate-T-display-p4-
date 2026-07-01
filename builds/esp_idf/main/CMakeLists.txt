@@ -72,6 +72,16 @@ idf_component_register(
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     TRAIL_MATE_LORA_TX_POWER_MAX_DBM=22)
 
+# Keep the external i18n pack scan OFF on IDF builds. The scan's compile guard uses
+# LV_USE_FS_POSIX as a proxy for "this target ships the SD pack feature", and enabling
+# that driver for offline map tiles (tdisplayp4_tft) would otherwise silently turn on a
+# never-exercised-on-IDF code path: cataloging /sdcard/trailmate/packs at first tr(),
+# retaining full locale tables in RAM, and auto-parsing untrusted .binfont binaries from
+# the card when chat text contains non-ASCII codepoints. Remove this define deliberately
+# if/when SD packs become a supported IDF feature.
+target_compile_definitions(${COMPONENT_LIB} PRIVATE
+    UI_I18N_DISABLE_EXTERNAL_PACK_SCAN=1)
+
 # RadioLib: trim to SX1262 only -- disable every other module/protocol family so
 # their headers stay inert (the source list already omits their .cpp's). Do NOT
 # add RADIOLIB_BUILD_ARDUINO or the Arduino-as-component to REQUIRES, or RadioLib
