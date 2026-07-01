@@ -1451,7 +1451,19 @@ void center_map_on_self()
 void cycle_map_layer()
 {
     const auto layer_state = ::ui::widgets::map::current_layer_state();
-    const uint8_t next_source = static_cast<uint8_t>((layer_state.map_source + 1U) % 3U);
+    // Prefer the next source that can actually render: the engine now refuses switches to
+    // unavailable layers, so a blind +1 on a card carrying only one layer would toast and
+    // go nowhere. If no other source is available the +1 fallback surfaces that toast.
+    uint8_t next_source = static_cast<uint8_t>((layer_state.map_source + 1U) % 3U);
+    for (uint8_t step = 1U; step < 3U; ++step)
+    {
+        const uint8_t candidate = static_cast<uint8_t>((layer_state.map_source + step) % 3U);
+        if (map_source_directory_available(candidate))
+        {
+            next_source = candidate;
+            break;
+        }
+    }
     ::ui::widgets::map::LayerNotice notice{};
     (void)::ui::widgets::map::set_layer_map_source(next_source, &notice);
     if (notice.has_message)

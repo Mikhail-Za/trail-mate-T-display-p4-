@@ -969,22 +969,29 @@ bool set_layer_map_source(uint8_t map_source, LayerNotice* out_notice)
                      config_api.getConfig().map_contour_enabled ? 1 : 0,
                      changed ? 1 : 0);
 
+    // Refuse (and do NOT persist) a switch to a layer that cannot render: this is the one
+    // choke point every UI path funnels through (GPS layer modal incl. keypad/encoder
+    // activation, node_info layer popup, runtime layer cycling), so gating here is what
+    // actually enforces the "cannot switch to a blank layer" promise the availability
+    // marks make. Nothing applies the saved config through this function at boot -- config
+    // restore reads getConfig() directly -- so refusing cannot affect startup.
     if (changed)
     {
+        if (!platform::ui::device::sd_ready())
+        {
+            set_layer_notice(out_notice, ::ui::i18n::tr("No SD Card"), 1200);
+            return false;
+        }
+        if (!map_source_directory_available(normalized))
+        {
+            const std::string message = ::ui::i18n::format(
+                "%s layer missing",
+                ::ui::i18n::tr(layer_map_source_label_key(normalized)));
+            set_layer_notice(out_notice, message.c_str(), 1600);
+            return false;
+        }
         config_api.getConfig().map_source = normalized;
         config_api.saveConfig();
-    }
-
-    if (!platform::ui::device::sd_ready())
-    {
-        set_layer_notice(out_notice, ::ui::i18n::tr("No SD Card"), 1200);
-    }
-    else if (!map_source_directory_available(normalized))
-    {
-        const std::string message = ::ui::i18n::format(
-            "%s layer missing",
-            ::ui::i18n::tr(layer_map_source_label_key(normalized)));
-        set_layer_notice(out_notice, message.c_str(), 1600);
     }
 
     return changed;
@@ -1003,20 +1010,25 @@ bool toggle_layer_contour(LayerNotice* out_notice)
                      enabled ? 1 : 0,
                      static_cast<unsigned>(sanitize_map_source(config_api.getConfig().map_source)));
 
-    config_api.getConfig().map_contour_enabled = enabled;
-    config_api.saveConfig();
-
+    // Refuse ENABLING contour when no contour data can render (same choke-point rationale
+    // as set_layer_map_source). Turning contour OFF is always allowed -- a user whose card
+    // lost its contour dirs must still be able to clear the stale overlay.
     if (enabled)
     {
         if (!platform::ui::device::sd_ready())
         {
             set_layer_notice(out_notice, ::ui::i18n::tr("No SD Card"), 1200);
+            return false;
         }
-        else if (!contour_directory_available())
+        if (!contour_directory_available())
         {
             set_layer_notice(out_notice, ::ui::i18n::tr("Contour data missing"), 1600);
+            return false;
         }
     }
+
+    config_api.getConfig().map_contour_enabled = enabled;
+    config_api.saveConfig();
 
     return true;
 }
