@@ -570,8 +570,18 @@ bool build_contour_tile_path(int z, int x, int y, char* out_path, size_t out_siz
 
 bool map_source_directory_available(uint8_t map_source)
 {
-    return tile_source().layerDirectoryAvailable(
-        ui::map_tiles::mapTileLayerFromBaseSource(sanitize_map_source(map_source)));
+    const auto layer = ui::map_tiles::mapTileLayerFromBaseSource(sanitize_map_source(map_source));
+    // A layer is only genuinely available if the build can also DECODE its tile format:
+    // Satellite resolves to JPEG, and a build without a JPEG decoder would otherwise show
+    // an availability checkmark (and allow the switch) for a layer that renders only blank
+    // tiles. PNG layers are not gated -- every image-capable build ships a PNG decoder.
+#if !(defined(LV_USE_TJPGD) && LV_USE_TJPGD) && !(defined(LV_USE_LIBJPEG_TURBO) && LV_USE_LIBJPEG_TURBO)
+    if (ui::map_tiles::mapTileFormatForLayer(layer) == ui::map_tiles::MapTileFormat::Jpeg)
+    {
+        return false;
+    }
+#endif
+    return tile_source().layerDirectoryAvailable(layer);
 }
 
 bool contour_directory_available()
@@ -803,6 +813,14 @@ bool tile_screen_pos_xyz(const TileContext& ctx, int x, int y, int z, int& sx, i
 bool gps_screen_pos(const TileContext& ctx, double lat, double lng, int& sx, int& sy)
 {
     if (!ctx.map_container || !ctx.anchor || !ctx.anchor->valid)
+    {
+        return false;
+    }
+
+    // Non-finite input would spin the longitude wrap loop below forever (+/-Inf) or hit
+    // UB on the float->int casts (NaN). Callers feed this externally-sourced coordinates
+    // (persisted files, LoRa team peers), so refuse garbage here for every caller.
+    if (!std::isfinite(lat) || !std::isfinite(lng))
     {
         return false;
     }
