@@ -3,7 +3,19 @@
 Everything below was compile-verified only; the devices were away. Flash both units,
 then run the checks in order. Total time ~10-15 minutes.
 
-## 0. Flash
+## 0a. Load the new park tiles onto both SD cards (card reader, per card)
+The staging tree now also carries z13-14 for all CONUS National Parks + NPS
+monuments/preserves/recreation areas/seashores/lakeshores (970,584 tiles, 4.6GB
+logical, ~30GB on-card with 32KB clusters). Same recipe as before; robocopy only
+copies the ~179k new files:
+```powershell
+robocopy "C:\osm-tiles\sd-staging\maps" "E:\maps" /E /NFL /NDL /NJH /R:1 /W:1 /MT:8
+```
+(adjust E: per card). Then update kMapCoverageInfo in
+modules/ui_shared/src/ui/screens/settings/settings_page_components.cpp to mention
+the parks coverage before flashing.
+
+## 0b. Flash
 ```powershell
 C:\Users\zaidm\deploy-both-units.ps1
 ```
