@@ -3117,7 +3117,7 @@ static settings::ui::SettingItem kGpsItems[] = {
 // Static coverage note shown as a read-only Info row in Settings -> Map. Documents which
 // offline tiles ship on the SD card; the live per-layer and per-zoom availability is also
 // shown by checkmarks in the map's Layer and Zoom panels.
-static char kMapCoverageInfo[] = "OSM z0-12 US-wide; z13-14 WI/MN/IL/IA";
+static char kMapCoverageInfo[] = "OSM z0-12 US-wide; z13-14 WI/MN/IL/IA + Natl Parks/NPS lands";
 
 static settings::ui::SettingItem kMapItems[] = {
     {"Coordinate System", settings::ui::SettingType::Enum, kMapCoordOptions, 3, &g_settings.map_coord_system, nullptr, nullptr, 0, false, "map_coord"},
