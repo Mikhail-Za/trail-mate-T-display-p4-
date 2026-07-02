@@ -267,6 +267,34 @@ void show_article_screen(FieldGuideAppState* st)
     lv_obj_set_style_text_font(head, &lv_font_montserrat_24, 0);
     lv_label_set_text(head, heading.c_str());
 
+    // Photos: convention-based, no index needed. For article <section>/<name>.txt the
+    // pipeline stages A:/guides/photos/<section>/<name>/1.jpg .. N.jpg (baseline JPEG,
+    // pre-sized to 500px wide so no on-device scaling). Probe and show what exists;
+    // decoding happens via the TJPGD decoder when the widget first renders.
+    {
+        std::string stem = entry.path; // "<section>/<name>.txt"
+        const size_t dot = stem.rfind(".txt");
+        if (dot != std::string::npos)
+        {
+            stem.erase(dot);
+        }
+        for (int i = 1; i <= 6; ++i)
+        {
+            char photo_path[160];
+            std::snprintf(photo_path, sizeof(photo_path), "A:/guides/photos/%s/%d.jpg",
+                          stem.c_str(), i);
+            lv_fs_file_t probe;
+            if (lv_fs_open(&probe, photo_path, LV_FS_MODE_RD) != LV_FS_RES_OK)
+            {
+                break;
+            }
+            lv_fs_close(&probe);
+            lv_obj_t* img = lv_image_create(st->body);
+            lv_image_set_src(img, photo_path);
+            lv_obj_set_style_pad_top(img, 6, 0);
+        }
+    }
+
     lv_obj_t* body_lbl = lv_label_create(st->body);
     lv_obj_set_width(body_lbl, LV_PCT(100));
     lv_label_set_long_mode(body_lbl, LV_LABEL_LONG_WRAP);

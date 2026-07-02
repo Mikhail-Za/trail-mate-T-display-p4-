@@ -33,3 +33,15 @@ CONFIG_MBEDTLS_CHACHAPOLY_C=y
 # Offline Translate app: Arabic shaping + RTL (same as tdisplayp4_tft).
 CONFIG_LV_USE_BIDI=y
 CONFIG_LV_USE_ARABIC_PERSIAN_CHARS=y
+# Offline maps + SD content stack, same as tdisplayp4_tft (this variant has the same
+# SD slot): LVGL POSIX FS driver on 'A:' -> /sdcard, PNG decoder for tiles, CLIB
+# malloc so big decode buffers land in PSRAM, JPEG decoder for Field Guide photos +
+# satellite tiles.
+CONFIG_LV_USE_FS_POSIX=y
+CONFIG_LV_FS_POSIX_LETTER=65
+CONFIG_LV_FS_POSIX_PATH="/sdcard"
+CONFIG_LV_USE_LODEPNG=y
+CONFIG_LV_USE_CLIB_MALLOC=y
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
+CONFIG_LV_USE_TJPGD=y

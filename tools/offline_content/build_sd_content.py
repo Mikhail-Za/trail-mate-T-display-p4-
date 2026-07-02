@@ -198,6 +198,58 @@ def main():
     with open(os.path.join(gdir, "index.tsv"), "w", encoding="ascii", newline="\n") as f:
         f.write("\n".join(index_lines) + "\n")
     print("guides: %d articles indexed" % total)
+
+    # --- plant photos ------------------------------------------------------------
+    # photos_raw/<section>/<article-stem>/{N.jpg|N.png, credits.tsv} -> staged as
+    # guides/photos/<section>/<stem>/N.jpg, re-encoded to 500px-wide BASELINE JPEG
+    # (TJPGD on-device cannot decode progressive). Credits merge into one file.
+    raw_root = os.path.join(HERE, "photos_raw")
+    if os.path.isdir(raw_root):
+        from PIL import Image, ImageOps
+        photo_total = 0
+        credit_lines = []
+        for section in sorted(os.listdir(raw_root)):
+            sdir = os.path.join(raw_root, section)
+            if not os.path.isdir(sdir):
+                continue
+            for stem in sorted(os.listdir(sdir)):
+                adir = os.path.join(sdir, stem)
+                if not os.path.isdir(adir):
+                    continue
+                out_dir = os.path.join(gdir, "photos", section, stem)
+                n_out = 0
+                for fn in sorted(os.listdir(adir)):
+                    base, ext = os.path.splitext(fn)
+                    if ext.lower() not in (".jpg", ".jpeg", ".png") or not base.isdigit():
+                        continue
+                    img = Image.open(os.path.join(adir, fn))
+                    img = ImageOps.exif_transpose(img).convert("RGB")
+                    if img.width > 500:
+                        img = img.resize((500, max(1, round(img.height * 500 / img.width))),
+                                         Image.LANCZOS)
+                    os.makedirs(out_dir, exist_ok=True)
+                    out_path = os.path.join(out_dir, base + ".jpg")
+                    img.save(out_path, "JPEG", quality=80, progressive=False,
+                             optimize=True)
+                    n_out += 1
+                    photo_total += 1
+                cred = os.path.join(adir, "credits.tsv")
+                if os.path.exists(cred):
+                    with open(cred, encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line:
+                                credit_lines.append("%s/%s\t%s" % (section, stem, line))
+                if n_out:
+                    print("  photos %s/%s: %d" % (section, stem, n_out))
+        if credit_lines:
+            with open(os.path.join(gdir, "photos", "CREDITS.tsv"), "w",
+                      encoding="utf-8", newline="\n") as f:
+                f.write("\n".join(credit_lines) + "\n")
+        print("photos: %d staged (500px baseline JPEG q80)" % photo_total)
+    else:
+        print("photos: photos_raw/ not present, skipped")
+
     print("STAGING_DONE %s" % STAGING)
 
 

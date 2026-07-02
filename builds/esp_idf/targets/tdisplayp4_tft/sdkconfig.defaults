@@ -71,6 +71,12 @@ CONFIG_LV_FS_POSIX_PATH="/sdcard"
 #     earlier CONFIG_LV_MEM_SIZE_KILOBYTES=192 (builtin-pool only) moot.
 CONFIG_LV_USE_LODEPNG=y
 CONFIG_LV_USE_CLIB_MALLOC=y
+# JPEG decoder (TJPGD, auto-registered by lv_init like lodepng): decodes the Field
+# Guide's plant photos (A:/guides/photos/**, baseline JPEG, pre-sized to 500px wide)
+# and, as a side effect, makes the Satellite tile layer (.jpg) decodable -- the
+# decoder-aware map_source_directory_available gate un-gates it automatically if
+# satellite tiles are ever loaded onto the card.
+CONFIG_LV_USE_TJPGD=y
 # Offline Translate app: Arabic needs glyph shaping + right-to-left layout. BIDI is
 # label-level and inert for LTR text; the Arabic/Persian pass only touches strings
 # containing those codepoints. Fonts themselves load from the SD card (binfont).
