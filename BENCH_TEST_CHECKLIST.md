@@ -68,6 +68,11 @@ two_finger_tap / double_tap` lines unconditionally.
       First Aid, Edible Plants, Plant Hazards, Wildlife & Nature, Preparedness) with
       counts; open an article: title + scrollable body render, Back walks list ->
       categories -> launcher.
+- [ ] **Field Guide plant photos** (JPEG decoder path): open an Edible Plants article
+      (e.g. Cattail) -> 2-3 real photos render inline above the text, sharp, full
+      screen width. Open a Plant Hazards article (e.g. poison ivy) -> its photos show.
+      Photo attributions are on the card at guides/photos/CREDITS.tsv. Text-only
+      sections (Survival, Preparedness, etc.) have no photos by design.
 - [ ] **Translate, forward**: pick Spanish -> categories appear + native name
       "Español" renders with accents; open Emergency -> "Help!" -> card shows
       "¡Auxilio!" LARGE. Latin fonts prove the SD binfont path.
