@@ -41,3 +41,14 @@ This project is indexed by GitNexus as **trail-mate** (52003 symbols, 109576 rel
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+---
+
+# Trail Mate — maintainers, start here
+
+The GitNexus block above is code-navigation tooling. For how to actually build, flash,
+and maintain this firmware — hardware, targets, the sdkconfig apply recipe, the SD
+content pipeline, the feature inventory and its current state, the load-bearing gotchas,
+and the operator division of labor — read **`MAINTAINERS.md`** in the repo root first.
+Flash-day on-device test script: `BENCH_TEST_CHECKLIST.md`. UX roadmap + code-review
+follow-ups: `MAP_UX_ROADMAP.md`.
