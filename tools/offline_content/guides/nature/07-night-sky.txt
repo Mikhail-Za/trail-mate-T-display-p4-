@@ -1,0 +1,30 @@
+Night Sky: Direction and Time
+
+== FINDING POLARIS (THE NORTH STAR) ==
+- Polaris sits within about 1 degree of true north all night, every night, from anywhere in the northern hemisphere. Face it and you face north; south is behind you, east right, west left.
+- Big Dipper method: find the Dipper's bowl. The two stars forming the outer edge of the bowl (Dubhe and Merak) are the "pointers." Extend a line from the bottom pointer through the top one and continue about 5 times that spacing; the moderately bright star there is Polaris.
+- Common mistake: Polaris is NOT the brightest star in the sky, only about 50th. If you found something brilliant, you probably found a planet or Sirius, not north.
+- Cassiopeia check: the bright W (or M) shape sits on the opposite side of Polaris from the Big Dipper. When the Dipper is low or below the horizon, the open side of the W faces roughly toward Polaris. Dipper and Cassiopeia bracketing your candidate star confirms it.
+
+== LATITUDE FROM POLARIS ==
+- The angle of Polaris above the horizon equals your latitude, within about a degree.
+- Measure with your fist at full arm's length: one fist is roughly 10 degrees, each finger width about 2 degrees. Stack fists from the horizon up to Polaris and count.
+- Example: Polaris four and a half fists up means you are near 45 degrees north.
+
+== MOON FOR ROUGH DIRECTION ==
+- The moon, like the sun, rises generally in the east and sets generally in the west. Low moon early in the night is roughly east; low moon before dawn is roughly west.
+- Crescent horn method: draw an imaginary line through the two tips of a crescent moon and extend it down to the horizon. In the northern hemisphere that point is very roughly SOUTH.
+- Honest limits: this is a crude aid, and can be off by tens of degrees, worst when the moon is low in the sky or nearly full (no clear horns). The moon's rise point also wanders well north and south of due east through the month. Use it to pick a rough heading, then confirm with stars or terrain, never for precise navigation.
+- Handy timing fact: a full moon is opposite the sun, so it stands due south (from northern mid-latitudes) around local midnight.
+
+== REMAINING DAYLIGHT: HAND-WIDTH METHOD ==
+- Warning: finish camp chores, water, shelter, fuel, with light to spare. Estimate early, not at dusk.
+- Extend your arm fully, fingers together and horizontal, palm facing you. Stack hands between the bottom of the sun and the horizon.
+- Each finger width is roughly 15 minutes of remaining sun; a four-finger hand is about an hour.
+- Limits: calibrated for mid-latitudes. Near the poles or in midsummer the sun sets at a shallow angle and sinks slower; in the tropics it drops faster. Terrain matters too; in a valley or against a ridge the sun disappears well before true sunset, and usable twilight adds roughly 30 minutes after that.
+
+== STAR MOVEMENT WHEN POLARIS IS HIDDEN ==
+- All stars rise in the east and set in the west, like the sun. You can turn that into a compass with two fixed sighting points.
+- Plant a stick, or use a branch tip and a rock. Line up any bright star over both points and hold your head position. Wait 15 to 20 minutes and see which way it drifted.
+- Star appeared to RISE: you are facing roughly east. Star SANK: facing roughly west. Drifted RIGHT: facing roughly south. Drifted LEFT: facing roughly north. (Northern hemisphere rules.)
+- Orion shortcut in winter: Orion rises nearly due east and sets nearly due west everywhere on Earth, and the lead star of the Belt marks that east-west line closely.

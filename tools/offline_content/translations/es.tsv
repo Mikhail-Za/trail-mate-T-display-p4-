@@ -1,0 +1,166 @@
+b01	Hola.	
+b02	Adiós.	
+b03	Por favor.	
+b04	Gracias.	
+b05	Sí.	
+b06	No.	
+b07	Disculpe.	
+b08	Lo siento.	
+b09	Buenos días.	
+b10	Buenas noches.	
+b11	Me llamo...	
+b12	¿Cómo se llama?	
+b13	Mucho gusto.	
+b14	Soy de Estados Unidos.	
+b15	¿Me puede ayudar?	
+b16	Un momento, por favor.	
+b17	Entiendo.	
+b18	No entiendo.	
+c01	No hablo su idioma.	
+c02	¿Habla inglés?	
+c03	Este aparato traduce. Toque una frase en su idioma, por favor.	
+c04	Hable despacio, por favor.	
+c05	Repita, por favor.	
+c06	Escríbalo, por favor.	
+c07	Señale la respuesta, por favor.	
+c08	Le mostraré frases en esta pantalla.	
+c09	¿Es correcto?	
+c10	Necesito un traductor.	
+e01	¡Auxilio!	
+e02	¡Emergencia!	
+e03	¡Llame a la policía!	
+e04	¡Llame una ambulancia!	
+e05	¡Llame a los bomberos!	
+e06	Me perdí.	
+e07	Nos perdimos.	
+e08	Hay una persona herida.	
+e09	Hay una persona desaparecida.	
+e10	Necesito ayuda ahora.	
+e11	¿Dónde está el hospital más cercano?	
+e12	Hubo un accidente.	
+e13	¿Están todos bien?	
+e14	Estoy bien.	
+e15	¡Peligro!	
+e16	Espere conmigo, por favor.	
+e17	Mi ubicación está en esta pantalla.	
+e18	El rescate viene en camino.	
+h01	Necesito un médico.	
+h02	¿Dónde hay una farmacia?	
+h03	Me siento mal.	
+h04	Me duele aquí.	
+h05	Tengo fiebre.	
+h06	No puedo respirar bien.	
+h07	Tengo alergia a esto.	
+h08	Tengo alergia al maní.	
+h09	Tengo alergia a la penicilina.	
+h10	Tengo diabetes.	
+h11	Tengo problemas del corazón.	
+h12	Tomo este medicamento.	
+h13	Necesito agua.	
+h14	Tengo mareos.	
+h15	Me mordió un animal.	
+h16	Me picó un insecto.	
+h17	Creo que hay un hueso roto.	
+h18	No mueva al herido.	
+d01	¿Dónde está...?	
+d02	¿Dónde está el baño?	
+d03	¿Qué tan lejos está?	
+d04	Izquierda.	
+d05	Derecha.	
+d06	Todo derecho.	
+d07	Atrás.	
+d08	Cerca.	
+d09	Lejos.	
+d10	Muéstreme en este mapa, por favor.	
+d11	¿Dónde estoy en este mapa?	
+d12	¿Se puede ir caminando?	
+d13	Norte.	
+d14	Sur.	
+d15	Este.	
+d16	Oeste.	
+t01	¿Dónde está la terminal de autobuses?	
+t02	¿Dónde está la estación de tren?	
+t03	¿Dónde está el aeropuerto?	
+t04	Necesito un taxi.	
+t05	¿Cuánto cuesta el boleto?	
+t06	Un boleto, por favor.	
+t07	Dos boletos, por favor.	
+t08	¿A qué hora sale?	
+t09	¿A qué hora llega?	
+t10	¿Dónde hay una gasolinera?	
+t11	¿Por aquí se va a...?	
+t12	Lléveme a esta dirección, por favor.	
+t13	Pare aquí, por favor.	
+t14	¿Dónde puedo alquilar un auto?	
+f01	Agua, por favor.	
+f02	¿Se puede tomar esta agua?	
+f03	¿Dónde hay un restaurante?	
+f04	Una mesa para dos, por favor.	
+f05	El menú, por favor.	
+f06	Soy vegetariano.	
+f07	Sin carne, por favor.	
+f08	Sin picante, por favor.	
+f09	Está delicioso.	
+f10	La cuenta, por favor.	
+f11	Yo no pedí esto.	
+f12	¿Dónde puedo comprar comida?	
+f13	Un café, por favor.	
+f14	Una cerveza, por favor.	
+m01	¿Cuánto cuesta esto?	
+m02	Es muy caro.	
+m03	¿Aceptan tarjeta de crédito?	
+m04	¿Solo efectivo?	
+m05	¿Dónde hay un cajero automático?	
+m06	¿Dónde hay un banco?	
+m07	¿Me da un recibo, por favor?	
+m08	Quédese con el cambio.	
+m09	Quisiera comprar esto.	
+m10	¿Tiene uno más barato?	
+l01	¿Tiene una habitación disponible?	
+l02	¿Cuánto cuesta por noche?	
+l03	Tengo una reservación.	
+l04	Una noche.	
+l05	Dos noches.	
+l06	¿Dónde puedo acampar?	
+l07	¿Se puede acampar aquí?	
+l08	¿Dónde está la ducha?	
+l09	La llave, por favor.	
+l10	¿A qué hora es la salida?	
+o01	¿Este sendero está abierto?	
+o02	¿A dónde lleva este sendero?	
+o03	¿Cuántos kilómetros hasta la cima?	
+o04	¿Hay agua en el sendero?	
+o05	¿Dónde está la fuente de agua más cercana?	
+o06	¿Es seguro cruzar el río?	
+o07	Viene mal tiempo.	
+o08	¿Dónde está el refugio más cercano?	
+o09	¿Hay animales peligrosos aquí?	
+o10	¿Ha visto a esta persona?	
+o11	¿Por dónde se va al inicio del sendero?	
+o12	¿Dónde está la estación de guardaparques?	
+o13	¿Me puede llevar al pueblo?	
+o14	Mi radio se comunica con mi grupo.	
+o15	¿Hay señal de celular aquí?	
+n01	Cero	
+n02	Uno	
+n03	Dos	
+n04	Tres	
+n05	Cuatro	
+n06	Cinco	
+n07	Seis	
+n08	Siete	
+n09	Ocho	
+n10	Nueve	
+n11	Diez	
+n12	Veinte	
+n13	Cincuenta	
+n14	Cien	
+n15	Mil	
+n16	Hoy	
+n17	Mañana	
+n18	Ayer	
+n19	Ahora	
+n20	Más tarde	
+n21	Una hora	
+n22	La mañana	
+n23	La noche	

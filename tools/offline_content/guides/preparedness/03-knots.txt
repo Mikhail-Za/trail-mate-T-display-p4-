@@ -1,0 +1,36 @@
+Five Knots That Cover Most Needs
+
+== BEFORE THE KNOTS ==
+- Learn these five at home with real rope, not in the rain by headlamp.
+- Vocabulary: the "standing end" is the long, loaded side of the rope; the "working end" is the tail you move; a wrap around an object is a "turn".
+- Dress every knot (snug it into a neat shape) and test it with body weight before trusting it.
+
+== SQUARE KNOT: JOINING TWO ENDS ==
+- Use: tying the two ends of the SAME rope together around something - a bundle, a splint wrap, a rolled tarp. Not for joining two ropes that will carry your weight.
+- Steps: cross right end over left and tuck under. Then cross left end over right and tuck under. Pull all four strands snug.
+- Cue: "Right over left, left over right, makes the knot tidy and tight."
+- Check: both tails exit on the same side and the knot lies flat and symmetric. Lopsided means you tied a granny knot; untie and redo it.
+
+== BOWLINE: A FIXED LOOP ==
+- Use: a loop that will not slip or strangle - around a tree as an anchor, on the end of a hauling line, clipping gear.
+- Steps: make a small overhand loop in the standing part; this is the rabbit hole. Bring the working end up through the hole (the rabbit comes out), around behind the standing end (around the tree), and back down through the hole (back into the hole). Snug all three parts.
+- Rescue caveat: a bowline can shake loose when it is repeatedly loaded and unloaded. If a person's safety depends on it, finish the tail with an overhand knot around the nearest loop strand, and remember that no knot substitutes for real rescue training.
+
+== TAUT-LINE HITCH: ADJUSTABLE TENSION ==
+- Use: tarp guylines and tent lines you want to tighten or loosen without retying.
+- Steps: pass the working end around the anchor (stake or tree). Wrap it around the standing line twice, working back toward the anchor, inside the loop you formed. Make one more wrap around the standing line on the outside of the loop, away from the anchor, and snug everything down.
+- Result: a hitch that slides when you push it and holds when the line pulls. Slide it along the line to tension the tarp.
+
+== CLOVE HITCH: START AND END LASHINGS ==
+- Use: fast attachment to a post or pole, and the standard start and finish for lashing poles together.
+- Steps: wrap the working end around the pole and cross over its own strand, making an X. Wrap around the pole again beside the first turn, and tuck the working end under that crossing. Pull both ends to set.
+- Cue: two turns, and the tail exits under the X.
+- Caveat: it can slip on smooth poles or under a twisting load. Keep the pull steady, or back it up with a half hitch.
+
+== TRUCKER'S HITCH: REAL TENSION ==
+- Use: cinching a load, a ridgeline, or a clothesline drum-tight. This is your rope pulley.
+- Steps: fix one end to the first anchor (a bowline works). Partway along the line, tie a small slipped loop (a simple slip knot). Pass the working end around the second anchor and back up through that loop. Pull down on the working end: the loop acts like a pulley and roughly triples your pull. Hold the tension and tie off with two half hitches around both strands.
+
+== TEST BEFORE YOU TRUST ==
+- Load every knot hard with body weight while the consequences are still zero.
+- Retire cord that stays kinked, feels crunchy, or shows cut strands.

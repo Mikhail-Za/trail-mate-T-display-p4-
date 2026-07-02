@@ -1,0 +1,43 @@
+Navigation Without GPS
+
+Electronics fail. The skills below work with a paper map, a compass, or nothing but your eyes. The most important navigation skill is not getting un-lost; it is noticing early that something is wrong and stopping while you still remember the way back.
+
+== STAYING FOUND ==
+
+- Look back often. Trails and terrain look completely different in reverse, and the return view is the one you will need.
+- Track your position continuously: note junctions, stream crossings, and times. "We crossed the creek 40 minutes ago" is real information.
+- The moment the terrain stops matching your expectations, stop. Do not push on hoping it will start making sense. Backtrack to your last known point if you can do so confidently. Re-finding yourself from a known point is far easier than from an unknown one.
+
+== HANDRAILS AND BACKSTOPS ==
+
+- A handrail is a long feature you travel alongside: a river, a ridge, a powerline, a lake shore, a road. Following a handrail is far more reliable than holding a compass bearing through featureless country.
+- A backstop is a feature beyond your target that tells you that you have gone too far: a road, a river, a major ridge. Pick one before you commit. "If I hit the river, I have overshot the cabin."
+
+== AIMING OFF ==
+
+If you head straight for a point on a line, such as a trail junction or a camp on a river, and miss, you will not know which way to turn. Instead, aim deliberately to one side, for example clearly left of the junction. When you hit the trail, you know to turn right. A planned error beats an unknown one.
+
+== READING TERRAIN ==
+
+- Water runs downhill and collects; ridges divide drainages. Match the big shapes around you, peaks, saddles, and valley directions, to your map before trusting any small detail.
+- Vegetation gives clues. In much of North America, north-facing slopes carry denser, shade-loving growth, and south-facing slopes are more open and sunny. Use this as support, never as your only compass.
+
+== FOLLOWING DRAINAGES: A WARNING ==
+
+"Follow water downhill to civilization" is only sometimes true, and in the wrong terrain it gets people killed. Downstream travel is dangerous in mountain and canyon country: drainages narrow into gorges, waterfalls, cliff bands, log jams, and brush thick enough to stop travel, and canyon bottoms flood. In much of the mountain West, ridges and open slopes are easier and safer travel than creek bottoms.
+
+Following a drainage down is reasonable when the country is gentle, the valley is broad and open, and you have reason to expect roads, farms, or towns downstream, which is common in the East and Midwest. Even then, travel along the valley side above the brush and swamps, not in the streambed.
+
+== SUN POSITION ==
+
+In North America the sun rises roughly in the east, stands south at local midday, and sets roughly in the west. Your shadow at midday points roughly north. This gives a rough compass all day if you track the time even approximately.
+
+== SHADOW-STICK METHOD ==
+
+For a cleaner east-west line:
+
+- Push a straight stick upright into flat ground. Mark the tip of its shadow with a pebble.
+- Wait 15 to 30 minutes. Mark the new shadow tip with a second pebble.
+- The line between the marks runs west to east; the first mark is west. Stand with west on your left and you face north.
+
+Use direction to hold a consistent course, not to wander toward a guess. A bearing without a known position only helps when you pair it with handrails and backstops.

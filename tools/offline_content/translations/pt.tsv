@@ -1,0 +1,166 @@
+b01	Olá.	
+b02	Tchau.	
+b03	Por favor.	
+b04	Obrigado.	
+b05	Sim.	
+b06	Não.	
+b07	Com licença.	
+b08	Desculpe.	
+b09	Bom dia.	
+b10	Boa noite.	
+b11	Meu nome é...	
+b12	Qual é o seu nome?	
+b13	Muito prazer.	
+b14	Sou dos Estados Unidos.	
+b15	Pode me ajudar?	
+b16	Um momento, por favor.	
+b17	Entendi.	
+b18	Não entendi.	
+c01	Não falo o seu idioma.	
+c02	Você fala inglês?	
+c03	Este aparelho traduz. Por favor, toque em uma frase no seu idioma.	
+c04	Fale devagar, por favor.	
+c05	Repita, por favor.	
+c06	Escreva, por favor.	
+c07	Aponte para a resposta, por favor.	
+c08	Vou mostrar frases nesta tela.	
+c09	Está correto?	
+c10	Preciso de um tradutor.	
+e01	Socorro!	
+e02	Emergência!	
+e03	Chame a polícia!	
+e04	Chame uma ambulância!	
+e05	Chame os bombeiros!	
+e06	Estou perdido.	
+e07	Estamos perdidos.	
+e08	Alguém está ferido.	
+e09	Alguém está desaparecido.	
+e10	Preciso de ajuda agora.	
+e11	Onde fica o hospital mais próximo?	
+e12	Houve um acidente.	
+e13	Todos estão bem?	
+e14	Estou bem.	
+e15	Perigo!	
+e16	Espere comigo, por favor.	
+e17	Minha localização está nesta tela.	
+e18	O resgate está a caminho.	
+h01	Preciso de um médico.	
+h02	Onde tem uma farmácia?	
+h03	Estou doente.	
+h04	Dói aqui.	
+h05	Estou com febre.	
+h06	Não consigo respirar bem.	
+h07	Sou alérgico a isso.	
+h08	Sou alérgico a amendoim.	
+h09	Sou alérgico a penicilina.	
+h10	Sou diabético.	
+h11	Tenho um problema cardíaco.	
+h12	Tomo este remédio.	
+h13	Preciso de água.	
+h14	Estou com tontura.	
+h15	Um animal me mordeu.	
+h16	Levei uma picada.	
+h17	Osso quebrado, eu acho.	
+h18	Não mova a pessoa ferida.	
+d01	Onde fica...?	
+d02	Onde fica o banheiro?	
+d03	A que distância fica?	
+d04	À esquerda.	
+d05	À direita.	
+d06	Em frente.	
+d07	Atrás.	
+d08	Perto.	
+d09	Longe.	
+d10	Mostre neste mapa, por favor.	
+d11	Onde estou neste mapa?	
+d12	Dá para ir a pé?	
+d13	Norte.	
+d14	Sul.	
+d15	Leste.	
+d16	Oeste.	
+t01	Onde fica a rodoviária?	
+t02	Onde fica a estação de trem?	
+t03	Onde fica o aeroporto?	
+t04	Preciso de um táxi.	
+t05	Quanto custa a passagem?	
+t06	Uma passagem, por favor.	
+t07	Duas passagens, por favor.	
+t08	A que horas sai?	
+t09	A que horas chega?	
+t10	Onde fica o posto de gasolina?	
+t11	Este é o caminho para...?	
+t12	Me leve a este endereço, por favor.	
+t13	Pare aqui, por favor.	
+t14	Onde posso alugar um carro?	
+f01	Água, por favor.	
+f02	Esta água é potável?	
+f03	Onde tem um restaurante?	
+f04	Uma mesa para dois, por favor.	
+f05	O cardápio, por favor.	
+f06	Sou vegetariano.	
+f07	Sem carne, por favor.	
+f08	Sem pimenta, por favor.	
+f09	Está delicioso.	
+f10	A conta, por favor.	
+f11	Eu não pedi isso.	
+f12	Onde posso comprar comida?	
+f13	Um café, por favor.	
+f14	Uma cerveja, por favor.	
+m01	Quanto custa isso?	
+m02	Está muito caro.	
+m03	Aceita cartão de crédito?	
+m04	Só dinheiro?	
+m05	Onde tem um caixa eletrônico?	
+m06	Onde tem um banco?	
+m07	Pode me dar um recibo?	
+m08	Fique com o troco.	
+m09	Gostaria de comprar isso.	
+m10	Tem um mais barato?	
+l01	Tem um quarto disponível?	
+l02	Quanto é a diária?	
+l03	Tenho uma reserva.	
+l04	Uma noite.	
+l05	Duas noites.	
+l06	Onde posso acampar?	
+l07	É permitido acampar aqui?	
+l08	Onde fica o chuveiro?	
+l09	A chave, por favor.	
+l10	A que horas é o check-out?	
+o01	Esta trilha está aberta?	
+o02	Para onde vai esta trilha?	
+o03	Quantos quilômetros até o topo?	
+o04	Tem água na trilha?	
+o05	Onde fica a fonte de água mais próxima?	
+o06	A travessia do rio é segura?	
+o07	Tempo ruim está chegando.	
+o08	Onde fica o abrigo mais próximo?	
+o09	Tem animais perigosos aqui?	
+o10	Você viu esta pessoa?	
+o11	Como chego ao início da trilha?	
+o12	Onde fica o posto dos guarda-parques?	
+o13	Pode me dar uma carona até a cidade?	
+o14	Meu rádio alcança meu grupo.	
+o15	Tem sinal de celular aqui?	
+n01	Zero	
+n02	Um	
+n03	Dois	
+n04	Três	
+n05	Quatro	
+n06	Cinco	
+n07	Seis	
+n08	Sete	
+n09	Oito	
+n10	Nove	
+n11	Dez	
+n12	Vinte	
+n13	Cinquenta	
+n14	Cem	
+n15	Mil	
+n16	Hoje	
+n17	Amanhã	
+n18	Ontem	
+n19	Agora	
+n20	Mais tarde	
+n21	Uma hora	
+n22	Manhã	
+n23	Noite	

@@ -1,0 +1,166 @@
+b01	Bonjour.	
+b02	Au revoir.	
+b03	S'il vous plaît.	
+b04	Merci.	
+b05	Oui.	
+b06	Non.	
+b07	Excusez-moi.	
+b08	Je suis désolé.	
+b09	Bonjour.	
+b10	Bonsoir.	
+b11	Je m'appelle...	
+b12	Comment vous appelez-vous ?	
+b13	Enchanté.	
+b14	Je viens des États-Unis.	
+b15	Pouvez-vous m'aider ?	
+b16	Un instant, s'il vous plaît.	
+b17	Je comprends.	
+b18	Je ne comprends pas.	
+c01	Je ne parle pas votre langue.	
+c02	Parlez-vous anglais ?	
+c03	Cet appareil traduit. Touchez une phrase dans votre langue.	
+c04	Parlez lentement, s'il vous plaît.	
+c05	Répétez, s'il vous plaît.	
+c06	Écrivez-le, s'il vous plaît.	
+c07	Montrez la réponse du doigt, s'il vous plaît.	
+c08	Je vais vous montrer des phrases sur cet écran.	
+c09	C'est bien ça ?	
+c10	J'ai besoin d'un interprète.	
+e01	Au secours !	
+e02	C'est une urgence !	
+e03	Appelez la police !	
+e04	Appelez une ambulance !	
+e05	Appelez les pompiers !	
+e06	Je suis perdu.	
+e07	Nous sommes perdus.	
+e08	Quelqu'un est blessé.	
+e09	Quelqu'un a disparu.	
+e10	J'ai besoin d'aide tout de suite.	
+e11	Où est l'hôpital le plus proche ?	
+e12	Il y a eu un accident.	
+e13	Tout le monde va bien ?	
+e14	Je vais bien.	
+e15	Danger !	
+e16	Restez avec moi, s'il vous plaît.	
+e17	Ma position est sur cet écran.	
+e18	Les secours arrivent.	
+h01	J'ai besoin d'un médecin.	
+h02	Où y a-t-il une pharmacie ?	
+h03	Je suis malade.	
+h04	J'ai mal ici.	
+h05	J'ai de la fièvre.	
+h06	J'ai du mal à respirer.	
+h07	Je suis allergique à ça.	
+h08	Je suis allergique aux arachides.	
+h09	Je suis allergique à la pénicilline.	
+h10	Je suis diabétique.	
+h11	J'ai des problèmes cardiaques.	
+h12	Je prends ce médicament.	
+h13	J'ai besoin d'eau.	
+h14	J'ai des vertiges.	
+h15	Un animal m'a mordu.	
+h16	Je me suis fait piquer.	
+h17	Je crois que c'est cassé.	
+h18	Ne déplacez pas le blessé.	
+d01	Où est... ?	
+d02	Où sont les toilettes ?	
+d03	C'est à quelle distance ?	
+d04	À gauche.	
+d05	À droite.	
+d06	Tout droit.	
+d07	Derrière.	
+d08	Près.	
+d09	Loin.	
+d10	Montrez-moi sur cette carte, s'il vous plaît.	
+d11	Où suis-je sur cette carte ?	
+d12	On peut y aller à pied ?	
+d13	Nord.	
+d14	Sud.	
+d15	Est.	
+d16	Ouest.	
+t01	Où est la gare routière ?	
+t02	Où est la gare ?	
+t03	Où est l'aéroport ?	
+t04	J'ai besoin d'un taxi.	
+t05	Combien coûte un billet ?	
+t06	Un billet, s'il vous plaît.	
+t07	Deux billets, s'il vous plaît.	
+t08	À quelle heure est le départ ?	
+t09	À quelle heure est l'arrivée ?	
+t10	Où est la station-service ?	
+t11	C'est bien la route pour... ?	
+t12	Emmenez-moi à cette adresse, s'il vous plaît.	
+t13	Arrêtez-vous ici, s'il vous plaît.	
+t14	Où puis-je louer une voiture ?	
+f01	De l'eau, s'il vous plaît.	
+f02	Cette eau est-elle potable ?	
+f03	Où y a-t-il un restaurant ?	
+f04	Une table pour deux, s'il vous plaît.	
+f05	La carte, s'il vous plaît.	
+f06	Je suis végétarien.	
+f07	Sans viande, s'il vous plaît.	
+f08	Pas épicé, s'il vous plaît.	
+f09	C'est délicieux.	
+f10	L'addition, s'il vous plaît.	
+f11	Je n'ai pas commandé ça.	
+f12	Où puis-je acheter à manger ?	
+f13	Un café, s'il vous plaît.	
+f14	Une bière, s'il vous plaît.	
+m01	Combien ça coûte ?	
+m02	C'est trop cher.	
+m03	Acceptez-vous la carte bancaire ?	
+m04	En espèces seulement ?	
+m05	Où y a-t-il un distributeur ?	
+m06	Où y a-t-il une banque ?	
+m07	Puis-je avoir un reçu ?	
+m08	Gardez la monnaie.	
+m09	Je voudrais acheter ça.	
+m10	En avez-vous un moins cher ?	
+l01	Avez-vous une chambre libre ?	
+l02	C'est combien la nuit ?	
+l03	J'ai une réservation.	
+l04	Une nuit.	
+l05	Deux nuits.	
+l06	Où puis-je camper ?	
+l07	Le camping est-il autorisé ici ?	
+l08	Où est la douche ?	
+l09	La clé, s'il vous plaît.	
+l10	À quelle heure faut-il libérer la chambre ?	
+o01	Ce sentier est-il ouvert ?	
+o02	Où mène ce sentier ?	
+o03	Combien de kilomètres jusqu'au sommet ?	
+o04	Y a-t-il de l'eau sur le sentier ?	
+o05	Où est le point d'eau le plus proche ?	
+o06	La traversée de la rivière est-elle sûre ?	
+o07	Le mauvais temps arrive.	
+o08	Où est l'abri le plus proche ?	
+o09	Y a-t-il des animaux dangereux ici ?	
+o10	Avez-vous vu cette personne ?	
+o11	Par où pour le départ du sentier ?	
+o12	Où est le poste des gardes forestiers ?	
+o13	Pouvez-vous m'emmener en ville ?	
+o14	Ma radio me relie à mon groupe.	
+o15	Avez-vous du réseau ici ?	
+n01	Zéro	
+n02	Un	
+n03	Deux	
+n04	Trois	
+n05	Quatre	
+n06	Cinq	
+n07	Six	
+n08	Sept	
+n09	Huit	
+n10	Neuf	
+n11	Dix	
+n12	Vingt	
+n13	Cinquante	
+n14	Cent	
+n15	Mille	
+n16	Aujourd'hui	
+n17	Demain	
+n18	Hier	
+n19	Maintenant	
+n20	Plus tard	
+n21	Une heure	
+n22	Le matin	
+n23	La nuit	

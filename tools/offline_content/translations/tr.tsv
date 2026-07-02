@@ -1,0 +1,166 @@
+b01	Merhaba.	
+b02	Hoşça kalın.	
+b03	Lütfen.	
+b04	Teşekkür ederim.	
+b05	Evet.	
+b06	Hayır.	
+b07	Affedersiniz.	
+b08	Özür dilerim.	
+b09	Günaydın.	
+b10	İyi akşamlar.	
+b11	Benim adım...	
+b12	Adınız nedir?	
+b13	Memnun oldum.	
+b14	Amerika'dan geliyorum.	
+b15	Bana yardım edebilir misiniz?	
+b16	Bir dakika lütfen.	
+b17	Anlıyorum.	
+b18	Anlamıyorum.	
+c01	Dilinizi konuşamıyorum.	
+c02	İngilizce biliyor musunuz?	
+c03	Bu cihaz çeviri yapıyor. Lütfen kendi dilinizde bir ifadeye dokunun.	
+c04	Lütfen yavaş konuşun.	
+c05	Lütfen tekrar edin.	
+c06	Lütfen yazın.	
+c07	Lütfen cevabı gösterin.	
+c08	Size bu ekranda ifadeler göstereceğim.	
+c09	Doğru mu?	
+c10	Bir tercümana ihtiyacım var.	
+e01	İmdat!	
+e02	Acil durum!	
+e03	Polisi arayın!	
+e04	Ambulans çağırın!	
+e05	İtfaiyeyi arayın!	
+e06	Kayboldum.	
+e07	Kaybolduk.	
+e08	Biri yaralandı.	
+e09	Biri kayıp.	
+e10	Hemen yardıma ihtiyacım var.	
+e11	En yakın hastane nerede?	
+e12	Bir kaza oldu.	
+e13	Herkes iyi mi?	
+e14	Ben iyiyim.	
+e15	Tehlike!	
+e16	Lütfen benimle bekleyin.	
+e17	Konumum bu ekranda.	
+e18	Arama kurtarma ekibi geliyor.	
+h01	Doktora ihtiyacım var.	
+h02	Eczane nerede?	
+h03	Hastayım.	
+h04	Burası ağrıyor.	
+h05	Ateşim var.	
+h06	Rahat nefes alamıyorum.	
+h07	Buna alerjim var.	
+h08	Yer fıstığına alerjim var.	
+h09	Penisiline alerjim var.	
+h10	Şeker hastasıyım.	
+h11	Kalp rahatsızlığım var.	
+h12	Bu ilacı kullanıyorum.	
+h13	Suya ihtiyacım var.	
+h14	Başım dönüyor.	
+h15	Beni bir hayvan ısırdı.	
+h16	Beni bir şey soktu.	
+h17	Sanırım kemik kırık.	
+h18	Yaralıyı hareket ettirmeyin.	
+d01	... nerede?	
+d02	Tuvalet nerede?	
+d03	Ne kadar uzakta?	
+d04	Sol.	
+d05	Sağ.	
+d06	Dümdüz ileri.	
+d07	Arkada.	
+d08	Yakın.	
+d09	Uzak.	
+d10	Lütfen bu haritada gösterin.	
+d11	Bu haritada neredeyim?	
+d12	Yürüme mesafesinde mi?	
+d13	Kuzey.	
+d14	Güney.	
+d15	Doğu.	
+d16	Batı.	
+t01	Otogar nerede?	
+t02	Tren istasyonu nerede?	
+t03	Havalimanı nerede?	
+t04	Taksiye ihtiyacım var.	
+t05	Bilet ne kadar?	
+t06	Bir bilet lütfen.	
+t07	İki bilet lütfen.	
+t08	Ne zaman kalkıyor?	
+t09	Ne zaman varıyor?	
+t10	Benzin istasyonu nerede?	
+t11	... yolu bu mu?	
+t12	Lütfen beni bu adrese götürün.	
+t13	Lütfen burada durun.	
+t14	Nereden araba kiralayabilirim?	
+f01	Su lütfen.	
+f02	Bu su içilebilir mi?	
+f03	Restoran nerede?	
+f04	İki kişilik bir masa lütfen.	
+f05	Menü lütfen.	
+f06	Vejetaryenim.	
+f07	Etsiz olsun lütfen.	
+f08	Acısız olsun lütfen.	
+f09	Bu çok lezzetli.	
+f10	Hesap lütfen.	
+f11	Bunu sipariş etmedim.	
+f12	Nereden yiyecek alabilirim?	
+f13	Kahve lütfen.	
+f14	Bira lütfen.	
+m01	Bu ne kadar?	
+m02	Bu çok pahalı.	
+m03	Kredi kartı kabul ediyor musunuz?	
+m04	Sadece nakit mi?	
+m05	ATM nerede?	
+m06	Banka nerede?	
+m07	Fiş alabilir miyim?	
+m08	Üstü kalsın.	
+m09	Bunu almak istiyorum.	
+m10	Daha ucuzu var mı?	
+l01	Boş odanız var mı?	
+l02	Geceliği ne kadar?	
+l03	Rezervasyonum var.	
+l04	Bir gece.	
+l05	İki gece.	
+l06	Nerede kamp yapabilirim?	
+l07	Burada kamp yapmak serbest mi?	
+l08	Duş nerede?	
+l09	Anahtar lütfen.	
+l10	Çıkış saat kaçta?	
+o01	Bu patika açık mı?	
+o02	Bu patika nereye gidiyor?	
+o03	Zirveye kaç kilometre?	
+o04	Patikada su var mı?	
+o05	En yakın su kaynağı nerede?	
+o06	Nehri geçmek güvenli mi?	
+o07	Kötü hava geliyor.	
+o08	En yakın sığınak nerede?	
+o09	Burada tehlikeli hayvan var mı?	
+o10	Bu kişiyi gördünüz mü?	
+o11	Patika başlangıcı ne tarafta?	
+o12	Korucu istasyonu nerede?	
+o13	Beni kasabaya bırakabilir misiniz?	
+o14	Telsizim grubuma ulaşıyor.	
+o15	Burada telefon çekiyor mu?	
+n01	Sıfır	
+n02	Bir	
+n03	İki	
+n04	Üç	
+n05	Dört	
+n06	Beş	
+n07	Altı	
+n08	Yedi	
+n09	Sekiz	
+n10	Dokuz	
+n11	On	
+n12	Yirmi	
+n13	Elli	
+n14	Yüz	
+n15	Bin	
+n16	Bugün	
+n17	Yarın	
+n18	Dün	
+n19	Şimdi	
+n20	Sonra	
+n21	Bir saat	
+n22	Sabah	
+n23	Gece	

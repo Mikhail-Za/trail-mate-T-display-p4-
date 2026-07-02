@@ -1,0 +1,54 @@
+Making Water Safe
+
+Most backcountry water in North America can carry Giardia, Cryptosporidium, and bacteria; near people and livestock, viruses too. You usually cannot see, smell, or taste any of them. Treat water whenever you have the means.
+
+== BOILING ==
+Boiling is the most reliable method. It kills protozoa, bacteria, and viruses.
+
+- Bring water to a full rolling boil: big, continuous bubbles across the surface.
+- Hold the rolling boil for 1 minute. Above about 6,500 feet, hold it for 3 minutes.
+- Let it cool. Pouring between containers improves the flat taste.
+
+Boiling does not remove sediment, salt, or chemicals.
+
+== FILTRATION VS PURIFICATION ==
+These words are not the same thing.
+
+- Filters (0.2 micron class) remove protozoa and bacteria but NOT viruses. In remote North American backcountry the virus risk is low, so a good filter is usually adequate.
+- Purifiers (boiling, chemicals, UV, or virus-rated filters) also handle viruses. Prefer purification near towns, farms, camps, and heavily traveled water.
+- Protect filters from freezing. A filter that has frozen may be cracked inside and passing pathogens while looking fine. After a hard freeze, treat it as unreliable.
+
+== CHEMICAL TREATMENT ==
+- Chlorine dioxide tablets or drops: follow the label. Typical wait is 30 minutes for bacteria and viruses, but 4 hours to kill Cryptosporidium.
+- Iodine tablets or drops: wait 30 minutes in clear, warm water. Iodine does NOT reliably kill Cryptosporidium. Avoid iodine if pregnant or with thyroid disease, and do not use it for weeks on end.
+- Cold water caveat: below about 40 degrees F, chemicals work slowly. Double the contact time, or warm the bottle inside your jacket first.
+- Cloudy water: prefilter first, then double the dose or the time per the label.
+- After the wait, loosen the cap and slosh treated water over the threads and lid so untreated drops do not reinfect your mouth.
+
+== UV LIGHT ==
+- UV pens work only in clear water. Stir for the full cycle per the instructions.
+- Useless in cloudy water, and the device can fail or run out of batteries. Carry a backup method.
+
+== IMPROVISED SEDIMENT PREFILTER ==
+A prefilter removes mud and debris so your real treatment can work. It does NOT make water safe by itself.
+
+- Pour water through a bandana folded several times, tightly woven cloth, or a sock packed in layers: grass on top, crushed charcoal from a dead fire (charcoal, not ash) in the middle, sand at the bottom.
+- Or simply let dirty water settle in a container for an hour and pour off the clear top layer.
+
+== WHAT TREATMENT DOES NOT REMOVE ==
+Boiling, chemicals, and UV kill living organisms only. None of them remove:
+
+- Chemical contamination: mine runoff, farm runoff, fuel.
+- Algal toxins from scummy blooms.
+- Salt or alkali.
+
+If water smells of chemicals, shows an oily sheen, or comes from a bloom-covered pond, find different water.
+
+== DRINKING UNTREATED WATER: THE HONEST LAST RESORT ==
+Dehydration can kill you in days. Most waterborne illness in North America causes diarrhea one to three weeks later and is treatable by a doctor. If you have no way to treat water and you are sliding into dehydration (dark urine, headache, dizziness, confusion), drink the cleanest water you can find rather than continuing to dry out.
+
+- Choose a spring, fast clear stream, or rain catch over still water.
+- Prefilter through cloth if you can.
+- After rescue, tell medical providers you drank untreated water so they can watch for illness.
+
+Do not let fear of germs stop you from drinking when serious dehydration threatens. Stay hydrated, stay sharp, get out.

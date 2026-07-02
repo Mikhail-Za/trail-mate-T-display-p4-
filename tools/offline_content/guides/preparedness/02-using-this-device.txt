@@ -1,0 +1,41 @@
+Using This Device When Lost or in Trouble
+
+== FIRST, STOP ==
+- Stop moving. Sit down, breathe, drink some water, and think. Panicked walking burns energy and makes you harder to find.
+- Then work through the tools below, in order, while you are calm.
+
+== YOUR LAST-KNOWN POSITION ==
+- Open the Map app. With a GPS fix, you see your live position on the offline map.
+- If GPS loses its fix, the map keeps your last-known position as a grey ring marker. That ring is where the device last knew you were.
+- You cannot be far from that ring. Use it with the map to take a bearing back toward trails, ridgelines, or water you can identify.
+- The marker survives after the fix is gone, so check the map before you wander.
+
+== MESSAGE YOUR GROUP EARLY ==
+- LoRa chat reaches your group miles out with no cell service. Terrain matters: ridgetops and open ground carry far, deep drainages cut range.
+- Send your position and situation EARLY, while your battery is strong and your position is fresh. A short message beats a perfect one: "Off trail NE of the lake. Ankle injured. Staying put."
+- If a message does not get through, gain a little elevation or open ground and try again.
+- Once you have told the group you are staying put, stay put.
+
+== THE TEAM PAGE ==
+- The Team page shows the positions of your group members.
+- If you are lost, it tells you where your people are. If you are the searcher, it shows where the missing member's device last reported.
+- Compare Team page positions against the map before anyone moves.
+
+== NIGHT SIGNALING ==
+- The Flashlight app includes an SOS strobe. At night a strobe carries far beyond voice range, especially from a ridge, clearing, or shoreline.
+- Aim it toward where help is likely: the trail, the road, your group's last position.
+- Run it in bursts at intervals rather than continuously, and listen between bursts.
+
+== BATTERY DISCIPLINE ==
+- Battery is your lifeline. Turn screen brightness down as far as you can still read.
+- Agree on a check-in schedule with your group, for example on the hour, instead of constant chat and a constantly lit screen.
+- Between check-ins, leave the device alone. Send positions while power is good; a dead device shows nothing on anyone's Team page.
+- Cold drains batteries fast. In cold weather, keep the device inside your jacket, close to your body, between uses.
+
+== THIS GUIDE NEEDS NOTHING ==
+- This Field Guide, your loaded offline maps, and the Translate phrasebook all work with zero connectivity. Nothing on this device needs the internet to do its job.
+- Know the limit: this device does not call rescue services. It talks to your group. Your written trip plan and the person you left it with are still your link to organized rescue.
+
+== PRACTICE BEFORE YOU NEED IT ==
+- At the trailhead, confirm every group member can see the others on the Team page and can send a chat message.
+- Agree on the check-in schedule and on what a missed check-in means, before anyone is tired, cold, or scared.

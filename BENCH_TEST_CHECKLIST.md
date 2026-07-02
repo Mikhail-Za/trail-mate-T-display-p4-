@@ -3,13 +3,14 @@
 Everything below was compile-verified only; the devices were away. Flash both units,
 then run the checks in order. Total time ~10-15 minutes.
 
-## 0a. Load the new park tiles onto both SD cards (card reader, per card)
-The staging tree now also carries z13-14 for all CONUS National Parks + NPS
-monuments/preserves/recreation areas/seashores/lakeshores (970,584 tiles, 4.6GB
-logical, ~31GB on-card with 32KB clusters, leaving ~28GB free per card). Same
-recipe as before; robocopy only copies the ~179k new files:
+## 0a. Load the SD content onto both cards (card reader, per card)
+The staging tree now carries THREE content sets: map tiles (incl. z13-14 for all
+CONUS National Parks + NPS units; 970,584 tiles, ~31GB on-card, ~28GB free),
+`translate/` (12-language phrasebook + subset fonts, ~330KB) and `guides/`
+(54-article survival/foraging/nature handbook, ~250KB). One robocopy of the
+staging ROOT covers all of it; only new files copy:
 ```powershell
-robocopy "C:\osm-tiles\sd-staging\maps" "E:\maps" /E /NFL /NDL /NJH /R:1 /W:1 /MT:8
+robocopy "C:\osm-tiles\sd-staging" "E:\" /E /NFL /NDL /NJH /R:1 /W:1 /MT:8
 ```
 (adjust E: per card). The Settings coverage string already mentions the parks
 (updated in-repo), so no code edit is needed on flash day.
@@ -62,6 +63,25 @@ two_finger_tap / double_tap` lines unconditionally.
   multi-read layout is the suspect).
 - `pinch_begin` but no steps -> spread hysteresis never crossed (finger geometry noise).
 
-## 4. Still pending from earlier arcs (not this session)
+## 4. New apps: Translate + Field Guide (either unit, needs the SD card)
+- [ ] **Field Guide**: launcher shows the new icon; categories list (Survival, Water &
+      First Aid, Edible Plants, Plant Hazards, Wildlife & Nature, Preparedness) with
+      counts; open an article: title + scrollable body render, Back walks list ->
+      categories -> launcher.
+- [ ] **Translate, forward**: pick Spanish -> categories appear + native name
+      "Español" renders with accents; open Emergency -> "Help!" -> card shows
+      "¡Auxilio!" LARGE. Latin fonts prove the SD binfont path.
+- [ ] **Translate, non-Latin**: pick Chinese -> card shows 救命！ with pinyin line
+      under it (both from the SD font). Then Arabic -> text renders SHAPED
+      (connected letters) and right-to-left. Arabic is the riskiest renderer path
+      (BIDI + presentation forms via the DejaVu subset); if it shows disconnected
+      letterforms, capture a photo.
+- [ ] **Translate, hand-over**: "Hand device to them" -> flat list in the target
+      language with the tap-a-phrase hint on top; tapping a phrase shows its English
+      big. Back returns through list -> categories -> languages.
+- [ ] **No-SD fallback** (optional): eject SD, open both apps -> clean "no data
+      found" message, no crash.
+
+## 5. Still pending from earlier arcs (not this session)
 - Walkie-talkie human voice bench test (PTT build, 06-25).
 - Unit A GPS: hardware fault; multimeter the L76K VCC rail before any firmware theories.

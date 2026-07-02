@@ -71,6 +71,11 @@ CONFIG_LV_FS_POSIX_PATH="/sdcard"
 #     earlier CONFIG_LV_MEM_SIZE_KILOBYTES=192 (builtin-pool only) moot.
 CONFIG_LV_USE_LODEPNG=y
 CONFIG_LV_USE_CLIB_MALLOC=y
+# Offline Translate app: Arabic needs glyph shaping + right-to-left layout. BIDI is
+# label-level and inert for LTR text; the Arabic/Persian pass only touches strings
+# containing those codepoints. Fonts themselves load from the SD card (binfont).
+CONFIG_LV_USE_BIDI=y
+CONFIG_LV_USE_ARABIC_PERSIAN_CHARS=y
 # Pin the two heap options the CLIB-malloc routing above DEPENDS on. Both currently
 # match ESP-IDF defaults, but nothing guaranteed that: an IDF bump or a heap-tuning
 # edit (e.g. switching to SPIRAM_USE_CAPS_ALLOC) would silently break the "every

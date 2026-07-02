@@ -8,6 +8,8 @@ set(TRAILMATE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../..")
 
 set(TRAILMATE_ESP_IDF_APP_SHELL_SOURCES
     "${TRAILMATE_ROOT}/apps/esp32_lvgl/src/esp32_lvgl_idf_app_registry.cpp"
+    "${TRAILMATE_ROOT}/apps/esp32_lvgl/src/esp32_lvgl_translate_app.cpp"
+    "${TRAILMATE_ROOT}/apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp"
     "${TRAILMATE_ROOT}/apps/esp32_lvgl/src/esp32_lvgl_idf_app_runtime_access.cpp"
     "${TRAILMATE_ROOT}/apps/esp32_lvgl/src/esp32_lvgl_app_shell.cpp"
     "${TRAILMATE_ROOT}/apps/esp32_lvgl/src/esp32_lvgl_historical_source_descriptor.cpp"

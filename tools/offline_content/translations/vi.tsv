@@ -1,0 +1,166 @@
+b01	Xin chào.	
+b02	Tạm biệt.	
+b03	Làm ơn.	
+b04	Cảm ơn.	
+b05	Vâng.	
+b06	Không.	
+b07	Xin lỗi.	
+b08	Tôi xin lỗi.	
+b09	Chào buổi sáng.	
+b10	Chào buổi tối.	
+b11	Tên tôi là...	
+b12	Anh/chị tên là gì?	
+b13	Rất vui được gặp anh/chị.	
+b14	Tôi đến từ Mỹ.	
+b15	Anh/chị giúp tôi được không?	
+b16	Xin chờ một chút.	
+b17	Tôi hiểu.	
+b18	Tôi không hiểu.	
+c01	Tôi không nói được tiếng Việt.	
+c02	Anh/chị có nói được tiếng Anh không?	
+c03	Máy này dịch ngôn ngữ. Xin chạm vào một câu tiếng Việt.	
+c04	Xin nói chậm lại.	
+c05	Xin nhắc lại.	
+c06	Xin viết ra giấy.	
+c07	Xin chỉ vào câu trả lời.	
+c08	Tôi sẽ cho anh/chị xem các câu trên màn hình này.	
+c09	Đúng không?	
+c10	Tôi cần người phiên dịch.	
+e01	Cứu với!	
+e02	Khẩn cấp!	
+e03	Gọi công an!	
+e04	Gọi xe cấp cứu!	
+e05	Gọi cứu hỏa!	
+e06	Tôi bị lạc đường.	
+e07	Chúng tôi bị lạc đường.	
+e08	Có người bị thương.	
+e09	Có người mất tích.	
+e10	Tôi cần giúp đỡ ngay.	
+e11	Bệnh viện gần nhất ở đâu?	
+e12	Vừa có tai nạn xảy ra.	
+e13	Mọi người có sao không?	
+e14	Tôi không sao.	
+e15	Nguy hiểm!	
+e16	Xin chờ cùng tôi.	
+e17	Vị trí của tôi ở trên màn hình này.	
+e18	Đội cứu hộ đang đến.	
+h01	Tôi cần bác sĩ.	
+h02	Nhà thuốc ở đâu?	
+h03	Tôi bị bệnh.	
+h04	Đau ở chỗ này.	
+h05	Tôi bị sốt.	
+h06	Tôi khó thở.	
+h07	Tôi bị dị ứng với cái này.	
+h08	Tôi bị dị ứng với đậu phộng.	
+h09	Tôi bị dị ứng với penicillin.	
+h10	Tôi bị tiểu đường.	
+h11	Tôi có bệnh tim.	
+h12	Tôi đang dùng thuốc này.	
+h13	Tôi cần nước.	
+h14	Tôi thấy chóng mặt.	
+h15	Tôi bị con vật cắn.	
+h16	Tôi bị côn trùng đốt.	
+h17	Hình như bị gãy xương.	
+h18	Đừng di chuyển người bị thương.	
+d01	... ở đâu?	
+d02	Nhà vệ sinh ở đâu?	
+d03	Cách đây bao xa?	
+d04	Bên trái.	
+d05	Bên phải.	
+d06	Đi thẳng.	
+d07	Phía sau.	
+d08	Gần.	
+d09	Xa.	
+d10	Xin chỉ trên bản đồ này.	
+d11	Tôi đang ở đâu trên bản đồ này?	
+d12	Đi bộ đến được không?	
+d13	Hướng bắc.	
+d14	Hướng nam.	
+d15	Hướng đông.	
+d16	Hướng tây.	
+t01	Bến xe buýt ở đâu?	
+t02	Ga tàu ở đâu?	
+t03	Sân bay ở đâu?	
+t04	Tôi cần taxi.	
+t05	Vé bao nhiêu tiền?	
+t06	Cho tôi một vé.	
+t07	Cho tôi hai vé.	
+t08	Mấy giờ khởi hành?	
+t09	Mấy giờ đến nơi?	
+t10	Cây xăng ở đâu?	
+t11	Đường này đi đến... phải không?	
+t12	Xin chở tôi đến địa chỉ này.	
+t13	Xin dừng ở đây.	
+t14	Thuê xe ô tô ở đâu?	
+f01	Cho tôi nước.	
+f02	Nước này uống được không?	
+f03	Nhà hàng ở đâu?	
+f04	Cho tôi bàn hai người.	
+f05	Cho tôi xem thực đơn.	
+f06	Tôi ăn chay.	
+f07	Xin đừng cho thịt.	
+f08	Xin đừng làm cay.	
+f09	Món này ngon lắm.	
+f10	Cho tôi tính tiền.	
+f11	Tôi không gọi món này.	
+f12	Mua đồ ăn ở đâu?	
+f13	Cho tôi cà phê.	
+f14	Cho tôi bia.	
+m01	Cái này bao nhiêu tiền?	
+m02	Đắt quá.	
+m03	Có nhận thẻ tín dụng không?	
+m04	Chỉ nhận tiền mặt thôi à?	
+m05	Máy ATM ở đâu?	
+m06	Ngân hàng ở đâu?	
+m07	Cho tôi hóa đơn được không?	
+m08	Không cần trả lại tiền thừa.	
+m09	Tôi muốn mua cái này.	
+m10	Có cái nào rẻ hơn không?	
+l01	Còn phòng trống không?	
+l02	Bao nhiêu tiền một đêm?	
+l03	Tôi đã đặt phòng trước.	
+l04	Một đêm.	
+l05	Hai đêm.	
+l06	Tôi có thể cắm trại ở đâu?	
+l07	Ở đây có được cắm trại không?	
+l08	Phòng tắm ở đâu?	
+l09	Cho tôi chìa khóa.	
+l10	Mấy giờ trả phòng?	
+o01	Đường mòn này có mở không?	
+o02	Đường mòn này đi đến đâu?	
+o03	Lên đỉnh còn bao nhiêu cây số?	
+o04	Trên đường mòn có nước không?	
+o05	Nguồn nước gần nhất ở đâu?	
+o06	Lội qua sông có an toàn không?	
+o07	Thời tiết xấu đang đến.	
+o08	Chỗ trú gần nhất ở đâu?	
+o09	Ở đây có thú nguy hiểm không?	
+o10	Anh/chị có thấy người này không?	
+o11	Đường nào ra đầu đường mòn?	
+o12	Trạm kiểm lâm ở đâu?	
+o13	Cho tôi đi nhờ xe về thị trấn được không?	
+o14	Bộ đàm của tôi liên lạc được với nhóm.	
+o15	Ở đây có sóng điện thoại không?	
+n01	Không	
+n02	Một	
+n03	Hai	
+n04	Ba	
+n05	Bốn	
+n06	Năm	
+n07	Sáu	
+n08	Bảy	
+n09	Tám	
+n10	Chín	
+n11	Mười	
+n12	Hai mươi	
+n13	Năm mươi	
+n14	Một trăm	
+n15	Một nghìn	
+n16	Hôm nay	
+n17	Ngày mai	
+n18	Hôm qua	
+n19	Bây giờ	
+n20	Lát nữa	
+n21	Một tiếng	
+n22	Buổi sáng	
+n23	Ban đêm	

@@ -1,0 +1,166 @@
+b01	你好。	nǐ hǎo
+b02	再见。	zài jiàn
+b03	请。	qǐng
+b04	谢谢。	xiè xie
+b05	是的。	shì de
+b06	不是。	bú shì
+b07	不好意思。	bù hǎo yì si
+b08	对不起。	duì bu qǐ
+b09	早上好。	zǎo shang hǎo
+b10	晚上好。	wǎn shang hǎo
+b11	我叫...	wǒ jiào ...
+b12	您怎么称呼？	nín zěn me chēng hu
+b13	很高兴认识您。	hěn gāo xìng rèn shi nín
+b14	我来自美国。	wǒ lái zì měi guó
+b15	您能帮我吗？	nín néng bāng wǒ ma
+b16	请稍等。	qǐng shāo děng
+b17	我明白了。	wǒ míng bai le
+b18	我不明白。	wǒ bù míng bai
+c01	我不会说中文。	wǒ bú huì shuō zhōng wén
+c02	您会说英语吗？	nín huì shuō yīng yǔ ma
+c03	这个设备可以翻译。请点选您语言的短语。	zhè ge shè bèi kě yǐ fān yì. qǐng diǎn xuǎn nín yǔ yán de duǎn yǔ
+c04	请说慢一点。	qǐng shuō màn yì diǎn
+c05	请再说一遍。	qǐng zài shuō yí biàn
+c06	请写下来。	qǐng xiě xià lái
+c07	请指一下答案。	qǐng zhǐ yí xià dá àn
+c08	我会在这个屏幕上给您看短语。	wǒ huì zài zhè ge píng mù shàng gěi nín kàn duǎn yǔ
+c09	对吗？	duì ma
+c10	我需要翻译。	wǒ xū yào fān yì
+e01	救命！	jiù mìng
+e02	紧急情况！	jǐn jí qíng kuàng
+e03	快报警！	kuài bào jǐng
+e04	快叫救护车！	kuài jiào jiù hù chē
+e05	快叫消防队！	kuài jiào xiāo fáng duì
+e06	我迷路了。	wǒ mí lù le
+e07	我们迷路了。	wǒ men mí lù le
+e08	有人受伤了。	yǒu rén shòu shāng le
+e09	有人失踪了。	yǒu rén shī zōng le
+e10	我现在需要帮助。	wǒ xiàn zài xū yào bāng zhù
+e11	最近的医院在哪里？	zuì jìn de yī yuàn zài nǎ lǐ
+e12	出事故了。	chū shì gù le
+e13	大家都没事吧？	dà jiā dōu méi shì ba
+e14	我没事。	wǒ méi shì
+e15	危险！	wēi xiǎn
+e16	请陪我等一下。	qǐng péi wǒ děng yí xià
+e17	我的位置在这个屏幕上。	wǒ de wèi zhì zài zhè ge píng mù shàng
+e18	搜救人员马上就到。	sōu jiù rén yuán mǎ shàng jiù dào
+h01	我需要看医生。	wǒ xū yào kàn yī shēng
+h02	药店在哪里？	yào diàn zài nǎ lǐ
+h03	我生病了。	wǒ shēng bìng le
+h04	这里疼。	zhè lǐ téng
+h05	我发烧了。	wǒ fā shāo le
+h06	我呼吸困难。	wǒ hū xī kùn nán
+h07	我对这个过敏。	wǒ duì zhè ge guò mǐn
+h08	我对花生过敏。	wǒ duì huā shēng guò mǐn
+h09	我对青霉素过敏。	wǒ duì qīng méi sù guò mǐn
+h10	我有糖尿病。	wǒ yǒu táng niào bìng
+h11	我有心脏病。	wǒ yǒu xīn zàng bìng
+h12	我在吃这种药。	wǒ zài chī zhè zhǒng yào
+h13	我需要水。	wǒ xū yào shuǐ
+h14	我头晕。	wǒ tóu yūn
+h15	我被动物咬了。	wǒ bèi dòng wù yǎo le
+h16	我被蜇了。	wǒ bèi zhē le
+h17	可能骨折了。	kě néng gǔ zhé le
+h18	不要移动伤者。	bú yào yí dòng shāng zhě
+d01	...在哪里？	... zài nǎ lǐ
+d02	洗手间在哪里？	xǐ shǒu jiān zài nǎ lǐ
+d03	有多远？	yǒu duō yuǎn
+d04	左边。	zuǒ biān
+d05	右边。	yòu biān
+d06	直走。	zhí zǒu
+d07	后面。	hòu miàn
+d08	很近。	hěn jìn
+d09	很远。	hěn yuǎn
+d10	请在这张地图上指给我看。	qǐng zài zhè zhāng dì tú shàng zhǐ gěi wǒ kàn
+d11	我在这张地图上的哪里？	wǒ zài zhè zhāng dì tú shàng de nǎ lǐ
+d12	走路能到吗？	zǒu lù néng dào ma
+d13	北边。	běi biān
+d14	南边。	nán biān
+d15	东边。	dōng biān
+d16	西边。	xī biān
+t01	汽车站在哪里？	qì chē zhàn zài nǎ lǐ
+t02	火车站在哪里？	huǒ chē zhàn zài nǎ lǐ
+t03	机场在哪里？	jī chǎng zài nǎ lǐ
+t04	我要打车。	wǒ yào dǎ chē
+t05	一张票多少钱？	yì zhāng piào duō shǎo qián
+t06	请给我一张票。	qǐng gěi wǒ yì zhāng piào
+t07	请给我两张票。	qǐng gěi wǒ liǎng zhāng piào
+t08	几点出发？	jǐ diǎn chū fā
+t09	几点到？	jǐ diǎn dào
+t10	加油站在哪里？	jiā yóu zhàn zài nǎ lǐ
+t11	这是去...的路吗？	zhè shì qù ... de lù ma
+t12	请送我去这个地址。	qǐng sòng wǒ qù zhè ge dì zhǐ
+t13	请在这里停。	qǐng zài zhè lǐ tíng
+t14	在哪里可以租车？	zài nǎ lǐ kě yǐ zū chē
+f01	请给我一杯水。	qǐng gěi wǒ yì bēi shuǐ
+f02	这水能喝吗？	zhè shuǐ néng hē ma
+f03	附近哪里有餐馆？	fù jìn nǎ lǐ yǒu cān guǎn
+f04	两位，谢谢。	liǎng wèi, xiè xie
+f05	请给我菜单。	qǐng gěi wǒ cài dān
+f06	我吃素。	wǒ chī sù
+f07	请不要放肉。	qǐng bú yào fàng ròu
+f08	请不要辣。	qǐng bú yào là
+f09	很好吃。	hěn hǎo chī
+f10	请结账。	qǐng jié zhàng
+f11	我没有点这个。	wǒ méi yǒu diǎn zhè ge
+f12	在哪里可以买吃的？	zài nǎ lǐ kě yǐ mǎi chī de
+f13	请给我一杯咖啡。	qǐng gěi wǒ yì bēi kā fēi
+f14	请给我一瓶啤酒。	qǐng gěi wǒ yì píng pí jiǔ
+m01	这个多少钱？	zhè ge duō shǎo qián
+m02	太贵了。	tài guì le
+m03	可以刷信用卡吗？	kě yǐ shuā xìn yòng kǎ ma
+m04	只收现金吗？	zhǐ shōu xiàn jīn ma
+m05	取款机在哪里？	qǔ kuǎn jī zài nǎ lǐ
+m06	银行在哪里？	yín háng zài nǎ lǐ
+m07	可以给我收据吗？	kě yǐ gěi wǒ shōu jù ma
+m08	不用找了。	bú yòng zhǎo le
+m09	我想买这个。	wǒ xiǎng mǎi zhè ge
+m10	有便宜一点的吗？	yǒu pián yi yì diǎn de ma
+l01	有空房间吗？	yǒu kòng fáng jiān ma
+l02	一晚多少钱？	yì wǎn duō shǎo qián
+l03	我订了房间。	wǒ dìng le fáng jiān
+l04	一晚。	yì wǎn
+l05	两晚。	liǎng wǎn
+l06	在哪里可以露营？	zài nǎ lǐ kě yǐ lù yíng
+l07	这里可以露营吗？	zhè lǐ kě yǐ lù yíng ma
+l08	淋浴间在哪里？	lín yù jiān zài nǎ lǐ
+l09	请给我钥匙。	qǐng gěi wǒ yào shi
+l10	几点退房？	jǐ diǎn tuì fáng
+o01	这条步道开放吗？	zhè tiáo bù dào kāi fàng ma
+o02	这条步道通到哪里？	zhè tiáo bù dào tōng dào nǎ lǐ
+o03	到山顶还有多少公里？	dào shān dǐng hái yǒu duō shǎo gōng lǐ
+o04	步道上有水源吗？	bù dào shàng yǒu shuǐ yuán ma
+o05	最近的水源在哪里？	zuì jìn de shuǐ yuán zài nǎ lǐ
+o06	过河安全吗？	guò hé ān quán ma
+o07	天气要变坏了。	tiān qì yào biàn huài le
+o08	最近的避难所在哪里？	zuì jìn de bì nàn suǒ zài nǎ lǐ
+o09	这里有危险的动物吗？	zhè lǐ yǒu wēi xiǎn de dòng wù ma
+o10	您见过这个人吗？	nín jiàn guo zhè ge rén ma
+o11	步道入口怎么走？	bù dào rù kǒu zěn me zǒu
+o12	护林站在哪里？	hù lín zhàn zài nǎ lǐ
+o13	能捎我去镇上吗？	néng shāo wǒ qù zhèn shàng ma
+o14	我的对讲机能联系到我的队友。	wǒ de duì jiǎng jī néng lián xì dào wǒ de duì yǒu
+o15	这里有手机信号吗？	zhè lǐ yǒu shǒu jī xìn hào ma
+n01	零	líng
+n02	一	yī
+n03	二	èr
+n04	三	sān
+n05	四	sì
+n06	五	wǔ
+n07	六	liù
+n08	七	qī
+n09	八	bā
+n10	九	jiǔ
+n11	十	shí
+n12	二十	èr shí
+n13	五十	wǔ shí
+n14	一百	yì bǎi
+n15	一千	yì qiān
+n16	今天	jīn tiān
+n17	明天	míng tiān
+n18	昨天	zuó tiān
+n19	现在	xiàn zài
+n20	一会儿	yí huìr
+n21	一个小时	yí ge xiǎo shí
+n22	早上	zǎo shang
+n23	晚上	wǎn shang

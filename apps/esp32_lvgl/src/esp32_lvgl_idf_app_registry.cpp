@@ -5056,6 +5056,18 @@ ui::CallbackAppScreen s_sstv_app("sstv",
                                  sstv_page::ui::shell::exit,
                                  &s_sstv_menu_host);
 
+} // namespace
+
+// Translate (offline two-way phrasebook, SD content + SD fonts) and Field Guide
+// (offline survival/foraging/nature handbook, SD content). Both are self-contained
+// inline apps in their own TUs (esp32_lvgl_translate_app.cpp /
+// esp32_lvgl_field_guide_app.cpp), same pattern as Flashlight/Node Radar.
+extern ui::CallbackAppScreen g_translate_app;
+extern ui::CallbackAppScreen g_field_guide_app;
+
+namespace
+{
+
 AppScreen* s_apps[] = {&s_chat_app,
                        &s_contacts_app,
                        &s_settings_app,
@@ -5075,7 +5087,9 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_stopwatch_app,
                        &s_node_radar_app,
                        &s_walkie_app,
-                       &s_sstv_app};
+                       &s_sstv_app,
+                       &g_translate_app,
+                       &g_field_guide_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 

@@ -263,3 +263,4 @@ sdkconfig.old
 
 # goalkeeper durable state
 .goalkeeper/
+tools/offline_content/fonts_cache/

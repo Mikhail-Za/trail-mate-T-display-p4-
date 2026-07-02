@@ -1,0 +1,166 @@
+b01	こんにちは。	konnichiwa
+b02	さようなら。	sayōnara
+b03	お願いします。	onegai shimasu
+b04	ありがとうございます。	arigatō gozaimasu
+b05	はい。	hai
+b06	いいえ。	iie
+b07	すみません。	sumimasen
+b08	ごめんなさい。	gomen nasai
+b09	おはようございます。	ohayō gozaimasu
+b10	こんばんは。	konbanwa
+b11	私の名前は...です。	watashi no namae wa ... desu
+b12	お名前は何ですか？	onamae wa nan desu ka?
+b13	はじめまして。	hajimemashite
+b14	アメリカから来ました。	amerika kara kimashita
+b15	手伝ってもらえますか？	tetsudatte moraemasu ka?
+b16	少々お待ちください。	shōshō omachi kudasai
+b17	わかりました。	wakarimashita
+b18	わかりません。	wakarimasen
+c01	日本語が話せません。	nihongo ga hanasemasen
+c02	英語が話せますか？	eigo ga hanasemasu ka?
+c03	この機器が翻訳します。日本語のフレーズをタップしてください。	kono kiki ga hon'yaku shimasu. nihongo no furēzu o tappu shite kudasai
+c04	ゆっくり話してください。	yukkuri hanashite kudasai
+c05	もう一度言ってください。	mō ichido itte kudasai
+c06	書いてください。	kaite kudasai
+c07	答えを指さしてください。	kotae o yubisashite kudasai
+c08	この画面でフレーズを見せます。	kono gamen de furēzu o misemasu
+c09	合っていますか？	atte imasu ka?
+c10	通訳が必要です。	tsūyaku ga hitsuyō desu
+e01	助けて！	tasukete!
+e02	緊急です！	kinkyū desu!
+e03	警察を呼んでください！	keisatsu o yonde kudasai!
+e04	救急車を呼んでください！	kyūkyūsha o yonde kudasai!
+e05	消防車を呼んでください！	shōbōsha o yonde kudasai!
+e06	道に迷いました。	michi ni mayoimashita
+e07	私たちは道に迷いました。	watashitachi wa michi ni mayoimashita
+e08	けが人がいます。	keganin ga imasu
+e09	行方不明の人がいます。	yukue fumei no hito ga imasu
+e10	今すぐ助けが必要です。	ima sugu tasuke ga hitsuyō desu
+e11	一番近い病院はどこですか？	ichiban chikai byōin wa doko desu ka?
+e12	事故がありました。	jiko ga arimashita
+e13	みんな大丈夫ですか？	minna daijōbu desu ka?
+e14	私は大丈夫です。	watashi wa daijōbu desu
+e15	危ない！	abunai!
+e16	一緒に待っていてください。	issho ni matte ite kudasai
+e17	私の位置はこの画面にあります。	watashi no ichi wa kono gamen ni arimasu
+e18	救助隊が来ます。	kyūjotai ga kimasu
+h01	医者が必要です。	isha ga hitsuyō desu
+h02	薬局はどこですか？	yakkyoku wa doko desu ka?
+h03	具合が悪いです。	guai ga warui desu
+h04	ここが痛いです。	koko ga itai desu
+h05	熱があります。	netsu ga arimasu
+h06	息がしにくいです。	iki ga shinikui desu
+h07	これにアレルギーがあります。	kore ni arerugī ga arimasu
+h08	ピーナッツアレルギーがあります。	pīnattsu arerugī ga arimasu
+h09	ペニシリンアレルギーがあります。	penishirin arerugī ga arimasu
+h10	糖尿病です。	tōnyōbyō desu
+h11	心臓病があります。	shinzōbyō ga arimasu
+h12	この薬を飲んでいます。	kono kusuri o nonde imasu
+h13	水が必要です。	mizu ga hitsuyō desu
+h14	めまいがします。	memai ga shimasu
+h15	動物に噛まれました。	dōbutsu ni kamaremashita
+h16	虫に刺されました。	mushi ni sasaremashita
+h17	骨折したと思います。	kossetsu shita to omoimasu
+h18	けが人を動かさないでください。	keganin o ugokasanaide kudasai
+d01	...はどこですか？	... wa doko desu ka?
+d02	トイレはどこですか？	toire wa doko desu ka?
+d03	どのくらい遠いですか？	dono kurai tōi desu ka?
+d04	左です。	hidari desu
+d05	右です。	migi desu
+d06	まっすぐです。	massugu desu
+d07	後ろです。	ushiro desu
+d08	近いです。	chikai desu
+d09	遠いです。	tōi desu
+d10	この地図で教えてください。	kono chizu de oshiete kudasai
+d11	この地図で私はどこにいますか？	kono chizu de watashi wa doko ni imasu ka?
+d12	歩いて行けますか？	aruite ikemasu ka?
+d13	北です。	kita desu
+d14	南です。	minami desu
+d15	東です。	higashi desu
+d16	西です。	nishi desu
+t01	バス停はどこですか？	basutei wa doko desu ka?
+t02	駅はどこですか？	eki wa doko desu ka?
+t03	空港はどこですか？	kūkō wa doko desu ka?
+t04	タクシーが必要です。	takushī ga hitsuyō desu
+t05	切符はいくらですか？	kippu wa ikura desu ka?
+t06	切符を一枚ください。	kippu o ichimai kudasai
+t07	切符を二枚ください。	kippu o nimai kudasai
+t08	いつ出発しますか？	itsu shuppatsu shimasu ka?
+t09	いつ到着しますか？	itsu tōchaku shimasu ka?
+t10	ガソリンスタンドはどこですか？	gasorin sutando wa doko desu ka?
+t11	この道は...へ行きますか？	kono michi wa ... e ikimasu ka?
+t12	この住所までお願いします。	kono jūsho made onegai shimasu
+t13	ここで止まってください。	koko de tomatte kudasai
+t14	どこで車を借りられますか？	doko de kuruma o kariraremasu ka?
+f01	水をください。	mizu o kudasai
+f02	この水は飲めますか？	kono mizu wa nomemasu ka?
+f03	レストランはどこですか？	resutoran wa doko desu ka?
+f04	二名でお願いします。	nimei de onegai shimasu
+f05	メニューをください。	menyū o kudasai
+f06	ベジタリアンです。	bejitarian desu
+f07	肉抜きでお願いします。	nikunuki de onegai shimasu
+f08	辛くしないでください。	karaku shinaide kudasai
+f09	おいしいです。	oishii desu
+f10	お会計をお願いします。	okaikei o onegai shimasu
+f11	これは注文していません。	kore wa chūmon shite imasen
+f12	どこで食べ物を買えますか？	doko de tabemono o kaemasu ka?
+f13	コーヒーをください。	kōhī o kudasai
+f14	ビールをください。	bīru o kudasai
+m01	これはいくらですか？	kore wa ikura desu ka?
+m02	高すぎます。	takasugimasu
+m03	クレジットカードは使えますか？	kurejitto kādo wa tsukaemasu ka?
+m04	現金だけですか？	genkin dake desu ka?
+m05	ATMはどこですか？	ATM wa doko desu ka?
+m06	銀行はどこですか？	ginkō wa doko desu ka?
+m07	レシートをもらえますか？	reshīto o moraemasu ka?
+m08	お釣りは結構です。	otsuri wa kekkō desu
+m09	これを買いたいです。	kore o kaitai desu
+m10	もっと安いのはありますか？	motto yasui no wa arimasu ka?
+l01	空いている部屋はありますか？	aite iru heya wa arimasu ka?
+l02	一泊いくらですか？	ippaku ikura desu ka?
+l03	予約しています。	yoyaku shite imasu
+l04	一泊です。	ippaku desu
+l05	二泊です。	nihaku desu
+l06	どこでキャンプできますか？	doko de kyanpu dekimasu ka?
+l07	ここでキャンプしてもいいですか？	koko de kyanpu shite mo ii desu ka?
+l08	シャワーはどこですか？	shawā wa doko desu ka?
+l09	鍵をください。	kagi o kudasai
+l10	チェックアウトは何時ですか？	chekkuauto wa nanji desu ka?
+o01	この登山道は通れますか？	kono tozandō wa tōremasu ka?
+o02	この道はどこに続きますか？	kono michi wa doko ni tsuzukimasu ka?
+o03	山頂まで何キロですか？	sanchō made nankiro desu ka?
+o04	途中に水はありますか？	tochū ni mizu wa arimasu ka?
+o05	一番近い水場はどこですか？	ichiban chikai mizuba wa doko desu ka?
+o06	川を渡っても安全ですか？	kawa o watatte mo anzen desu ka?
+o07	天気が悪くなります。	tenki ga waruku narimasu
+o08	一番近い避難小屋はどこですか？	ichiban chikai hinangoya wa doko desu ka?
+o09	ここに危険な動物はいますか？	koko ni kiken na dōbutsu wa imasu ka?
+o10	この人を見ましたか？	kono hito o mimashita ka?
+o11	登山口はどちらですか？	tozanguchi wa dochira desu ka?
+o12	管理事務所はどこですか？	kanri jimusho wa doko desu ka?
+o13	町まで乗せてもらえますか？	machi made nosete moraemasu ka?
+o14	無線で仲間と連絡できます。	musen de nakama to renraku dekimasu
+o15	ここは携帯の電波がありますか？	koko wa keitai no denpa ga arimasu ka?
+n01	ゼロ	zero
+n02	一	ichi
+n03	二	ni
+n04	三	san
+n05	四	yon
+n06	五	go
+n07	六	roku
+n08	七	nana
+n09	八	hachi
+n10	九	kyū
+n11	十	jū
+n12	二十	nijū
+n13	五十	gojū
+n14	百	hyaku
+n15	千	sen
+n16	今日	kyō
+n17	明日	ashita
+n18	昨日	kinō
+n19	今	ima
+n20	あとで	ato de
+n21	一時間	ichijikan
+n22	朝	asa
+n23	夜	yoru

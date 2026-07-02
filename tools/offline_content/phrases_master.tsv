@@ -1,0 +1,166 @@
+Basics	b01	Hello.
+Basics	b02	Goodbye.
+Basics	b03	Please.
+Basics	b04	Thank you.
+Basics	b05	Yes.
+Basics	b06	No.
+Basics	b07	Excuse me.
+Basics	b08	I am sorry.
+Basics	b09	Good morning.
+Basics	b10	Good evening.
+Basics	b11	My name is...
+Basics	b12	What is your name?
+Basics	b13	Nice to meet you.
+Basics	b14	I am from the United States.
+Basics	b15	Can you help me?
+Basics	b16	One moment, please.
+Basics	b17	I understand.
+Basics	b18	I do not understand.
+Communication	c01	I do not speak your language.
+Communication	c02	Do you speak English?
+Communication	c03	This device translates. Please tap a phrase in your language.
+Communication	c04	Please speak slowly.
+Communication	c05	Please repeat that.
+Communication	c06	Please write it down.
+Communication	c07	Please point to the answer.
+Communication	c08	I will show you phrases on this screen.
+Communication	c09	Is that correct?
+Communication	c10	I need a translator.
+Emergency	e01	Help!
+Emergency	e02	Emergency!
+Emergency	e03	Call the police!
+Emergency	e04	Call an ambulance!
+Emergency	e05	Call the fire department!
+Emergency	e06	I am lost.
+Emergency	e07	We are lost.
+Emergency	e08	Someone is injured.
+Emergency	e09	Someone is missing.
+Emergency	e10	I need help now.
+Emergency	e11	Where is the nearest hospital?
+Emergency	e12	There has been an accident.
+Emergency	e13	Is everyone okay?
+Emergency	e14	I am okay.
+Emergency	e15	Danger!
+Emergency	e16	Please wait with me.
+Emergency	e17	My location is on this screen.
+Emergency	e18	Search and rescue is coming.
+Health	h01	I need a doctor.
+Health	h02	Where is a pharmacy?
+Health	h03	I am sick.
+Health	h04	It hurts here.
+Health	h05	I have a fever.
+Health	h06	I cannot breathe well.
+Health	h07	I am allergic to this.
+Health	h08	I am allergic to peanuts.
+Health	h09	I am allergic to penicillin.
+Health	h10	I am diabetic.
+Health	h11	I have a heart condition.
+Health	h12	I take this medication.
+Health	h13	I need water.
+Health	h14	I feel dizzy.
+Health	h15	I was bitten by an animal.
+Health	h16	I was stung.
+Health	h17	Broken bone, I think.
+Health	h18	Do not move the injured person.
+Directions	d01	Where is...?
+Directions	d02	Where is the bathroom?
+Directions	d03	How far is it?
+Directions	d04	Left.
+Directions	d05	Right.
+Directions	d06	Straight ahead.
+Directions	d07	Behind.
+Directions	d08	Near.
+Directions	d09	Far.
+Directions	d10	Please show me on this map.
+Directions	d11	Where am I on this map?
+Directions	d12	Is it walking distance?
+Directions	d13	North.
+Directions	d14	South.
+Directions	d15	East.
+Directions	d16	West.
+Travel	t01	Where is the bus station?
+Travel	t02	Where is the train station?
+Travel	t03	Where is the airport?
+Travel	t04	I need a taxi.
+Travel	t05	How much is a ticket?
+Travel	t06	One ticket, please.
+Travel	t07	Two tickets, please.
+Travel	t08	When does it leave?
+Travel	t09	When does it arrive?
+Travel	t10	Where is the fuel station?
+Travel	t11	Is this the way to...?
+Travel	t12	Please take me to this address.
+Travel	t13	Please stop here.
+Travel	t14	Where can I rent a car?
+Food	f01	Water, please.
+Food	f02	Is this water safe to drink?
+Food	f03	Where is a restaurant?
+Food	f04	A table for two, please.
+Food	f05	The menu, please.
+Food	f06	I am vegetarian.
+Food	f07	No meat, please.
+Food	f08	Not spicy, please.
+Food	f09	This is delicious.
+Food	f10	The bill, please.
+Food	f11	I did not order this.
+Food	f12	Where can I buy food?
+Food	f13	Coffee, please.
+Food	f14	Beer, please.
+Money	m01	How much does this cost?
+Money	m02	That is too expensive.
+Money	m03	Do you accept credit cards?
+Money	m04	Cash only?
+Money	m05	Where is an ATM?
+Money	m06	Where is a bank?
+Money	m07	Can I have a receipt?
+Money	m08	Keep the change.
+Money	m09	I would like to buy this.
+Money	m10	Do you have a cheaper one?
+Lodging	l01	Do you have a room available?
+Lodging	l02	How much per night?
+Lodging	l03	I have a reservation.
+Lodging	l04	One night.
+Lodging	l05	Two nights.
+Lodging	l06	Where can I camp?
+Lodging	l07	Is camping allowed here?
+Lodging	l08	Where is the shower?
+Lodging	l09	The key, please.
+Lodging	l10	What time is checkout?
+Outdoors	o01	Is this trail open?
+Outdoors	o02	Where does this trail go?
+Outdoors	o03	How many kilometers to the summit?
+Outdoors	o04	Is there water on the trail?
+Outdoors	o05	Where is the nearest water source?
+Outdoors	o06	Is the river crossing safe?
+Outdoors	o07	Bad weather is coming.
+Outdoors	o08	Where is the nearest shelter?
+Outdoors	o09	Are there dangerous animals here?
+Outdoors	o10	Have you seen this person?
+Outdoors	o11	Which way to the trailhead?
+Outdoors	o12	Where is the ranger station?
+Outdoors	o13	Can I get a ride to town?
+Outdoors	o14	My radio reaches my group.
+Outdoors	o15	Do you have a phone signal here?
+Numbers	n01	Zero
+Numbers	n02	One
+Numbers	n03	Two
+Numbers	n04	Three
+Numbers	n05	Four
+Numbers	n06	Five
+Numbers	n07	Six
+Numbers	n08	Seven
+Numbers	n09	Eight
+Numbers	n10	Nine
+Numbers	n11	Ten
+Numbers	n12	Twenty
+Numbers	n13	Fifty
+Numbers	n14	One hundred
+Numbers	n15	One thousand
+Numbers	n16	Today
+Numbers	n17	Tomorrow
+Numbers	n18	Yesterday
+Numbers	n19	Now
+Numbers	n20	Later
+Numbers	n21	One hour
+Numbers	n22	Morning
+Numbers	n23	Night

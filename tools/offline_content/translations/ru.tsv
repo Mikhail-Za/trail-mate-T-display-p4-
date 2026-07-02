@@ -1,0 +1,166 @@
+b01	Здравствуйте.	Zdravstvuyte.
+b02	До свидания.	Do svidaniya.
+b03	Пожалуйста.	Pozhaluysta.
+b04	Спасибо.	Spasibo.
+b05	Да.	Da.
+b06	Нет.	Net.
+b07	Извините.	Izvinite.
+b08	Простите.	Prostite.
+b09	Доброе утро.	Dobroye utro.
+b10	Добрый вечер.	Dobryy vecher.
+b11	Меня зовут...	Menya zovut...
+b12	Как вас зовут?	Kak vas zovut?
+b13	Очень приятно.	Ochen priyatno.
+b14	Я из Америки.	Ya iz Ameriki.
+b15	Вы можете мне помочь?	Vy mozhete mne pomoch?
+b16	Минутку, пожалуйста.	Minutku, pozhaluysta.
+b17	Я понимаю.	Ya ponimayu.
+b18	Я не понимаю.	Ya ne ponimayu.
+c01	Я не говорю на вашем языке.	Ya ne govoryu na vashem yazyke.
+c02	Вы говорите по-английски?	Vy govorite po-angliyski?
+c03	Это устройство переводит. Нажмите фразу на вашем языке.	Eto ustroystvo perevodit. Nazhmite frazu na vashem yazyke.
+c04	Говорите медленнее, пожалуйста.	Govorite medlenneye, pozhaluysta.
+c05	Повторите, пожалуйста.	Povtorite, pozhaluysta.
+c06	Напишите, пожалуйста.	Napishite, pozhaluysta.
+c07	Укажите на ответ, пожалуйста.	Ukazhite na otvet, pozhaluysta.
+c08	Я покажу вам фразы на этом экране.	Ya pokazhu vam frazy na etom ekrane.
+c09	Это правильно?	Eto pravilno?
+c10	Мне нужен переводчик.	Mne nuzhen perevodchik.
+e01	Помогите!	Pomogite!
+e02	Это экстренный случай!	Eto ekstrennyy sluchay!
+e03	Вызовите полицию!	Vyzovite politsiyu!
+e04	Вызовите скорую!	Vyzovite skoruyu!
+e05	Вызовите пожарных!	Vyzovite pozharnykh!
+e06	Я заблудился.	Ya zabludilsya.
+e07	Мы заблудились.	My zabludilis.
+e08	Есть пострадавший.	Yest postradavshiy.
+e09	Человек пропал.	Chelovek propal.
+e10	Мне срочно нужна помощь.	Mne srochno nuzhna pomoshch.
+e11	Где ближайшая больница?	Gde blizhayshaya bolnitsa?
+e12	Произошла авария.	Proizoshla avariya.
+e13	Все целы?	Vse tsely?
+e14	Я в порядке.	Ya v poryadke.
+e15	Опасность!	Opasnost!
+e16	Пожалуйста, побудьте со мной.	Pozhaluysta, pobudte so mnoy.
+e17	Моё местоположение на этом экране.	Moyo mestopolozheniye na etom ekrane.
+e18	Спасатели уже едут.	Spasateli uzhe yedut.
+h01	Мне нужен врач.	Mne nuzhen vrach.
+h02	Где аптека?	Gde apteka?
+h03	Мне плохо.	Mne plokho.
+h04	Болит вот здесь.	Bolit vot zdes.
+h05	У меня температура.	U menya temperatura.
+h06	Мне трудно дышать.	Mne trudno dyshat.
+h07	У меня аллергия на это.	U menya allergiya na eto.
+h08	У меня аллергия на арахис.	U menya allergiya na arakhis.
+h09	У меня аллергия на пенициллин.	U menya allergiya na penitsillin.
+h10	У меня диабет.	U menya diabet.
+h11	У меня больное сердце.	U menya bolnoye serdtse.
+h12	Я принимаю это лекарство.	Ya prinimayu eto lekarstvo.
+h13	Мне нужна вода.	Mne nuzhna voda.
+h14	У меня кружится голова.	U menya kruzhitsya golova.
+h15	Меня укусило животное.	Menya ukusilo zhivotnoye.
+h16	Меня ужалили.	Menya uzhalili.
+h17	Кажется, перелом.	Kazhetsya, perelom.
+h18	Не двигайте пострадавшего.	Ne dvigayte postradavshego.
+d01	Где...?	Gde...?
+d02	Где туалет?	Gde tualet?
+d03	Как далеко это?	Kak daleko eto?
+d04	Налево.	Nalevo.
+d05	Направо.	Napravo.
+d06	Прямо.	Pryamo.
+d07	Сзади.	Szadi.
+d08	Близко.	Blizko.
+d09	Далеко.	Daleko.
+d10	Покажите на этой карте, пожалуйста.	Pokazhite na etoy karte, pozhaluysta.
+d11	Где я на этой карте?	Gde ya na etoy karte?
+d12	Можно дойти пешком?	Mozhno doyti peshkom?
+d13	Север.	Sever.
+d14	Юг.	Yug.
+d15	Восток.	Vostok.
+d16	Запад.	Zapad.
+t01	Где автовокзал?	Gde avtovokzal?
+t02	Где вокзал?	Gde vokzal?
+t03	Где аэропорт?	Gde aeroport?
+t04	Мне нужно такси.	Mne nuzhno taksi.
+t05	Сколько стоит билет?	Skolko stoit bilet?
+t06	Один билет, пожалуйста.	Odin bilet, pozhaluysta.
+t07	Два билета, пожалуйста.	Dva bileta, pozhaluysta.
+t08	Когда отправление?	Kogda otpravleniye?
+t09	Когда прибытие?	Kogda pribytiye?
+t10	Где заправка?	Gde zapravka?
+t11	Это дорога в...?	Eto doroga v...?
+t12	Отвезите меня по этому адресу, пожалуйста.	Otvezite menya po etomu adresu, pozhaluysta.
+t13	Остановите здесь, пожалуйста.	Ostanovite zdes, pozhaluysta.
+t14	Где можно арендовать машину?	Gde mozhno arendovat mashinu?
+f01	Воду, пожалуйста.	Vodu, pozhaluysta.
+f02	Эту воду можно пить?	Etu vodu mozhno pit?
+f03	Где ресторан?	Gde restoran?
+f04	Столик на двоих, пожалуйста.	Stolik na dvoikh, pozhaluysta.
+f05	Меню, пожалуйста.	Menyu, pozhaluysta.
+f06	Я вегетарианец.	Ya vegetarianets.
+f07	Без мяса, пожалуйста.	Bez myasa, pozhaluysta.
+f08	Не острое, пожалуйста.	Ne ostroye, pozhaluysta.
+f09	Очень вкусно.	Ochen vkusno.
+f10	Счёт, пожалуйста.	Schyot, pozhaluysta.
+f11	Я это не заказывал.	Ya eto ne zakazyval.
+f12	Где можно купить еду?	Gde mozhno kupit yedu?
+f13	Кофе, пожалуйста.	Kofe, pozhaluysta.
+f14	Пиво, пожалуйста.	Pivo, pozhaluysta.
+m01	Сколько это стоит?	Skolko eto stoit?
+m02	Это слишком дорого.	Eto slishkom dorogo.
+m03	Вы принимаете карты?	Vy prinimayete karty?
+m04	Только наличные?	Tolko nalichnyye?
+m05	Где банкомат?	Gde bankomat?
+m06	Где банк?	Gde bank?
+m07	Можно чек?	Mozhno chek?
+m08	Сдачи не надо.	Sdachi ne nado.
+m09	Я хочу купить это.	Ya khochu kupit eto.
+m10	Есть подешевле?	Yest podeshevle?
+l01	У вас есть свободный номер?	U vas yest svobodnyy nomer?
+l02	Сколько стоит ночь?	Skolko stoit noch?
+l03	У меня бронь.	U menya bron.
+l04	Одна ночь.	Odna noch.
+l05	Две ночи.	Dve nochi.
+l06	Где можно поставить палатку?	Gde mozhno postavit palatku?
+l07	Здесь можно ставить палатку?	Zdes mozhno stavit palatku?
+l08	Где душ?	Gde dush?
+l09	Ключ, пожалуйста.	Klyuch, pozhaluysta.
+l10	Во сколько выезд?	Vo skolko vyyezd?
+o01	Эта тропа открыта?	Eta tropa otkryta?
+o02	Куда ведёт эта тропа?	Kuda vedyot eta tropa?
+o03	Сколько километров до вершины?	Skolko kilometrov do vershiny?
+o04	На тропе есть вода?	Na trope yest voda?
+o05	Где ближайший источник воды?	Gde blizhayshiy istochnik vody?
+o06	Переправа через реку безопасна?	Pereprava cherez reku bezopasna?
+o07	Приближается непогода.	Priblizhayetsya nepogoda.
+o08	Где ближайшее укрытие?	Gde blizhaysheye ukrytiye?
+o09	Здесь есть опасные животные?	Zdes yest opasnyye zhivotnyye?
+o10	Вы видели этого человека?	Vy videli etogo cheloveka?
+o11	Как пройти к началу тропы?	Kak proyti k nachalu tropy?
+o12	Где пост лесника?	Gde post lesnika?
+o13	Подвезёте до города?	Podvezyote do goroda?
+o14	Моя рация связывает меня с группой.	Moya ratsiya svyazyvayet menya s gruppoy.
+o15	Здесь есть мобильная связь?	Zdes yest mobilnaya svyaz?
+n01	Ноль	Nol
+n02	Один	Odin
+n03	Два	Dva
+n04	Три	Tri
+n05	Четыре	Chetyre
+n06	Пять	Pyat
+n07	Шесть	Shest
+n08	Семь	Sem
+n09	Восемь	Vosem
+n10	Девять	Devyat
+n11	Десять	Desyat
+n12	Двадцать	Dvadtsat
+n13	Пятьдесят	Pyatdesyat
+n14	Сто	Sto
+n15	Тысяча	Tysyacha
+n16	Сегодня	Segodnya
+n17	Завтра	Zavtra
+n18	Вчера	Vchera
+n19	Сейчас	Seychas
+n20	Позже	Pozzhe
+n21	Один час	Odin chas
+n22	Утро	Utro
+n23	Ночь	Noch

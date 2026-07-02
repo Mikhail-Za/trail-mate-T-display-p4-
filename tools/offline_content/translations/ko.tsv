@@ -1,0 +1,166 @@
+b01	안녕하세요.	annyeonghaseyo.
+b02	안녕히 계세요.	annyeonghi gyeseyo.
+b03	부탁해요.	butakaeyo.
+b04	감사합니다.	gamsahamnida.
+b05	네.	ne.
+b06	아니요.	aniyo.
+b07	실례합니다.	sillyehamnida.
+b08	죄송합니다.	joesonghamnida.
+b09	좋은 아침이에요.	joeun achimieyo.
+b10	안녕하세요.	annyeonghaseyo.
+b11	제 이름은 ...이에요.	je ireumeun ...ieyo.
+b12	성함이 어떻게 되세요?	seonghami eotteoke doeseyo?
+b13	만나서 반가워요.	mannaseo bangawoyo.
+b14	미국에서 왔어요.	migugeseo wasseoyo.
+b15	좀 도와주시겠어요?	jom dowajusigesseoyo?
+b16	잠시만요.	jamsimanyo.
+b17	알겠어요.	algesseoyo.
+b18	잘 모르겠어요.	jal moreugesseoyo.
+c01	한국어를 못해요.	hangugeoreul motaeyo.
+c02	영어 하세요?	yeongeo haseyo?
+c03	이 기기는 번역기예요. 한국어 문장을 눌러 주세요.	i gigineun beonyeokgiyeyo. hangugeo munjangeul nulleo juseyo.
+c04	천천히 말해 주세요.	cheoncheonhi malhae juseyo.
+c05	다시 말해 주세요.	dasi malhae juseyo.
+c06	적어 주세요.	jeogeo juseyo.
+c07	답을 가리켜 주세요.	dabeul garikyeo juseyo.
+c08	이 화면으로 문장을 보여 드릴게요.	i hwamyeoneuro munjangeul boyeo deurilgeyo.
+c09	맞아요?	majayo?
+c10	통역이 필요해요.	tongyeogi piryohaeyo.
+e01	도와주세요!	dowajuseyo!
+e02	응급 상황이에요!	eunggeup sanghwangieyo!
+e03	경찰을 불러 주세요!	gyeongchareul bulleo juseyo!
+e04	구급차를 불러 주세요!	gugeupchareul bulleo juseyo!
+e05	소방서에 전화해 주세요!	sobangseoe jeonhwahae juseyo!
+e06	길을 잃었어요.	gireul ireosseoyo.
+e07	저희가 길을 잃었어요.	jeohuiga gireul ireosseoyo.
+e08	다친 사람이 있어요.	dachin sarami isseoyo.
+e09	사람이 없어졌어요.	sarami eopseojyeosseoyo.
+e10	지금 도움이 필요해요.	jigeum doumi piryohaeyo.
+e11	가장 가까운 병원이 어디예요?	gajang gakkaun byeongwoni eodiyeyo?
+e12	사고가 났어요.	sagoga nasseoyo.
+e13	다들 괜찮으세요?	dadeul gwaenchaneuseyo?
+e14	저는 괜찮아요.	jeoneun gwaenchanayo.
+e15	위험해요!	wiheomhaeyo!
+e16	저와 같이 있어 주세요.	jeowa gachi isseo juseyo.
+e17	제 위치가 이 화면에 있어요.	je wichiga i hwamyeone isseoyo.
+e18	구조대가 오고 있어요.	gujodaega ogo isseoyo.
+h01	의사가 필요해요.	uisaga piryohaeyo.
+h02	약국이 어디예요?	yakgugi eodiyeyo?
+h03	아파요.	apayo.
+h04	여기가 아파요.	yeogiga apayo.
+h05	열이 나요.	yeori nayo.
+h06	숨쉬기가 힘들어요.	sumswigiga himdeureoyo.
+h07	이거에 알레르기가 있어요.	igeoe allereugiga isseoyo.
+h08	땅콩 알레르기가 있어요.	ttangkong allereugiga isseoyo.
+h09	페니실린 알레르기가 있어요.	penisillin allereugiga isseoyo.
+h10	당뇨병이 있어요.	dangnyobyeongi isseoyo.
+h11	심장 질환이 있어요.	simjang jilhwani isseoyo.
+h12	이 약을 먹고 있어요.	i yageul meokgo isseoyo.
+h13	물이 필요해요.	muri piryohaeyo.
+h14	어지러워요.	eojireowoyo.
+h15	동물한테 물렸어요.	dongmulhante mullyeosseoyo.
+h16	뭔가에 쏘였어요.	mwongae ssoyeosseoyo.
+h17	뼈가 부러진 것 같아요.	ppyeoga bureojin geot gatayo.
+h18	다친 사람을 움직이지 마세요.	dachin sarameul umjigiji maseyo.
+d01	... 어디예요?	... eodiyeyo?
+d02	화장실이 어디예요?	hwajangsiri eodiyeyo?
+d03	얼마나 멀어요?	eolmana meoreoyo?
+d04	왼쪽이요.	oenjjogiyo.
+d05	오른쪽이요.	oreunjjogiyo.
+d06	직진이요.	jikjiniyo.
+d07	뒤쪽이요.	dwijjogiyo.
+d08	가까워요.	gakkawoyo.
+d09	멀어요.	meoreoyo.
+d10	이 지도에서 보여 주세요.	i jidoeseo boyeo juseyo.
+d11	이 지도에서 제가 어디에 있어요?	i jidoeseo jega eodie isseoyo?
+d12	걸어갈 수 있어요?	georeogal su isseoyo?
+d13	북쪽이요.	bukjjogiyo.
+d14	남쪽이요.	namjjogiyo.
+d15	동쪽이요.	dongjjogiyo.
+d16	서쪽이요.	seojjogiyo.
+t01	버스 터미널이 어디예요?	beoseu teomineori eodiyeyo?
+t02	기차역이 어디예요?	gichayeogi eodiyeyo?
+t03	공항이 어디예요?	gonghangi eodiyeyo?
+t04	택시가 필요해요.	taeksiga piryohaeyo.
+t05	표가 얼마예요?	pyoga eolmayeyo?
+t06	표 한 장 주세요.	pyo han jang juseyo.
+t07	표 두 장 주세요.	pyo du jang juseyo.
+t08	언제 출발해요?	eonje chulbalhaeyo?
+t09	언제 도착해요?	eonje dochakaeyo?
+t10	주유소가 어디예요?	juyusoga eodiyeyo?
+t11	... 가는 길 맞아요?	... ganeun gil majayo?
+t12	이 주소로 가 주세요.	i jusoro ga juseyo.
+t13	여기서 세워 주세요.	yeogiseo sewo juseyo.
+t14	어디서 차를 빌릴 수 있어요?	eodiseo chareul billil su isseoyo?
+f01	물 주세요.	mul juseyo.
+f02	이 물 마셔도 돼요?	i mul masyeodo dwaeyo?
+f03	식당이 어디예요?	sikdangi eodiyeyo?
+f04	두 명이요.	du myeongiyo.
+f05	메뉴판 주세요.	menyupan juseyo.
+f06	저는 채식주의자예요.	jeoneun chaesikjuuijayeyo.
+f07	고기는 빼 주세요.	gogineun ppae juseyo.
+f08	안 맵게 해 주세요.	an maepge hae juseyo.
+f09	맛있어요.	masisseoyo.
+f10	계산해 주세요.	gyesanhae juseyo.
+f11	이거 주문 안 했어요.	igeo jumun an haesseoyo.
+f12	어디서 음식을 살 수 있어요?	eodiseo eumsigeul sal su isseoyo?
+f13	커피 주세요.	keopi juseyo.
+f14	맥주 주세요.	maekju juseyo.
+m01	이거 얼마예요?	igeo eolmayeyo?
+m02	너무 비싸요.	neomu bissayo.
+m03	카드 돼요?	kadeu dwaeyo?
+m04	현금만 받으세요?	hyeongeumman badeuseyo?
+m05	현금인출기가 어디예요?	hyeongeuminchulgiga eodiyeyo?
+m06	은행이 어디예요?	eunhaengi eodiyeyo?
+m07	영수증 주세요.	yeongsujeung juseyo.
+m08	잔돈은 가지세요.	jandoneun gajiseyo.
+m09	이거 살게요.	igeo salgeyo.
+m10	더 싼 거 있어요?	deo ssan geo isseoyo?
+l01	빈방 있어요?	binbang isseoyo?
+l02	하룻밤에 얼마예요?	harutbame eolmayeyo?
+l03	예약했어요.	yeyakaesseoyo.
+l04	일박이요.	ilbagiyo.
+l05	이박이요.	ibagiyo.
+l06	어디서 캠핑할 수 있어요?	eodiseo kaempinghal su isseoyo?
+l07	여기서 캠핑해도 돼요?	yeogiseo kaempinghaedo dwaeyo?
+l08	샤워실이 어디예요?	syawosiri eodiyeyo?
+l09	열쇠 주세요.	yeolsoe juseyo.
+l10	체크아웃이 몇 시예요?	chekeuausi myeot siyeyo?
+o01	이 등산로 열려 있어요?	i deungsanno yeollyeo isseoyo?
+o02	이 길은 어디로 가요?	i gireun eodiro gayo?
+o03	정상까지 몇 킬로미터예요?	jeongsangkkaji myeot killomiteoyeyo?
+o04	등산로에 물이 있어요?	deungsannoe muri isseoyo?
+o05	가장 가까운 물이 어디에 있어요?	gajang gakkaun muri eodie isseoyo?
+o06	강 건너도 안전해요?	gang geonneodo anjeonhaeyo?
+o07	날씨가 나빠지고 있어요.	nalssiga nappajigo isseoyo.
+o08	가장 가까운 대피소가 어디예요?	gajang gakkaun daepisoga eodiyeyo?
+o09	여기 위험한 동물이 있어요?	yeogi wiheomhan dongmuri isseoyo?
+o10	이 사람 보셨어요?	i saram bosyeosseoyo?
+o11	등산로 입구는 어느 쪽이에요?	deungsanno ipguneun eoneu jjogieyo?
+o12	관리사무소가 어디예요?	gwallisamusoga eodiyeyo?
+o13	시내까지 태워 주실 수 있어요?	sinaekkaji taewo jusil su isseoyo?
+o14	제 무전기로 일행과 연락돼요.	je mujeongiro ilhaenggwa yeollakdwaeyo.
+o15	여기 휴대폰 신호가 잡혀요?	yeogi hyudaepon sinhoga japyeoyo?
+n01	영	yeong
+n02	하나	hana
+n03	둘	dul
+n04	셋	set
+n05	넷	net
+n06	다섯	daseot
+n07	여섯	yeoseot
+n08	일곱	ilgop
+n09	여덟	yeodeol
+n10	아홉	ahop
+n11	열	yeol
+n12	스물	seumul
+n13	오십	osip
+n14	백	baek
+n15	천	cheon
+n16	오늘	oneul
+n17	내일	naeil
+n18	어제	eoje
+n19	지금	jigeum
+n20	나중에	najunge
+n21	한 시간	han sigan
+n22	아침	achim
+n23	밤	bam

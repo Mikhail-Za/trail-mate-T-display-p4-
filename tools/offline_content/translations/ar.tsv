@@ -1,0 +1,166 @@
+b01	مرحباً	marhaban
+b02	مع السلامة	ma'a as-salama
+b03	من فضلك	min fadlik
+b04	شكراً	shukran
+b05	نعم	na'am
+b06	لا	la
+b07	لو سمحت	law samaht
+b08	أنا آسف	ana aasif
+b09	صباح الخير	sabah al-khayr
+b10	مساء الخير	masa' al-khayr
+b11	اسمي...	ismi...
+b12	ما اسمك؟	ma ismak?
+b13	تشرفنا	tasharrafna
+b14	أنا من الولايات المتحدة	ana min al-wilayat al-muttahida
+b15	ممكن تساعدني؟	mumkin tusa'idni?
+b16	لحظة من فضلك	lahza min fadlik
+b17	فهمت	fahimt
+b18	لا أفهم	la afham
+c01	أنا لا أتكلم لغتك	ana la atakallam lughatak
+c02	هل تتكلم الإنجليزية؟	hal tatakallam al-injliziyya?
+c03	هذا الجهاز يترجم. اضغط على عبارة بلغتك من فضلك.	hadha al-jihaz yutarjim. idghat ala ibara bi-lughatak min fadlik.
+c04	تكلم ببطء من فضلك	takallam bi-but' min fadlik
+c05	كرر من فضلك	karrir min fadlik
+c06	اكتبها من فضلك	uktubha min fadlik
+c07	أشر إلى الجواب من فضلك	ashir ila al-jawab min fadlik
+c08	سأريك عبارات على هذه الشاشة	sa-urik ibarat ala hadhihi ash-shasha
+c09	هل هذا صحيح؟	hal hadha sahih?
+c10	أحتاج إلى مترجم	ahtaj ila mutarjim
+e01	النجدة!	an-najda!
+e02	حالة طارئة!	hala taari'a!
+e03	اتصل بالشرطة!	ittasil bish-shurta!
+e04	اتصل بالإسعاف!	ittasil bil-is'af!
+e05	اتصل بالإطفاء!	ittasil bil-itfaa'!
+e06	أنا تائه	ana taa'ih
+e07	نحن تائهون	nahnu taa'ihun
+e08	يوجد شخص مصاب	yujad shakhs musab
+e09	يوجد شخص مفقود	yujad shakhs mafqud
+e10	أحتاج المساعدة الآن	ahtaj al-musa'ada al-aan
+e11	أين أقرب مستشفى؟	ayna aqrab mustashfa?
+e12	وقع حادث	waqa'a haadith
+e13	هل الجميع بخير؟	hal al-jamee' bikhayr?
+e14	أنا بخير	ana bikhayr
+e15	خطر!	khatar!
+e16	انتظر معي من فضلك	intazir ma'i min fadlik
+e17	موقعي على هذه الشاشة	mawqi'i ala hadhihi ash-shasha
+e18	فريق البحث والإنقاذ قادم	fariq al-bahth wal-inqadh qadim
+h01	أحتاج إلى طبيب	ahtaj ila tabib
+h02	أين الصيدلية؟	ayna as-saydaliyya?
+h03	أنا مريض	ana marid
+h04	يؤلمني هنا	yu'limuni huna
+h05	عندي حمى	indi humma
+h06	لا أستطيع التنفس جيداً	la astati' at-tanaffus jayyidan
+h07	عندي حساسية من هذا	indi hasasiyya min hadha
+h08	عندي حساسية من الفول السوداني	indi hasasiyya min al-ful as-sudani
+h09	عندي حساسية من البنسلين	indi hasasiyya min al-bensilin
+h10	عندي مرض السكري	indi marad as-sukkari
+h11	عندي مرض في القلب	indi marad fil-qalb
+h12	آخذ هذا الدواء	aakhudh hadha ad-dawa'
+h13	أحتاج إلى ماء	ahtaj ila maa'
+h14	أشعر بدوخة	ash'ur bi-dawkha
+h15	عضني حيوان	addani hayawan
+h16	لدغني شيء	ladaghani shay'
+h17	أظن أن العظم مكسور	azunn anna al-azm maksur
+h18	لا تحرك المصاب	la tuharrik al-musab
+d01	أين...؟	ayna...?
+d02	أين الحمام؟	ayna al-hammam?
+d03	كم يبعد؟	kam yab'ud?
+d04	يسار	yasar
+d05	يمين	yamin
+d06	على طول	ala tool
+d07	خلف	khalf
+d08	قريب	qarib
+d09	بعيد	ba'id
+d10	أرني على هذه الخريطة من فضلك	arini ala hadhihi al-kharita min fadlik
+d11	أين أنا على هذه الخريطة؟	ayna ana ala hadhihi al-kharita?
+d12	هل يمكن الوصول مشياً؟	hal yumkin al-wusul mashyan?
+d13	شمال	shamal
+d14	جنوب	janub
+d15	شرق	sharq
+d16	غرب	gharb
+t01	أين محطة الباص؟	ayna mahattat al-bas?
+t02	أين محطة القطار؟	ayna mahattat al-qitar?
+t03	أين المطار؟	ayna al-matar?
+t04	أحتاج إلى تاكسي	ahtaj ila taksi
+t05	بكم التذكرة؟	bikam at-tadhkara?
+t06	تذكرة واحدة من فضلك	tadhkara wahida min fadlik
+t07	تذكرتان من فضلك	tadhkartan min fadlik
+t08	متى يغادر؟	mata yughadir?
+t09	متى يصل؟	mata yasil?
+t10	أين محطة البنزين؟	ayna mahattat al-banzin?
+t11	هل هذا الطريق إلى...؟	hal hadha at-tariq ila...?
+t12	خذني إلى هذا العنوان من فضلك	khudhni ila hadha al-unwan min fadlik
+t13	قف هنا من فضلك	qif huna min fadlik
+t14	أين يمكنني استئجار سيارة؟	ayna yumkinuni isti'jar sayyara?
+f01	ماء من فضلك	maa' min fadlik
+f02	هل هذا الماء صالح للشرب؟	hal hadha al-maa' salih lish-shurb?
+f03	أين يوجد مطعم؟	ayna yujad mat'am?
+f04	طاولة لشخصين من فضلك	tawila li-shakhsayn min fadlik
+f05	القائمة من فضلك	al-qa'ima min fadlik
+f06	أنا نباتي	ana nabati
+f07	بدون لحم من فضلك	bidun lahm min fadlik
+f08	بدون حار من فضلك	bidun har min fadlik
+f09	هذا لذيذ	hadha ladhidh
+f10	الحساب من فضلك	al-hisab min fadlik
+f11	لم أطلب هذا	lam atlub hadha
+f12	أين يمكنني شراء طعام؟	ayna yumkinuni shiraa' ta'am?
+f13	قهوة من فضلك	qahwa min fadlik
+f14	بيرة من فضلك	bira min fadlik
+m01	بكم هذا؟	bikam hadha?
+m02	هذا غالي جداً	hadha ghali jiddan
+m03	هل تقبلون بطاقات الائتمان؟	hal taqbalun bitaqat al-i'timan?
+m04	نقداً فقط؟	naqdan faqat?
+m05	أين الصراف الآلي؟	ayna as-sarraf al-aali?
+m06	أين البنك؟	ayna al-bank?
+m07	ممكن إيصال من فضلك؟	mumkin eesal min fadlik?
+m08	احتفظ بالباقي	ihtafiz bil-baqi
+m09	أريد شراء هذا	urid shiraa' hadha
+m10	هل عندك أرخص؟	hal indak arkhas?
+l01	هل عندكم غرفة متاحة؟	hal indakum ghurfa mutaha?
+l02	بكم الليلة؟	bikam al-layla?
+l03	عندي حجز	indi hajz
+l04	ليلة واحدة	layla wahida
+l05	ليلتان	laylatan
+l06	أين يمكنني التخييم؟	ayna yumkinuni at-takhyim?
+l07	هل التخييم مسموح هنا؟	hal at-takhyim masmuh huna?
+l08	أين الدش؟	ayna ad-dush?
+l09	المفتاح من فضلك	al-miftah min fadlik
+l10	متى موعد المغادرة؟	mata maw'id al-mughadara?
+o01	هل هذا المسار مفتوح؟	hal hadha al-masar maftuh?
+o02	إلى أين يؤدي هذا المسار؟	ila ayna yu'addi hadha al-masar?
+o03	كم كيلومتراً إلى القمة؟	kam kilometr ila al-qimma?
+o04	هل يوجد ماء على المسار؟	hal yujad maa' ala al-masar?
+o05	أين أقرب مصدر للماء؟	ayna aqrab masdar lil-maa'?
+o06	هل عبور النهر آمن؟	hal ubur an-nahr aamin?
+o07	طقس سيئ قادم	taqs sayyi' qadim
+o08	أين أقرب مأوى؟	ayna aqrab ma'wa?
+o09	هل توجد حيوانات خطيرة هنا؟	hal tujad hayawanat khatira huna?
+o10	هل رأيت هذا الشخص؟	hal ra'ayt hadha ash-shakhs?
+o11	أين بداية المسار؟	ayna bidayat al-masar?
+o12	أين مركز حراس المنتزه؟	ayna markaz hurras al-muntazah?
+o13	هل يمكن أن توصلني إلى المدينة؟	hal yumkin an tuwassilni ila al-madina?
+o14	جهازي اللاسلكي يصل إلى مجموعتي	jihazi al-lasilki yasil ila majmu'ati
+o15	هل توجد شبكة هاتف هنا؟	hal tujad shabakat hatif huna?
+n01	صفر	sifr
+n02	واحد	wahid
+n03	اثنان	ithnan
+n04	ثلاثة	thalatha
+n05	أربعة	arba'a
+n06	خمسة	khamsa
+n07	ستة	sitta
+n08	سبعة	sab'a
+n09	ثمانية	thamaniya
+n10	تسعة	tis'a
+n11	عشرة	ashara
+n12	عشرون	ishrun
+n13	خمسون	khamsun
+n14	مئة	mi'a
+n15	ألف	alf
+n16	اليوم	al-yawm
+n17	غداً	ghadan
+n18	أمس	ams
+n19	الآن	al-aan
+n20	لاحقاً	lahiqan
+n21	ساعة واحدة	sa'a wahida
+n22	الصباح	as-sabah
+n23	الليل	al-layl

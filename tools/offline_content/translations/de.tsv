@@ -1,0 +1,166 @@
+b01	Hallo.	
+b02	Auf Wiedersehen.	
+b03	Bitte.	
+b04	Danke.	
+b05	Ja.	
+b06	Nein.	
+b07	Entschuldigung.	
+b08	Es tut mir leid.	
+b09	Guten Morgen.	
+b10	Guten Abend.	
+b11	Ich heiße...	
+b12	Wie heißen Sie?	
+b13	Freut mich, Sie kennenzulernen.	
+b14	Ich komme aus den USA.	
+b15	Können Sie mir helfen?	
+b16	Einen Moment, bitte.	
+b17	Ich verstehe.	
+b18	Ich verstehe nicht.	
+c01	Ich spreche Ihre Sprache nicht.	
+c02	Sprechen Sie Englisch?	
+c03	Dieses Gerät übersetzt. Bitte tippen Sie auf einen Satz in Ihrer Sprache.	
+c04	Bitte sprechen Sie langsam.	
+c05	Bitte wiederholen Sie das.	
+c06	Bitte schreiben Sie es auf.	
+c07	Bitte zeigen Sie auf die Antwort.	
+c08	Ich zeige Ihnen Sätze auf diesem Bildschirm.	
+c09	Ist das richtig?	
+c10	Ich brauche einen Dolmetscher.	
+e01	Hilfe!	
+e02	Notfall!	
+e03	Rufen Sie die Polizei!	
+e04	Rufen Sie einen Krankenwagen!	
+e05	Rufen Sie die Feuerwehr!	
+e06	Ich habe mich verlaufen.	
+e07	Wir haben uns verlaufen.	
+e08	Jemand ist verletzt.	
+e09	Jemand wird vermisst.	
+e10	Ich brauche sofort Hilfe.	
+e11	Wo ist das nächste Krankenhaus?	
+e12	Es gab einen Unfall.	
+e13	Geht es allen gut?	
+e14	Mir geht es gut.	
+e15	Gefahr!	
+e16	Bitte warten Sie bei mir.	
+e17	Mein Standort ist auf diesem Bildschirm.	
+e18	Die Rettungskräfte sind unterwegs.	
+h01	Ich brauche einen Arzt.	
+h02	Wo ist eine Apotheke?	
+h03	Ich bin krank.	
+h04	Es tut hier weh.	
+h05	Ich habe Fieber.	
+h06	Ich kann schlecht atmen.	
+h07	Ich bin allergisch dagegen.	
+h08	Ich bin allergisch gegen Erdnüsse.	
+h09	Ich bin allergisch gegen Penicillin.	
+h10	Ich bin Diabetiker.	
+h11	Ich bin herzkrank.	
+h12	Ich nehme dieses Medikament.	
+h13	Ich brauche Wasser.	
+h14	Mir ist schwindelig.	
+h15	Ein Tier hat mich gebissen.	
+h16	Ich wurde gestochen.	
+h17	Knochenbruch, glaube ich.	
+h18	Bewegen Sie den Verletzten nicht.	
+d01	Wo ist...?	
+d02	Wo ist die Toilette?	
+d03	Wie weit ist es?	
+d04	Links.	
+d05	Rechts.	
+d06	Geradeaus.	
+d07	Hinten.	
+d08	Nah.	
+d09	Weit.	
+d10	Bitte zeigen Sie es mir auf dieser Karte.	
+d11	Wo bin ich auf dieser Karte?	
+d12	Ist es zu Fuß erreichbar?	
+d13	Norden.	
+d14	Süden.	
+d15	Osten.	
+d16	Westen.	
+t01	Wo ist der Busbahnhof?	
+t02	Wo ist der Bahnhof?	
+t03	Wo ist der Flughafen?	
+t04	Ich brauche ein Taxi.	
+t05	Was kostet eine Fahrkarte?	
+t06	Eine Fahrkarte, bitte.	
+t07	Zwei Fahrkarten, bitte.	
+t08	Wann fährt es ab?	
+t09	Wann kommt es an?	
+t10	Wo ist die Tankstelle?	
+t11	Ist das der Weg nach...?	
+t12	Bitte bringen Sie mich zu dieser Adresse.	
+t13	Bitte halten Sie hier an.	
+t14	Wo kann ich ein Auto mieten?	
+f01	Wasser, bitte.	
+f02	Kann man dieses Wasser trinken?	
+f03	Wo ist ein Restaurant?	
+f04	Einen Tisch für zwei, bitte.	
+f05	Die Speisekarte, bitte.	
+f06	Ich bin Vegetarier.	
+f07	Kein Fleisch, bitte.	
+f08	Nicht scharf, bitte.	
+f09	Das ist lecker.	
+f10	Die Rechnung, bitte.	
+f11	Das habe ich nicht bestellt.	
+f12	Wo kann ich Essen kaufen?	
+f13	Einen Kaffee, bitte.	
+f14	Ein Bier, bitte.	
+m01	Wie viel kostet das?	
+m02	Das ist zu teuer.	
+m03	Nehmen Sie Kreditkarten?	
+m04	Nur Barzahlung?	
+m05	Wo ist ein Geldautomat?	
+m06	Wo ist eine Bank?	
+m07	Kann ich eine Quittung bekommen?	
+m08	Stimmt so.	
+m09	Ich möchte das kaufen.	
+m10	Haben Sie etwas Günstigeres?	
+l01	Haben Sie ein Zimmer frei?	
+l02	Wie viel pro Nacht?	
+l03	Ich habe eine Reservierung.	
+l04	Eine Nacht.	
+l05	Zwei Nächte.	
+l06	Wo kann ich zelten?	
+l07	Ist Zelten hier erlaubt?	
+l08	Wo ist die Dusche?	
+l09	Den Schlüssel, bitte.	
+l10	Wann muss ich auschecken?	
+o01	Ist dieser Weg offen?	
+o02	Wohin führt dieser Weg?	
+o03	Wie viele Kilometer bis zum Gipfel?	
+o04	Gibt es Wasser auf dem Weg?	
+o05	Wo ist die nächste Wasserstelle?	
+o06	Ist die Flussüberquerung sicher?	
+o07	Schlechtes Wetter zieht auf.	
+o08	Wo ist die nächste Schutzhütte?	
+o09	Gibt es hier gefährliche Tiere?	
+o10	Haben Sie diese Person gesehen?	
+o11	Wie komme ich zum Startpunkt des Wegs?	
+o12	Wo ist die Rangerstation?	
+o13	Können Sie mich in die Stadt mitnehmen?	
+o14	Mein Funkgerät erreicht meine Gruppe.	
+o15	Haben Sie hier Handyempfang?	
+n01	Null	
+n02	Eins	
+n03	Zwei	
+n04	Drei	
+n05	Vier	
+n06	Fünf	
+n07	Sechs	
+n08	Sieben	
+n09	Acht	
+n10	Neun	
+n11	Zehn	
+n12	Zwanzig	
+n13	Fünfzig	
+n14	Hundert	
+n15	Tausend	
+n16	Heute	
+n17	Morgen	
+n18	Gestern	
+n19	Jetzt	
+n20	Später	
+n21	Eine Stunde	
+n22	Vormittag	
+n23	Nacht	
