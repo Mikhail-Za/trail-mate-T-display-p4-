@@ -15,7 +15,9 @@
 #include "lvgl.h"
 #include "ui/app_runtime.h"
 #include "ui/callback_app_screen.h"
+#include "ui/support/lvgl_fs_utils.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <string>
@@ -47,26 +49,12 @@ struct FieldGuideAppState
 
 FieldGuideAppState s_state;
 
+// Slurp an SD file via the shared ui::fs helper (loops to true EOF; a local
+// break-on-short-read would silently truncate an article since the LVGL POSIX
+// read is a single read() that can return a partial count mid-file).
 bool read_text_file(const char* path, std::string& out)
 {
-    out.clear();
-    lv_fs_file_t f;
-    if (lv_fs_open(&f, path, LV_FS_MODE_RD) != LV_FS_RES_OK)
-    {
-        return false;
-    }
-    char buf[512];
-    uint32_t br = 0;
-    while (lv_fs_read(&f, buf, sizeof(buf), &br) == LV_FS_RES_OK && br > 0)
-    {
-        out.append(buf, br);
-        if (br < sizeof(buf))
-        {
-            break;
-        }
-    }
-    lv_fs_close(&f);
-    return !out.empty();
+    return ::ui::fs::read_text_file(path, out);
 }
 
 bool load_index(FieldGuideAppState* st)
@@ -227,6 +215,70 @@ void show_entry_list_screen(FieldGuideAppState* st)
     }
 }
 
+// Show the photo attribution required by the CC-BY / CC-BY-SA licenses. The staging
+// pipeline merges every per-photo credit into A:/guides/photos/CREDITS.tsv as rows
+// "<section>/<stem>\t<n>.jpg\t<species>\t<artist>\t<license>\t<url>". We list the
+// unique "artist (license)" pairs for this article; without this on-device credit the
+// firmware would ship the images in breach of their license terms.
+void append_photo_credits(FieldGuideAppState* st, const std::string& stem)
+{
+    std::string text;
+    if (!read_text_file("A:/guides/photos/CREDITS.tsv", text))
+    {
+        return;
+    }
+    std::string credit; // "Artist (License); Artist2 (License2)"
+    size_t pos = 0;
+    while (pos < text.size())
+    {
+        size_t eol = text.find('\n', pos);
+        const size_t line_end = (eol == std::string::npos) ? text.size() : eol;
+        const std::string line = text.substr(pos, line_end - pos);
+        pos = line_end + 1;
+        // Fields: stem, n.jpg, species, artist, license, url
+        size_t t0 = line.find('\t');
+        if (t0 == std::string::npos || line.compare(0, t0, stem) != 0)
+        {
+            continue;
+        }
+        size_t t2 = line.find('\t', line.find('\t', t0 + 1) + 1); // end of species
+        if (t2 == std::string::npos)
+        {
+            continue;
+        }
+        size_t t3 = line.find('\t', t2 + 1); // end of artist
+        if (t3 == std::string::npos)
+        {
+            continue;
+        }
+        size_t t4 = line.find('\t', t3 + 1); // end of license
+        const std::string artist = line.substr(t2 + 1, t3 - t2 - 1);
+        const std::string license =
+            line.substr(t3 + 1, (t4 == std::string::npos ? line.size() : t4) - t3 - 1);
+        std::string pair = artist + " (" + license + ")";
+        if (credit.find(pair) == std::string::npos) // dedup
+        {
+            if (!credit.empty())
+            {
+                credit += "; ";
+            }
+            credit += pair;
+        }
+    }
+    if (credit.empty())
+    {
+        return;
+    }
+    std::string full = "Photos: " + credit + " / Wikimedia Commons";
+    lv_obj_t* cred = lv_label_create(st->body);
+    lv_obj_set_width(cred, LV_PCT(100));
+    lv_label_set_long_mode(cred, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(cred, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(cred, lv_color_hex(0x9A9A9A), 0);
+    lv_obj_set_style_pad_top(cred, 4, 0);
+    lv_label_set_text(cred, full.c_str());
+}
+
 void show_article_screen(FieldGuideAppState* st)
 {
     clear_body(st);
@@ -260,6 +312,9 @@ void show_article_screen(FieldGuideAppState* st)
     {
         body_text.erase(0, start);
     }
+    // Strip every remaining CR: source guide files are CRLF, and LVGL has no glyph
+    // for \r, so an unstripped body draws a tofu box at the end of every line.
+    body_text.erase(std::remove(body_text.begin(), body_text.end(), '\r'), body_text.end());
 
     lv_obj_t* head = lv_label_create(st->body);
     lv_obj_set_width(head, LV_PCT(100));
@@ -269,30 +324,32 @@ void show_article_screen(FieldGuideAppState* st)
 
     // Photos: convention-based, no index needed. For article <section>/<name>.txt the
     // pipeline stages A:/guides/photos/<section>/<name>/1.jpg .. N.jpg (baseline JPEG,
-    // pre-sized to 500px wide so no on-device scaling). Probe and show what exists;
-    // decoding happens via the TJPGD decoder when the widget first renders.
+    // pre-sized to 500px wide) numbered CONTIGUOUSLY from 1; probe stops at the first
+    // gap. lv_image copies the path string (lv_strdup), so a stack buffer is fine.
+    std::string photo_stem = entry.path; // "<section>/<name>.txt"
+    const size_t dot = photo_stem.rfind(".txt");
+    if (dot != std::string::npos)
     {
-        std::string stem = entry.path; // "<section>/<name>.txt"
-        const size_t dot = stem.rfind(".txt");
-        if (dot != std::string::npos)
+        photo_stem.erase(dot);
+    }
+    int photos_shown = 0;
+    for (int i = 1; i <= 6; ++i)
+    {
+        char photo_path[160];
+        std::snprintf(photo_path, sizeof(photo_path), "A:/guides/photos/%s/%d.jpg",
+                      photo_stem.c_str(), i);
+        if (!::ui::fs::file_exists(photo_path))
         {
-            stem.erase(dot);
+            break;
         }
-        for (int i = 1; i <= 6; ++i)
-        {
-            char photo_path[160];
-            std::snprintf(photo_path, sizeof(photo_path), "A:/guides/photos/%s/%d.jpg",
-                          stem.c_str(), i);
-            lv_fs_file_t probe;
-            if (lv_fs_open(&probe, photo_path, LV_FS_MODE_RD) != LV_FS_RES_OK)
-            {
-                break;
-            }
-            lv_fs_close(&probe);
-            lv_obj_t* img = lv_image_create(st->body);
-            lv_image_set_src(img, photo_path);
-            lv_obj_set_style_pad_top(img, 6, 0);
-        }
+        lv_obj_t* img = lv_image_create(st->body);
+        lv_image_set_src(img, photo_path);
+        lv_obj_set_style_pad_top(img, 6, 0);
+        ++photos_shown;
+    }
+    if (photos_shown > 0)
+    {
+        append_photo_credits(st, photo_stem);
     }
 
     lv_obj_t* body_lbl = lv_label_create(st->body);
