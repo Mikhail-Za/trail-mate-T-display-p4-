@@ -91,6 +91,10 @@ TeamPageKickConfirmEffects TeamPageKickConfirmAction::confirmKick(
     uint32_t self_node_id) const
 {
     TeamPageKickConfirmEffects effects;
+    if (!state.self_is_leader)
+    {
+        return effects;
+    }
     const int idx = state.selected_member_index;
     if (idx < 0 || idx >= static_cast<int>(state.members.size()))
     {

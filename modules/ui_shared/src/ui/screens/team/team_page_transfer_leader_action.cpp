@@ -29,6 +29,10 @@ TeamPageTransferLeaderAction::transferLeader(
     const TeamPageKeyEventLog& key_log) const
 {
     TeamPageTransferLeaderEffects effects;
+    if (!state.self_is_leader)
+    {
+        return effects;
+    }
     const int idx = state.selected_member_index;
     if (idx < 0 || idx >= static_cast<int>(state.members.size()))
     {
