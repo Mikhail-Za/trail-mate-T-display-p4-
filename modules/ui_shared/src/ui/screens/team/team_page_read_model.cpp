@@ -148,6 +148,7 @@ TeamMemberDetailView TeamPageReadModel::buildSelectedMember(
     detail.member = buildMemberRow(input.members[index], index);
     detail.last_seen = buildLastSeen(input.members[index].last_seen_s);
     detail.management_actions_enabled =
+        input.self_is_leader &&
         input.has_team_psk &&
         input.has_team_id &&
         input.security_round > 0 &&

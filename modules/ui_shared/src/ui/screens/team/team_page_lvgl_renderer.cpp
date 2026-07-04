@@ -404,12 +404,17 @@ void TeamPageLvglRenderer::renderStatusInTeam(
     }
 
     addLabel(context.body, ::ui::i18n::tr("Team Health"), true, false);
-    std::string last_update = formatLastUpdate(summary.last_update);
-    const std::string leader_health =
-        std::string("- ") + ::ui::i18n::tr("Leader online") +
+    const std::string last_update = formatLastUpdate(summary.last_update);
+    const unsigned online_members = static_cast<unsigned>(summary.online_count);
+    const unsigned total_members = static_cast<unsigned>(summary.member_count);
+    const unsigned stale_members =
+        (total_members > online_members) ? (total_members - online_members) : 0u;
+    const std::string team_health =
+        std::string("- ") +
+        ::ui::i18n::format("%u/%u online", online_members, total_members) +
         "\n- " + last_update +
-        "\n- " + ::ui::i18n::tr("1 member stale");
-    addLabel(context.body, leader_health.c_str(), false, true);
+        "\n- " + ::ui::i18n::format("%u stale", stale_members);
+    addLabel(context.body, team_health.c_str(), false, true);
 
     if (context.action_btns && context.action_btn_count > 0)
     {

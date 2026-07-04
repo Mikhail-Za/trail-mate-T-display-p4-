@@ -298,6 +298,11 @@ TeamPageEventEffects TeamPageEventReducer::reduceTransferLeader(
     const team::TeamTransferLeaderEvent& event) const
 {
     TeamPageEventEffects effects;
+    if (!acceptsTeam(state, event.ctx))
+    {
+        return effects;
+    }
+
     const uint32_t target = event.msg.target;
     for (auto& member : state.members)
     {
