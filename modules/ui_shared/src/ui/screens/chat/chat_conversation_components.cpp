@@ -144,6 +144,47 @@ std::string format_team_rich_payload_text(
 }
 } // namespace
 
+// Sentinel address stored as user_data on the "no messages yet" empty-state label so
+// it can be located and removed once a real message arrives. Kept file-static because
+// the screen header (which we do not own) has no member field for it.
+static char g_conv_empty_placeholder_tag = 0;
+
+static void remove_conversation_empty_placeholder(lv_obj_t* msg_list)
+{
+    if (!msg_list || !lv_obj_is_valid(msg_list))
+    {
+        return;
+    }
+    const uint32_t count = lv_obj_get_child_count(msg_list);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        lv_obj_t* child = lv_obj_get_child(msg_list, i);
+        if (child && lv_obj_get_user_data(child) == &g_conv_empty_placeholder_tag)
+        {
+            lv_obj_del(child);
+            return;
+        }
+    }
+}
+
+static void show_conversation_empty_placeholder(lv_obj_t* msg_list)
+{
+    if (!msg_list || !lv_obj_is_valid(msg_list))
+    {
+        return;
+    }
+    remove_conversation_empty_placeholder(msg_list); // guard against duplicates
+    lv_obj_t* label = lv_label_create(msg_list);
+    lv_obj_set_user_data(label, &g_conv_empty_placeholder_tag);
+    lv_obj_set_width(label, LV_PCT(100));
+    lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, lv_color_hex(0x9A8A6A), LV_PART_MAIN);
+    lv_obj_set_style_margin_top(label, 16, LV_PART_MAIN);
+    ::ui::i18n::set_label_text(label, "No messages yet");
+    ::ui::fonts::apply_localized_font(
+        label, lv_label_get_text(label), ::ui::fonts::ui_chrome_font());
+}
+
 static bool is_valid_epoch_ts(uint32_t ts)
 {
     return ts >= kMinValidEpochSeconds;
@@ -372,6 +413,8 @@ void ChatConversationScreen::addMessage(const ::ui::chat::MessageRow& row)
     {
         return;
     }
+    // A real message is arriving: drop the "no messages yet" hint if it is showing.
+    remove_conversation_empty_placeholder(msg_list_);
     if (messages_.size() >= MAX_DISPLAY_MESSAGES)
     {
         MessageItem& oldest = messages_[0];
@@ -400,6 +443,9 @@ void ChatConversationScreen::clearMessages()
         }
     }
     messages_.clear();
+    // With no messages left, the scroll area would be blank; show a centered hint
+    // (mirrors the channel list's empty-state) until a real message is added.
+    show_conversation_empty_placeholder(msg_list_);
 }
 
 void ChatConversationScreen::scrollToBottom()

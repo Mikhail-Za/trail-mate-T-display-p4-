@@ -297,7 +297,7 @@ static std::string format_time_status(uint32_t last_seen)
 
     uint32_t age_secs = now_secs - last_seen;
 
-    // Online: 闂?2 minutes
+    // Online: 0-2 minutes
     if (age_secs <= 120)
     {
         return ::ui::i18n::tr("Online");
@@ -2819,6 +2819,40 @@ void refresh_ui()
         // Clicking a list row opens the action menu.
         lv_obj_add_event_cb(item, on_list_item_clicked, LV_EVENT_CLICKED, nullptr);
         lv_obj_add_event_cb(item, on_list_item_focused, LV_EVENT_FOCUSED, nullptr);
+    }
+
+    // Empty-state placeholder: a scroll-list mode with no rows would otherwise render
+    // a blank panel. Mirror the chat message-list "No messages" affordance with a
+    // muted centered label. Contacts mode is skipped because it always pins the
+    // "My ID" / "+ Add by ID" rows below and so is never truly blank.
+    if (use_scroll_list &&
+        current_list->empty() &&
+        g_contacts_state.current_mode != ContactsMode::Contacts)
+    {
+        const char* empty_text = nullptr;
+        switch (g_contacts_state.current_mode)
+        {
+        case ContactsMode::Nearby:
+            empty_text = "No nodes heard yet";
+            break;
+        case ContactsMode::Ignored:
+            empty_text = "No ignored nodes";
+            break;
+        case ContactsMode::Broadcast:
+            empty_text = "No broadcast targets";
+            break;
+        case ContactsMode::Discover:
+            empty_text = "No actions available";
+            break;
+        default:
+            empty_text = "Nothing here yet";
+            break;
+        }
+        lv_obj_t* empty_label = lv_label_create(g_contacts_state.sub_container);
+        contacts::ui::style::apply_label_muted(empty_label);
+        lv_obj_set_width(empty_label, LV_PCT(100));
+        lv_obj_set_style_text_align(empty_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+        ::ui::i18n::set_label_text(empty_label, empty_text);
     }
 
     // Pin two non-node rows in the Contacts list:
