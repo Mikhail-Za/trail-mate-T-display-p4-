@@ -280,6 +280,9 @@ static void handle_map_touch_move(lv_indev_t* indev, const lv_point_t& point)
         }
 
         g_gps_state.touch_pan.dragging = true;
+        // A drag is not a tap: drop any pending single-tap so a tap-then-drag-then-tap
+        // sequence cannot pair the pre-drag tap into a phantom double-tap zoom-in.
+        g_gps_state.last_tap_ms = 0;
         if (is_pan_editing())
         {
             action_pan_exit();
@@ -326,15 +329,18 @@ static void apply_zoom_level_centered(int new_level);
 
 // Zoom one step from a gesture (pinch step, double-tap, two-finger tap). No-op at the
 // zoom bounds so a clamped step is not mistaken for a view change.
-static void apply_gesture_zoom_step(int delta)
+// Returns true if the zoom actually changed; false if clamped at a bound (so a gesture
+// at the zoom limit is not mistakenly consumed as a "step").
+static bool apply_gesture_zoom_step(int delta)
 {
     const int target = g_gps_state.zoom_level + delta;
     if (target < gps_ui::kMinZoom || target > gps_ui::kMaxZoom)
     {
-        return;
+        return false;
     }
     updateUserActivity();
     apply_zoom_level_centered(target);
+    return true;
 }
 
 static void handle_map_touch_release(lv_indev_t* indev, const lv_point_t& point)
@@ -372,8 +378,7 @@ static void handle_map_touch_release(lv_indev_t* indev, const lv_point_t& point)
             tap_dx <= kDoubleTapMaxDistPx && tap_dy <= kDoubleTapMaxDistPx)
         {
             g_gps_state.last_tap_ms = 0;
-            GPS_FLOW_LOG("[GPS][MAP][touch] double_tap zoom_in level=%d\n",
-                         g_gps_state.zoom_level);
+            GPS_LOG("[GPS][MAP][touch] double_tap zoom_in level=%d\n", g_gps_state.zoom_level);
             apply_gesture_zoom_step(+1);
         }
         else
@@ -415,14 +420,15 @@ static void handle_map_pinch(const int32_t x[2], const int32_t y[2])
             return;
         }
         reset_map_touch_pan_state(); // the second finger cancels any in-progress pan
+        g_gps_state.last_tap_ms = 0;  // a pinch is not a tap; drop any pending single tap
         pinch.active = true;
         pinch.stepped = false;
         pinch.start_dist_sq = dist_sq;
         pinch.start_ms = now;
         pinch.last_step_ms = now;
-        GPS_FLOW_LOG("[GPS][MAP][touch] pinch_begin dist_sq=%lld zoom=%d\n",
-                     static_cast<long long>(dist_sq),
-                     g_gps_state.zoom_level);
+        GPS_LOG("[GPS][MAP][touch] pinch_begin dist_sq=%lld zoom=%d\n",
+                static_cast<long long>(dist_sq),
+                g_gps_state.zoom_level);
         return;
     }
 
@@ -432,21 +438,28 @@ static void handle_map_pinch(const int32_t x[2], const int32_t y[2])
         return;
     }
 
+    // Only treat it as a step (consuming the gesture / re-baselining) if the zoom
+    // actually changed. At a zoom bound a spread/pinch is a no-op and must NOT set
+    // stepped, or the release could no longer register the intended two-finger tap.
     if (dist_sq * 100 > pinch.start_dist_sq * 256)
     {
-        apply_gesture_zoom_step(+1);
-        pinch.start_dist_sq = dist_sq;
-        pinch.last_step_ms = now;
-        pinch.stepped = true;
-        GPS_FLOW_LOG("[GPS][MAP][touch] pinch_in zoom=%d\n", g_gps_state.zoom_level);
+        if (apply_gesture_zoom_step(+1))
+        {
+            pinch.start_dist_sq = dist_sq;
+            pinch.last_step_ms = now;
+            pinch.stepped = true;
+            GPS_LOG("[GPS][MAP][touch] pinch_in zoom=%d\n", g_gps_state.zoom_level);
+        }
     }
     else if (dist_sq * 256 < pinch.start_dist_sq * 100)
     {
-        apply_gesture_zoom_step(-1);
-        pinch.start_dist_sq = dist_sq;
-        pinch.last_step_ms = now;
-        pinch.stepped = true;
-        GPS_FLOW_LOG("[GPS][MAP][touch] pinch_out zoom=%d\n", g_gps_state.zoom_level);
+        if (apply_gesture_zoom_step(-1))
+        {
+            pinch.start_dist_sq = dist_sq;
+            pinch.last_step_ms = now;
+            pinch.stepped = true;
+            GPS_LOG("[GPS][MAP][touch] pinch_out zoom=%d\n", g_gps_state.zoom_level);
+        }
     }
 }
 
@@ -463,12 +476,13 @@ static void end_map_pinch(bool finger_still_down)
     const uint32_t now = sys::millis_now();
     if (!pinch.stepped && (now - pinch.start_ms) <= kTwoFingerTapMaxMs)
     {
-        GPS_FLOW_LOG("[GPS][MAP][touch] two_finger_tap zoom_out level=%d\n",
-                     g_gps_state.zoom_level);
+        GPS_LOG("[GPS][MAP][touch] two_finger_tap zoom_out level=%d\n", g_gps_state.zoom_level);
         apply_gesture_zoom_step(-1);
     }
     pinch.active = false;
     pinch.stepped = false;
+    pinch.high_polls = 0;
+    pinch.low_polls = 0;
     // Swallow the lingering finger (if one stays down) so it cannot yank the map into a
     // pan from wherever that finger happens to rest.
     pinch.cooldown = finger_still_down;
@@ -479,6 +493,8 @@ static void reset_map_pinch_state()
     g_gps_state.touch_pinch.active = false;
     g_gps_state.touch_pinch.stepped = false;
     g_gps_state.touch_pinch.cooldown = false;
+    g_gps_state.touch_pinch.high_polls = 0;
+    g_gps_state.touch_pinch.low_polls = 0;
 }
 
 static void map_touch_poll_timer_cb(lv_timer_t* timer)
@@ -517,25 +533,43 @@ static void map_touch_poll_timer_cb(lv_timer_t* timer)
     const bool is_pressed = lv_indev_get_state(indev) == LV_INDEV_STATE_PRESSED;
 
     // Two-finger gestures first: while a second finger is down, the pinch machine owns
-    // the input and the single-finger pan/tap paths below are suppressed.
+    // the input and the single-finger pan/tap paths below are suppressed. Engage and end
+    // are debounced over two consecutive polls so a single noisy or dropped touch sample
+    // (likely in wet/cold field conditions) cannot cancel a pan or fire a phantom zoom.
     int32_t mt_x[2] = {0, 0};
     int32_t mt_y[2] = {0, 0};
     const uint8_t finger_count = platform::ui::device::touch_points(mt_x, mt_y);
+    auto& pinch = g_gps_state.touch_pinch;
     if (finger_count >= 2)
     {
+        pinch.low_polls = 0;
+        if (!pinch.active && pinch.high_polls == 0)
+        {
+            pinch.high_polls = 1; // first 2-finger poll: wait for confirmation, don't
+            return;               // engage yet so a one-frame ghost can't cancel a pan
+        }
+        pinch.high_polls = 2;
+        lv_indev_stop_processing(indev); // don't let LVGL route finger-0 as click/scroll
         handle_map_pinch(mt_x, mt_y);
         return;
     }
-    if (g_gps_state.touch_pinch.active)
+    pinch.high_polls = 0;
+    if (pinch.active)
     {
+        lv_indev_stop_processing(indev);
+        if (pinch.low_polls == 0)
+        {
+            pinch.low_polls = 1; // absorb one dropped sample before ending the pinch
+            return;
+        }
         end_map_pinch(is_pressed);
         return;
     }
-    if (g_gps_state.touch_pinch.cooldown)
+    if (pinch.cooldown)
     {
         if (!is_pressed)
         {
-            g_gps_state.touch_pinch.cooldown = false;
+            pinch.cooldown = false;
         }
         return;
     }
@@ -577,6 +611,11 @@ void bind_map_touch_input()
         g_gps_state.touch_timer = gps::ui::lifetime::add_timer(map_touch_poll_timer_cb, 16, nullptr);
     }
     reset_map_touch_pan_state();
+    reset_map_pinch_state();
+    // Turn on the wider 2-point touch read only while the map is active (it is off on
+    // every other screen, which keeps the proven single-point read and its lower I2C
+    // cost everywhere else).
+    platform::ui::device::set_multitouch_enabled(true);
     GPS_FLOW_LOG("[GPS][MAP][touch] bind indev=%p root=%p map=%p timer=%p\n",
                  static_cast<void*>(indev),
                  static_cast<void*>(g_gps_state.root),
@@ -586,6 +625,9 @@ void bind_map_touch_input()
 
 void unbind_map_touch_input()
 {
+    // Restore the single-point read on every other screen.
+    platform::ui::device::set_multitouch_enabled(false);
+    reset_map_pinch_state();
     if (g_gps_state.touch_timer != nullptr)
     {
         auto& timers = g_gps_state.timers;

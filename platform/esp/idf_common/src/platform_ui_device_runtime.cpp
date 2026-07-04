@@ -190,4 +190,13 @@ uint8_t touch_points(int32_t out_x[2], int32_t out_y[2])
 #endif
 }
 
+void set_multitouch_enabled(bool enabled)
+{
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
+    trail_mate_t_display_p4_set_multitouch(enabled);
+#else
+    (void)enabled;
+#endif
+}
+
 } // namespace platform::ui::device

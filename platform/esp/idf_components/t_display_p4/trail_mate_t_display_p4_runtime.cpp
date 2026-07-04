@@ -317,6 +317,13 @@ struct TouchSnapshot
 };
 TouchSnapshot s_touch_snapshot;
 
+// Multi-touch is OFF by default: the LVGL pointer feed uses the original, hardware-
+// proven single-point read on every screen, and the wider (still hardware-untested)
+// 2-point read is only performed when a screen that needs pinch (the map) turns it on
+// via set_multitouch. This keeps the extra I2C bytes off every non-map screen and
+// confines any risk in the new multi-read to the one place with a double-tap fallback.
+volatile bool s_multitouch_enabled = false;
+
 bool read_hi8561_touch(int32_t* out_x, int32_t* out_y, bool* out_pressed)
 {
     if (out_x == nullptr || out_y == nullptr || out_pressed == nullptr)
@@ -332,10 +339,50 @@ bool read_hi8561_touch(int32_t* out_x, int32_t* out_y, bool* out_pressed)
         return false;
     }
 
-    // Read from the touch-info BASE (finger-count byte + per-finger records), not from
-    // the first point record: layout per the reference Hi8561Touch::GetMultipleTouchPoint
-    // (cpp_bus_driver) -- [0]=finger count, then 5 bytes per finger at offset 3
-    // (x BE16, y BE16, pressure), 0xFFFF/0xFFFF marking an invalid/edge record.
+    if (!s_multitouch_enabled)
+    {
+        // Original single-point read (hardware-proven): read the first point record at
+        // base + offset, 5 bytes, x BE16 / y BE16 / pressure, 0xFFFF/0xFFFF = no touch.
+        const uint32_t point_address =
+            s_hi8561_touch_info_start_address + kHi8561TouchPointAddressOffset;
+        const uint8_t request[] = {
+            0xF3,
+            static_cast<uint8_t>(point_address >> 24),
+            static_cast<uint8_t>(point_address >> 16),
+            static_cast<uint8_t>(point_address >> 8),
+            static_cast<uint8_t>(point_address),
+            0x03,
+        };
+        uint8_t response[kHi8561SingleTouchPointDataSize] = {};
+        const esp_err_t err = i2c_master_transmit_receive(
+            s_touch_i2c_handle, request, sizeof(request), response, sizeof(response),
+            kTouchI2cTransactionTimeoutMs);
+        runtime_support::unlock_system_i2c();
+        if (err != ESP_OK)
+        {
+            return false;
+        }
+        const uint16_t raw_x = static_cast<uint16_t>(
+            (static_cast<uint16_t>(response[0]) << 8) | response[1]);
+        const uint16_t raw_y = static_cast<uint16_t>(
+            (static_cast<uint16_t>(response[2]) << 8) | response[3]);
+        if (raw_x == 0xFFFF && raw_y == 0xFFFF)
+        {
+            return true;
+        }
+        *out_x = std::clamp<int32_t>(raw_x, 0, active_panel().width - 1);
+        *out_y = std::clamp<int32_t>(raw_y, 0, active_panel().height - 1);
+        *out_pressed = true;
+        s_touch_snapshot.count = 1;
+        s_touch_snapshot.x[0] = *out_x;
+        s_touch_snapshot.y[0] = *out_y;
+        return true;
+    }
+
+    // Multi-touch read (map pinch only): from the touch-info BASE, layout per the
+    // reference Hi8561Touch::GetMultipleTouchPoint (cpp_bus_driver) -- [0]=finger count,
+    // then 5 bytes per finger at offset 3 (x BE16, y BE16, pressure), 0xFFFF/0xFFFF
+    // marking an invalid/edge record.
     const uint32_t base_address = s_hi8561_touch_info_start_address;
     const uint8_t request[] = {
         0xF3,
@@ -456,8 +503,9 @@ bool read_gt9895_touch(int32_t* out_x, int32_t* out_y, bool* out_pressed)
     s_touch_snapshot.x[0] = *out_x;
     s_touch_snapshot.y[0] = *out_y;
     // Second finger for gestures: the full buffer is already read; decode finger 1 only
-    // when the REAL finger count reports it (edge_touch synthesizes count 1, never 2).
-    if (finger_count >= 2)
+    // when multi-touch is enabled (map pinch) AND the REAL finger count reports it
+    // (edge_touch synthesizes count 1, never 2). Off the map, single-touch is unchanged.
+    if (s_multitouch_enabled && finger_count >= 2)
     {
         const uint8_t off1 = offset + kGt9895SingleTouchPointDataSize;
         const uint16_t raw_x1 = static_cast<uint16_t>(
@@ -851,4 +899,9 @@ extern "C" uint8_t trail_mate_t_display_p4_touch_points(int32_t out_x[2], int32_
         out_y[i] = s_touch_snapshot.y[i];
     }
     return count;
+}
+
+extern "C" void trail_mate_t_display_p4_set_multitouch(bool enabled)
+{
+    s_multitouch_enabled = enabled;
 }

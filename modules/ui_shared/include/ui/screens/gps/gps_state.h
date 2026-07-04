@@ -78,8 +78,11 @@ struct GPSPageState
     // resets re-arm it; a function-local latch would survive them and block reloads.
     bool last_fix_load_attempted = false;
     // Subtle "no offline tiles here" hint (child of map) so a blank view reads as
-    // no-coverage, not breakage.
+    // no-coverage, not breakage. The debounce timestamp lives in the struct (not a
+    // function-local static) so the enter()/exit() reset re-arms it; a static would
+    // carry a stale timestamp across page re-entry and flash the hint instantly.
     lv_obj_t* no_coverage_label = nullptr;
+    uint32_t no_coverage_blank_since_ms = 0;
 
     int pan_x = 0;
     int pan_y = 0;
@@ -196,6 +199,12 @@ struct GPSPageState
         int64_t start_dist_sq = 0;
         uint32_t start_ms = 0;
         uint32_t last_step_ms = 0;
+        // Debounce counters: a single noisy/dropped touch sample must not flip gesture
+        // state. Engage a pinch only after two consecutive 2-finger polls (so a ghost
+        // touch during a pan does not cancel it); end a pinch only after two consecutive
+        // sub-2 polls (so one dropped sample mid-pinch does not fire a phantom zoom-out).
+        uint8_t high_polls = 0;
+        uint8_t low_polls = 0;
     } touch_pinch;
     // Double-tap (single finger, on-map) zoom-in detection.
     uint32_t last_tap_ms = 0;

@@ -361,4 +361,9 @@ uint8_t touch_points(int32_t out_x[2], int32_t out_y[2])
     return 0;
 }
 
+void set_multitouch_enabled(bool enabled)
+{
+    (void)enabled;
+}
+
 } // namespace platform::ui::device

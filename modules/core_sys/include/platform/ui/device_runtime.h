@@ -50,5 +50,9 @@ int power_tier();
 // runtime reads only one point report 0/1; gestures needing a second finger (map
 // pinch) degrade gracefully to single-touch behavior there. UI-task use only.
 uint8_t touch_points(int32_t out_x[2], int32_t out_y[2]);
+// Enable/disable the wider multi-touch read. OFF by default so the LVGL pointer feed
+// uses the proven single-point read on every screen; a screen needing pinch (map) turns
+// it on while active. No-op on targets without a multi-touch runtime.
+void set_multitouch_enabled(bool enabled);
 
 } // namespace platform::ui::device

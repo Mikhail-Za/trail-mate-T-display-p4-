@@ -179,4 +179,10 @@ uint8_t touch_points(int32_t out_x[2], int32_t out_y[2])
     return 0;
 }
 
+void set_multitouch_enabled(bool enabled)
+{
+    // No multi-touch runtime on the Arduino boards; nothing to toggle.
+    (void)enabled;
+}
+
 } // namespace platform::ui::device

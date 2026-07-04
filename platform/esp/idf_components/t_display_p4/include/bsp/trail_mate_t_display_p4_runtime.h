@@ -19,6 +19,11 @@ extern "C"
      * I2C transactions that feed the LVGL pointer -- calling this adds no bus traffic).
      * Fills up to two points and returns the finger count (0..2). LVGL-task use only. */
     uint8_t trail_mate_t_display_p4_touch_points(int32_t out_x[2], int32_t out_y[2]);
+    /* Enable/disable the wider 2-point touch read. OFF by default: the LVGL pointer feed
+     * uses the proven single-point read on every screen; a screen that needs pinch (the
+     * map) turns this on while active so the extra I2C bytes and the second-finger decode
+     * are only paid where used. */
+    void trail_mate_t_display_p4_set_multitouch(bool enabled);
 
 #ifdef __cplusplus
 }
