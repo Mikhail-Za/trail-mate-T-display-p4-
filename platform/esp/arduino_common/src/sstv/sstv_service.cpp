@@ -1044,6 +1044,7 @@ void sstv_task(void*)
     goertzel_init(g1900, 1900.0, static_cast<double>(kSampleRate));
     double energy_sum = 0.0;
     uint32_t s_read_iter = 0; // successful codec.read count, for the read-fail diagnostic
+    bool read_failed = false;  // set when the loop breaks on a codec.read failure
 
     while (!s_stop)
     {
@@ -1061,6 +1062,7 @@ void sstv_task(void*)
             snprintf(buf, sizeof(buf), "Audio read failed (rc=%d)", read_state);
             set_error(buf);
             set_status(sstv::State::Error, 0, 0.0f, 0.0f, s_has_image);
+            read_failed = true;
             break;
         }
         s_read_iter += 1;
@@ -1447,7 +1449,13 @@ void sstv_task(void*)
     }
 
     s_active = false;
-    set_status(sstv::State::Idle, 0, 0.0f, 0.0f, s_has_image);
+    // On a clean stop, return to Idle. On a read failure, leave the Error status
+    // in place so the UI's status poll can actually observe and show it; a trailing
+    // Idle here would clobber the Error before refresh_cb ever reads it.
+    if (!read_failed)
+    {
+        set_status(sstv::State::Idle, 0, 0.0f, 0.0f, s_has_image);
+    }
     vTaskDelete(nullptr);
 }
 

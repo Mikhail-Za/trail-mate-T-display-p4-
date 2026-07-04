@@ -416,6 +416,22 @@ void refresh_cb(lv_timer_t*)
                 lv_obj_set_style_text_color(s_ui.label_ready, lv_color_hex(kColorWarn), 0);
             }
         }
+        else if (st.state == platform::ui::sstv::State::Idle)
+        {
+            // Capture ended (STOP pressed / task finished): reset the status block
+            // and progress bar back to the clean ready state instead of leaving
+            // the stale "Decoding.../RECEIVING" text frozen on screen.
+            if (s_ui.label_state_sub)
+            {
+                ::ui::i18n::set_label_text(s_ui.label_state_sub, "Press RX to start");
+            }
+            if (s_ui.label_ready)
+            {
+                ::ui::i18n::set_label_text(s_ui.label_ready, "SSTV RX READY");
+                lv_obj_set_style_text_color(s_ui.label_ready, lv_color_hex(kColorText), 0);
+            }
+            ui_sstv_set_progress(0.0f);
+        }
     }
 
     if (st.state == platform::ui::sstv::State::Receiving)
@@ -438,6 +454,13 @@ void refresh_cb(lv_timer_t*)
             {
                 const std::string text = ::ui::i18n::format("Saved: %s", saved);
                 lv_label_set_text(s_ui.label_state_sub, text.c_str());
+            }
+            else
+            {
+                // Image decoded but the SD write failed (card missing/removed,
+                // mkdir/open failure). Surface it instead of implying success by
+                // leaving the stale "Decoding: 100%" text.
+                ::ui::i18n::set_label_text(s_ui.label_state_sub, "Save failed (SD?)");
             }
         }
     }
