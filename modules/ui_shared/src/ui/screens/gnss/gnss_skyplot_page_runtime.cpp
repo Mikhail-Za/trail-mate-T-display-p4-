@@ -1046,6 +1046,16 @@ void refresh_gnss_data()
     gps::GnssStatus status{};
     if (!platform::ui::gps::get_gnss_snapshot(sats, gps::kMaxGnssSats, &count, &status))
     {
+        // The provider returns false whenever there are no satellites in view / no
+        // fix, which is exactly when a user opens this screen to watch acquisition.
+        // Do not early-return (that leaves the screen frozen/blank). Render the honest
+        // empty state instead: clear the satellite dots + table via the existing empty
+        // path, and show a NO FIX / 0-satellite status in the top-bar summary. The
+        // refresh timer keeps ticking, so the screen recovers once satellites appear.
+        ui_gnss_skyplot_set_sats(nullptr, 0);
+        GnssStatus ui_status{};
+        ui_status.fix = GnssStatus::NOFIX;
+        ui_gnss_skyplot_set_status(ui_status);
         return;
     }
 
