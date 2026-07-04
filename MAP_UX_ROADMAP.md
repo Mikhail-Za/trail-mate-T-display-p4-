@@ -143,6 +143,39 @@ decouple, and cleanups). Items surfaced but deliberately DEFERRED or ACCEPTED:
   pre-existing missing-tile probe call style; lastfix save/load DO take the guard).
   On the P4 the guard is a no-op either way.
 
+## 4. CODE-REVIEW FOLLOW-UPS (2026-07-04 max-effort review of the NEW session code:
+##    Translate + Field Guide apps, gestures, map polish, content pipeline)
+
+15 findings; the confirmed bugs were FIXED on-branch (commits cfa43f2, b1a7b58, af03ac6,
+a071e34, 8d22a50; compile-verified tft + amoled): Hi8561 read restored to the proven
+single-point path with the multi-read gated behind set_multitouch (was the sole pointer
+feed, HW-untested); read_text_file short-read truncation in both apps (-> ui::fs helper);
+guide CRLF->tofu; gesture single-sample-dropout debounce + lv_indev_stop_processing during
+pinch + clear-tap-on-drag + stepped-only-on-change; no-coverage-hint state leak; unbounded
+translate cat/phrase indexing; missing-font warning; hand-over hint keyed on phrase id;
+photo contiguity + on-device CC-BY attribution; age-tag per-frame churn. Items DEFERRED or
+ACCEPTED (not applied, with reasons):
+
+- **Photo scroll re-decode** (real perf): CONFIG_LV_CACHE_DEF_SIZE=0, so article JPEGs
+  re-decode on every repaint -> scrolling a photo-heavy article stutters. NOT applied blind
+  because an image cache changes global UI memory behavior incl. the HW-confirmed-working
+  map tiles. Fix for a flash-day session: set LV_CACHE_DEF_SIZE (~2-4MB, lands in PSRAM),
+  then re-verify map memory. Severity is on the bench checklist.
+- **Hi8561 edge-record / GT9895 finger-1 layout deep correctness**: the multi-read decode
+  is still HW-unverified (reference-derived). The single-point gating limits blast radius
+  to the map screen; the double-tap fallback covers a total pinch failure. Verify on HW.
+- **Two apps duplicate an SD list->detail browser** (read_text_file now shared; parser,
+  scaffold, go_back still ~2x): the right altitude is one SdContentBrowser base. Deferred
+  as a larger refactor with its own re-verification cost; a bug fixed in one app must be
+  mirrored to the other until then.
+- **Corrupt (not just missing) SD binfont** could crash lv_binfont_create: hard to guard
+  without validating the binfont; low probability (partial write). Noted.
+- **Pipeline atomicity / npm error handling**: non-atomic staging + raw tracebacks on
+  missing npm/lv_font_conv. Dev-tool robustness, low priority.
+- **place_map_marker not reused by team/signal markers**: real drift risk, but those paths
+  are HW-confirmed working; refactoring them risks a regression that can't be re-verified
+  now. Deferred over the drift risk.
+
 ---
 
 ## Key source references (for execution)

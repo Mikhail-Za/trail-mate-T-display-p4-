@@ -53,15 +53,26 @@ MAC-guarded, app-only @0xBC0000, boot-verifies both units over serial. Expect
       after a pinch does NOT yank the map (cooldown swallows the survivor).
 - [ ] Buttons (Zoom/Layer/Route/[P]) still respond normally to taps.
 
+- [ ] **Single-touch is now the proven path everywhere.** After the 2026-07-04 review,
+      the wider 2-finger read is only ON while the Map screen is open; every other screen
+      (menu, chat, flashlight, etc.) uses the original single-point read. Sanity-check
+      that plain tapping still works app-wide -- if ANY screen's touch is dead, that is
+      the regression to report (should be impossible by design now).
+
 ### If pinch is erratic or dead
 The Hi8561 two-finger read is the one piece never run on hardware (the known risk in
-MAP_UX_ROADMAP.md sec.1). Single-touch is unaffected by design, and double-tap /
-two-finger-tap still give full zoom control. For diagnosis, capture serial while
-pinching: the firmware prints `[GPS][MAP][touch] pinch_begin / pinch_in / pinch_out /
-two_finger_tap / double_tap` lines unconditionally.
+MAP_UX_ROADMAP.md sec.1). Single-touch is unaffected by design (it uses the proven
+5-byte read; the multi-read only runs on the map), and double-tap / two-finger-tap still
+give full zoom control. The per-step gesture traces are now behind GPS_DEBUG, so to
+diagnose, set `#define GPS_DEBUG 1` in gps_page_input.cpp + trail_mate_t_display_p4_runtime
+is unaffected, rebuild, and watch for `[GPS][MAP][touch] pinch_begin / pinch_in /
+pinch_out / two_finger_tap / double_tap`.
 - `pinch_begin` never appears -> the controller is not reporting 2 fingers (read_hi8561
-  multi-read layout is the suspect).
+  multi-read layout / finger-count byte is the suspect; the multi-read is gated behind
+  trail_mate_t_display_p4_set_multitouch, called by the map on entry).
 - `pinch_begin` but no steps -> spread hysteresis never crossed (finger geometry noise).
+- Gestures now debounce single-sample noise (need 2 consecutive polls to engage/end), so
+  a brief ghost touch should NOT cancel a pan or flip a zoom; if it still does, note it.
 
 ## 4. New apps: Translate + Field Guide (either unit, needs the SD card)
 - [ ] **Field Guide**: launcher shows the new icon; categories list (Survival, Water &
@@ -70,9 +81,14 @@ two_finger_tap / double_tap` lines unconditionally.
       categories -> launcher.
 - [ ] **Field Guide plant photos** (JPEG decoder path): open an Edible Plants article
       (e.g. Cattail) -> 2-3 real photos render inline above the text, sharp, full
-      screen width. Open a Plant Hazards article (e.g. poison ivy) -> its photos show.
-      Photo attributions are on the card at guides/photos/CREDITS.tsv. Text-only
-      sections (Survival, Preparedness, etc.) have no photos by design.
+      screen width, with a small grey "Photos: <artist> (<license>) / Wikimedia Commons"
+      attribution line under them (required by the CC-BY licenses). Open a Plant Hazards
+      article (e.g. poison ivy) -> its photos show. Article body text has NO stray boxes
+      at line ends (the CRLF->tofu fix). Text-only sections have no photos by design.
+- [ ] **Photo scrolling** (known perf caveat): scrolling a photo-heavy article may
+      stutter because LVGL's image cache is OFF (CONFIG_LV_CACHE_DEF_SIZE=0), so photos
+      re-decode on repaint. Deferred, not applied blind: if the jank is bad, the fix is
+      to set an image cache (~2-4MB, PSRAM) and re-verify map memory. Note the severity.
 - [ ] **Translate, forward**: pick Spanish -> categories appear + native name
       "Español" renders with accents; open Emergency -> "Help!" -> card shows
       "¡Auxilio!" LARGE. Latin fonts prove the SD binfont path.
@@ -81,6 +97,10 @@ two_finger_tap / double_tap` lines unconditionally.
       (connected letters) and right-to-left. Arabic is the riskiest renderer path
       (BIDI + presentation forms via the DejaVu subset); if it shows disconnected
       letterforms, capture a photo.
+- [ ] **Translate, font-missing warning**: rename one SD font (e.g.
+      translate/fonts/zh30.bin) and pick that language -> an orange warning appears
+      ("Font ... missing ... Romanization still works"), not silent blank boxes. Restore
+      the file after.
 - [ ] **Translate, hand-over**: "Hand device to them" -> flat list in the target
       language with the tap-a-phrase hint on top; tapping a phrase shows its English
       big. Back returns through list -> categories -> languages.
