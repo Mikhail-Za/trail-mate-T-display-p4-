@@ -185,7 +185,10 @@ def main():
             bad = [b for b in raw if b > 127]
             if bad:
                 sys.exit("FATAL non-ASCII byte in %s/%s" % (section, fn))
-            text = raw.decode("ascii")
+            # Normalize CRLF/CR to LF: source guides are authored on Windows (CRLF), and
+            # LVGL has no glyph for \r, so an unstripped body draws a tofu box at every
+            # line end on device. newline="\n" on write does NOT translate existing \r.
+            text = raw.decode("ascii").replace("\r\n", "\n").replace("\r", "\n")
             title = text.split("\n", 1)[0].strip()
             if not title:
                 sys.exit("FATAL empty title in %s/%s" % (section, fn))
@@ -218,17 +221,25 @@ def main():
                     continue
                 out_dir = os.path.join(gdir, "photos", section, stem)
                 n_out = 0
-                for fn in sorted(os.listdir(adir)):
+                # Collect numeric-stemmed image files sorted by numeric value (so 10
+                # sorts after 2), then emit them as a CONTIGUOUS 1..N run. The device
+                # probes 1.jpg, 2.jpg, ... and stops at the first gap, so a source gap
+                # or zero-padded/0-based name would otherwise silently drop photos
+                # (including the safety-critical deadly-lookalike contrast shots).
+                srcs = []
+                for fn in os.listdir(adir):
                     base, ext = os.path.splitext(fn)
-                    if ext.lower() not in (".jpg", ".jpeg", ".png") or not base.isdigit():
-                        continue
+                    if ext.lower() in (".jpg", ".jpeg", ".png") and base.isdigit():
+                        srcs.append((int(base), fn))
+                srcs.sort()
+                for out_n, (_src_num, fn) in enumerate(srcs, start=1):
                     img = Image.open(os.path.join(adir, fn))
                     img = ImageOps.exif_transpose(img).convert("RGB")
                     if img.width > 500:
                         img = img.resize((500, max(1, round(img.height * 500 / img.width))),
                                          Image.LANCZOS)
                     os.makedirs(out_dir, exist_ok=True)
-                    out_path = os.path.join(out_dir, base + ".jpg")
+                    out_path = os.path.join(out_dir, "%d.jpg" % out_n)
                     img.save(out_path, "JPEG", quality=80, progressive=False,
                              optimize=True)
                     n_out += 1
