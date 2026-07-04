@@ -26,6 +26,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <ctime>
 #include <string>
 
@@ -118,6 +119,10 @@ bool load_last_fix_file(double& lat, double& lng, uint64_t& epoch)
 // stored epoch or the clock is not trustworthy (RTC unset stamps epoch 0 / tiny values).
 void format_last_fix_age(uint64_t epoch, char* out, size_t out_size)
 {
+    if (out_size == 0)
+    {
+        return;
+    }
     out[0] = '\0';
     constexpr uint64_t kMinValidEpoch = 1577836800ULL; // 2020-01-01 UTC
     const uint64_t now = sys::epoch_seconds_now();
@@ -986,11 +991,18 @@ static void update_last_known_marker_position()
         g_gps_state.last_known_marker = m;
     }
     // Age tag ("2h" since that fix): child of the ring, so it shows/hides/moves with it.
+    // Only re-set the text when the coarse value actually changes -- this runs on every
+    // non-lightweight map refresh (every pan drag frame), and lv_label_set_text
+    // invalidates/relayouts even for identical text, so per-frame churn is wasted work.
     if (g_gps_state.last_known_age_label != NULL)
     {
         char age_text[16];
         format_last_fix_age(g_gps_state.last_known_epoch, age_text, sizeof(age_text));
-        lv_label_set_text(g_gps_state.last_known_age_label, age_text);
+        const char* cur = lv_label_get_text(g_gps_state.last_known_age_label);
+        if (cur == nullptr || std::strcmp(cur, age_text) != 0)
+        {
+            lv_label_set_text(g_gps_state.last_known_age_label, age_text);
+        }
     }
     place_map_marker(g_gps_state.last_known_marker,
                      g_gps_state.last_known_lat,
@@ -1008,20 +1020,20 @@ static void update_no_coverage_hint()
     {
         return;
     }
-    static uint32_t s_blank_since_ms = 0;
+    uint32_t& blank_since_ms = g_gps_state.no_coverage_blank_since_ms;
     const bool blank = g_gps_state.initial_tiles_loaded && !g_gps_state.has_visible_map_data &&
                        platform::ui::device::sd_ready();
     const uint32_t now_ms = sys::millis_now();
     if (!blank)
     {
-        s_blank_since_ms = 0;
+        blank_since_ms = 0;
     }
-    else if (s_blank_since_ms == 0)
+    else if (blank_since_ms == 0)
     {
-        s_blank_since_ms = (now_ms != 0) ? now_ms : 1;
+        blank_since_ms = (now_ms != 0) ? now_ms : 1;
     }
     constexpr uint32_t kBlankHoldMs = 1200;
-    const bool show = blank && (now_ms - s_blank_since_ms) >= kBlankHoldMs;
+    const bool show = blank && (now_ms - blank_since_ms) >= kBlankHoldMs;
 
     if (!show)
     {
