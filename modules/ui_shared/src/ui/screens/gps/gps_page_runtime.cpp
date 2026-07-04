@@ -304,6 +304,11 @@ class EspGpsRuntimeRefreshModel final : public ::ui::screens::gps::IGpsStatusRef
             tick_gps_update(false);
             return;
         }
+        if (modal_is_open(g_gps_state.route_modal))
+        {
+            tick_gps_update(false);
+            return;
+        }
 
         if (!has_fix_now && !g_gps_state.pending_refresh)
         {
@@ -658,6 +663,11 @@ void exit(lv_obj_t* parent)
         GPS_LOG("[GPS][EXIT] closing layer modal\n");
         modal_close(g_gps_state.layer_modal);
     }
+    if (g_gps_state.route_modal.is_open())
+    {
+        GPS_LOG("[GPS][EXIT] closing route modal\n");
+        modal_close(g_gps_state.route_modal);
+    }
     GPS_LOG("[GPS][EXIT] cleaning tracker overlay\n");
     gps_tracker_cleanup();
     gps_route_cleanup();
@@ -678,6 +688,12 @@ void exit(lv_obj_t* parent)
         GPS_LOG("[GPS][EXIT] deleting layer modal group\n");
         lv_group_del(g_gps_state.layer_modal.group);
         g_gps_state.layer_modal.group = nullptr;
+    }
+    if (g_gps_state.route_modal.group)
+    {
+        GPS_LOG("[GPS][EXIT] deleting route modal group\n");
+        lv_group_del(g_gps_state.route_modal.group);
+        g_gps_state.route_modal.group = nullptr;
     }
 
     GPS_LOG("[GPS][EXIT] cleanup tiles\n");

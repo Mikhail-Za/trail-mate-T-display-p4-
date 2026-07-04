@@ -1,6 +1,7 @@
 #include "ui/app_registry.h"
 
 #include "platform/ui/gps_runtime.h"
+#include "platform/ui/screen_runtime.h"
 #include "platform/ui/wireless_companion_runtime.h"
 #include "ui/app_catalog.h"
 #include "ui/app_runtime.h"
@@ -73,6 +74,10 @@ extern "C"
 struct CompanionPageState
 {
     lv_obj_t* root = nullptr;
+    lv_obj_t* status_list = nullptr;  // container the status lines are (re)built into
+    lv_timer_t* timer = nullptr;      // periodic status() refresh
+    uint32_t signature = 0;           // fold of the last-rendered status
+    bool have_signature = false;
 };
 
 CompanionPageState s_companion_page_state;
@@ -111,6 +116,98 @@ void add_hex_line(lv_obj_t* parent, const char* label, uint32_t value)
     add_status_line(parent, label, buf);
 }
 
+// Fold the companion Status into a cheap signature so the refresh timer only
+// rebuilds the status list when something actually changed (mirrors node_radar's
+// signature guard), never churning the UI (or resetting scroll) every tick.
+uint32_t companion_status_signature(const platform::ui::wireless_companion::Status& st)
+{
+    uint32_t sig = 2166136261u;  // FNV-1a-ish seed
+    auto fold = [&sig](uint32_t v) { sig = (sig ^ v) * 16777619u; };
+    fold(st.supported ? 1u : 0u);
+    fold(st.board_capable ? 1u : 0u);
+    fold(st.started ? 1u : 0u);
+    fold(st.present ? 1u : 0u);
+    fold(static_cast<uint32_t>(st.state));
+    fold(st.protocol_min);
+    fold(st.protocol_max);
+    fold(st.selected_protocol);
+    fold(st.supported_features);
+    fold(st.enabled_features);
+    fold(st.firmware_version);
+    fold(st.free_heap);
+    fold(st.config_seq);
+    fold(st.config_error);
+    fold(st.selected_mtu);
+    fold(st.ble_state);
+    fold(st.espnow_state);
+    fold(st.wifi_state);
+    for (const char* p = st.message; *p; ++p)
+    {
+        fold(static_cast<uint32_t>(static_cast<unsigned char>(*p)));
+    }
+    for (const char* p = st.detail; *p; ++p)
+    {
+        fold(static_cast<uint32_t>(static_cast<unsigned char>(*p)));
+    }
+    return sig;
+}
+
+// (Re)build the companion status lines into state->status_list from a fresh
+// status() snapshot. Reads the SAME source companion_enter first rendered.
+void companion_populate(CompanionPageState* state,
+                        const platform::ui::wireless_companion::Status& st)
+{
+    if (!state || !state->status_list || !lv_obj_is_valid(state->status_list))
+    {
+        return;
+    }
+    lv_obj_t* parent = state->status_list;
+    lv_obj_clean(parent);
+    add_status_line(parent, "State", platform::ui::wireless_companion::state_name(st.state));
+    add_status_line(parent, "Message", st.message);
+    add_status_line(parent, "Detail", st.detail);
+    add_status_line(parent, "Board capable", st.board_capable ? "yes" : "no");
+    add_status_line(parent, "Started", st.started ? "yes" : "no");
+    add_status_line(parent, "Present", st.present ? "yes" : "no");
+    add_u32_line(parent, "Protocol min", st.protocol_min);
+    add_u32_line(parent, "Protocol max", st.protocol_max);
+    add_u32_line(parent, "Selected protocol", st.selected_protocol);
+    add_hex_line(parent, "Supported features", st.supported_features);
+    add_hex_line(parent, "Enabled features", st.enabled_features);
+    add_u32_line(parent, "Config seq", st.config_seq);
+    add_u32_line(parent, "Config error", st.config_error);
+    add_u32_line(parent, "Selected MTU", st.selected_mtu);
+    add_status_line(parent, "BLE",
+                    platform::ui::wireless_companion::service_state_name(st.ble_state));
+    add_status_line(parent, "ESP-NOW",
+                    platform::ui::wireless_companion::service_state_name(st.espnow_state));
+    add_status_line(parent, "Wi-Fi",
+                    platform::ui::wireless_companion::service_state_name(st.wifi_state));
+    add_u32_line(parent, "Firmware", st.firmware_version);
+    add_u32_line(parent, "Free heap", st.free_heap);
+}
+
+// Refresh tick: re-read status() and, only when it changed, rebuild the lines so a
+// connect/disconnect after the page is opened is reflected (c6_companion previously
+// read status() once at enter with no refresh timer). Deleted in companion_exit.
+void companion_tick(lv_timer_t* timer)
+{
+    auto* state = static_cast<CompanionPageState*>(lv_timer_get_user_data(timer));
+    if (!state || !state->status_list || !lv_obj_is_valid(state->status_list))
+    {
+        return;
+    }
+    const auto st = platform::ui::wireless_companion::status();
+    const uint32_t sig = companion_status_signature(st);
+    if (state->have_signature && sig == state->signature)
+    {
+        return;  // nothing changed; leave the rendered lines (and scroll) intact
+    }
+    companion_populate(state, st);
+    state->signature = sig;
+    state->have_signature = true;
+}
+
 void companion_enter(void* user_data, lv_obj_t* parent)
 {
     auto* state = static_cast<CompanionPageState*>(user_data);
@@ -118,6 +215,11 @@ void companion_enter(void* user_data, lv_obj_t* parent)
     {
         return;
     }
+
+    state->status_list = nullptr;
+    state->timer = nullptr;
+    state->signature = 0;
+    state->have_signature = false;
 
     state->root = lv_obj_create(parent);
     lv_obj_set_size(state->root, LV_PCT(100), LV_PCT(100));
@@ -144,50 +246,51 @@ void companion_enter(void* user_data, lv_obj_t* parent)
 
     add_label(state->root, ::ui::i18n::tr("C6 Companion"), &lv_font_montserrat_14, ui::theme::text());
 
+    // Status lines live in a sub-container so the refresh timer can rebuild them in
+    // place (content-height + not-scrollable, so the root keeps handling scroll and
+    // the visual layout is unchanged from the previous direct-to-root version).
+    state->status_list = lv_obj_create(state->root);
+    lv_obj_set_width(state->status_list, LV_PCT(100));
+    lv_obj_set_height(state->status_list, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(state->status_list, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(state->status_list, 0, 0);
+    lv_obj_set_style_pad_all(state->status_list, 0, 0);
+    lv_obj_set_flex_flow(state->status_list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(state->status_list, 8, 0);
+    lv_obj_clear_flag(state->status_list, LV_OBJ_FLAG_SCROLLABLE);
+
+    // Render now, then refresh every ~1 s (rebuild only on change) so a
+    // connect/disconnect after opening is reflected.
     const auto st = platform::ui::wireless_companion::status();
-    add_status_line(state->root, "State", platform::ui::wireless_companion::state_name(st.state));
-    add_status_line(state->root, "Message", st.message);
-    add_status_line(state->root, "Detail", st.detail);
-    add_status_line(state->root, "Board capable", st.board_capable ? "yes" : "no");
-    add_status_line(state->root, "Started", st.started ? "yes" : "no");
-    add_status_line(state->root, "Present", st.present ? "yes" : "no");
-    add_u32_line(state->root, "Protocol min", st.protocol_min);
-    add_u32_line(state->root, "Protocol max", st.protocol_max);
-    add_u32_line(state->root, "Selected protocol", st.selected_protocol);
-
-    add_hex_line(state->root, "Supported features", st.supported_features);
-    add_hex_line(state->root, "Enabled features", st.enabled_features);
-    add_u32_line(state->root, "Config seq", st.config_seq);
-    add_u32_line(state->root, "Config error", st.config_error);
-    add_u32_line(state->root, "Selected MTU", st.selected_mtu);
-    add_status_line(state->root,
-                    "BLE",
-                    platform::ui::wireless_companion::service_state_name(st.ble_state));
-    add_status_line(state->root,
-                    "ESP-NOW",
-                    platform::ui::wireless_companion::service_state_name(st.espnow_state));
-    add_status_line(state->root,
-                    "Wi-Fi",
-                    platform::ui::wireless_companion::service_state_name(st.wifi_state));
-
-    add_u32_line(state->root, "Firmware", st.firmware_version);
-    add_u32_line(state->root, "Free heap", st.free_heap);
+    companion_populate(state, st);
+    state->signature = companion_status_signature(st);
+    state->have_signature = true;
+    state->timer = lv_timer_create(companion_tick, 1000, state);
 }
 
 void companion_exit(void* user_data, lv_obj_t* parent)
 {
     (void)parent;
     auto* state = static_cast<CompanionPageState*>(user_data);
-    if (!state || !state->root || !lv_obj_is_valid(state->root))
+    if (!state)
     {
-        if (state)
-        {
-            state->root = nullptr;
-        }
+        return;
+    }
+    // Delete the refresh timer first so it can never fire against a freed root.
+    if (state->timer)
+    {
+        lv_timer_del(state->timer);
+        state->timer = nullptr;
+    }
+    if (!state->root || !lv_obj_is_valid(state->root))
+    {
+        state->root = nullptr;
+        state->status_list = nullptr;
         return;
     }
     lv_obj_del(state->root);
     state->root = nullptr;
+    state->status_list = nullptr;  // owned by (and deleted with) the root tree
 }
 
 ui::CallbackAppScreen s_companion_app("c6_companion",
@@ -1566,6 +1669,7 @@ struct SystestPageState
     lv_timer_t* audio_timer = nullptr;
     lv_obj_t* mic_bar = nullptr;
     lv_obj_t* mic_value_label = nullptr;
+    lv_obj_t* audio_status_label = nullptr;  // speaker "Playing..." / error line
     double sine_phase = 0.0;
 #endif
 };
@@ -1622,6 +1726,7 @@ void systest_audio_close(SystestPageState* st)
     }
     st->mic_bar = nullptr;
     st->mic_value_label = nullptr;
+    st->audio_status_label = nullptr;
     st->sine_phase = 0.0;
 }
 
@@ -1649,7 +1754,14 @@ void systest_speaker_tick(lv_timer_t* timer)
     const int rc = st->audio_codec->write(reinterpret_cast<uint8_t*>(samples), sizeof(samples));
     if (rc < 0)
     {
+        // Codec write failed after a successful open: stop the tone and surface the
+        // failure instead of leaving the "Playing..." label showing success.
         lv_timer_pause(timer);
+        if (st->audio_status_label && lv_obj_is_valid(st->audio_status_label))
+        {
+            lv_obj_set_style_text_color(st->audio_status_label, ui::theme::error(), 0);
+            lv_label_set_text(st->audio_status_label, "Speaker test: codec write failed");
+        }
     }
 }
 
@@ -1666,6 +1778,14 @@ void systest_mic_tick(lv_timer_t* timer)
     const int rc = st->audio_codec->read(reinterpret_cast<uint8_t*>(samples), sizeof(samples));
     if (rc < 0)
     {
+        // Codec read failed after a successful open: stop polling and surface the
+        // failure instead of silently leaving the level meter frozen at its last value.
+        lv_timer_pause(timer);
+        if (st->mic_value_label && lv_obj_is_valid(st->mic_value_label))
+        {
+            lv_obj_set_style_text_color(st->mic_value_label, ui::theme::error(), 0);
+            lv_label_set_text(st->mic_value_label, "Mic test: codec read failed");
+        }
         return;
     }
     int32_t peak = 0;
@@ -1779,6 +1899,21 @@ void systest_open_color(SystestPageState* st)
             systest_color_apply(s);
         },
         LV_EVENT_CLICKED, st);
+
+    // On-screen escape hint so the test is not a blind tap-to-exit: a legible pill
+    // (dark translucent bg + light text) that stays visible on every color step.
+    // The label is not clickable, so taps fall through to the overlay and still
+    // advance / exit exactly as before.
+    lv_obj_t* hint = lv_label_create(ov);
+    lv_label_set_text(hint, "Tap: next color. Tap past the last to exit.");
+    lv_obj_set_style_text_font(hint, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(hint, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_set_style_bg_color(hint, lv_color_hex(0x202020), 0);
+    lv_obj_set_style_bg_opa(hint, LV_OPA_70, 0);
+    lv_obj_set_style_pad_all(hint, 8, 0);
+    lv_obj_set_style_radius(hint, 6, 0);
+    lv_obj_align(hint, LV_ALIGN_TOP_MID, 0, 10);
+
     systest_color_apply(st);
 }
 
@@ -2069,7 +2204,14 @@ void systest_open_speaker(SystestPageState* st)
     codec->setOutMute(false);
     codec->setVolume(80);
 
-    add_label(sub, "Playing ~1 kHz test tone...", &lv_font_montserrat_14, ui::theme::text());
+    // Keep a handle to the status line so systest_speaker_tick can flip it to an
+    // error state if the codec write later fails (mirrors add_label styling).
+    st->audio_status_label = lv_label_create(sub);
+    lv_label_set_text(st->audio_status_label, "Playing ~1 kHz test tone...");
+    lv_obj_set_width(st->audio_status_label, LV_PCT(100));
+    lv_label_set_long_mode(st->audio_status_label, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(st->audio_status_label, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_color(st->audio_status_label, ui::theme::text(), 0);
     st->audio_timer = lv_timer_create(systest_speaker_tick, kAudioTimerPeriodMs, st);
 }
 
@@ -2161,6 +2303,7 @@ void systest_enter(void* user_data, lv_obj_t* parent)
     state->audio_timer = nullptr;
     state->mic_bar = nullptr;
     state->mic_value_label = nullptr;
+    state->audio_status_label = nullptr;
     state->sine_phase = 0.0;
 
     // Boot-time ES8311 presence probe. The board self-test enters+exits this app
@@ -3525,6 +3668,12 @@ void flashlight_enter(void* user_data, lv_obj_t* parent)
         return;
     }
 
+    // The flashlight is a "screen stays lit" app: inhibit the idle auto-sleep task
+    // (ref-counted in screen_sleep.cpp) for the lifetime of the page so the
+    // deliberately-ON backlight is not force-killed after the idle timeout.
+    // Balanced by enable_sleep() in flashlight_exit; mirrors walkie/sstv/energy_sweep.
+    platform::ui::screen::disable_sleep();
+
     state->timer = nullptr;
     state->seg = 0;
     state->light_on = true;
@@ -3635,6 +3784,9 @@ void flashlight_exit(void* user_data, lv_obj_t* parent)
     {
         return;
     }
+    // Release the auto-sleep inhibit taken in flashlight_enter (balanced ref-count),
+    // so the panel returns to its normal idle-timeout behaviour once we leave.
+    platform::ui::screen::enable_sleep();
     // Delete the strobe timer first so it can never fire against a freed root.
     if (state->timer)
     {
@@ -3936,7 +4088,9 @@ void stopwatch_add_lap(StopwatchPageState* st)
     }
     if (st->lap_count >= StopwatchPageState::kMaxLaps)
     {
-        // Drop the oldest row (the last child) to keep the list bounded.
+        // Row list is full: drop the oldest row (the last child) to keep the list
+        // bounded. The lap NUMBER still increments below, so lap labels keep
+        // counting instead of freezing at kMaxLaps once the row cap is reached.
         const uint32_t child_count = lv_obj_get_child_count(st->lap_list);
         if (child_count > 0)
         {
@@ -3947,10 +4101,7 @@ void stopwatch_add_lap(StopwatchPageState* st)
             }
         }
     }
-    else
-    {
-        st->lap_count += 1;
-    }
+    st->lap_count += 1;
 
     char tbuf[24];
     stopwatch_format(stopwatch_elapsed_ms(st), tbuf, sizeof(tbuf));
@@ -4039,12 +4190,14 @@ void stopwatch_enter(void* user_data, lv_obj_t* parent)
     }
 
     // Fresh session state (preserve the dialed target across re-entries, but reset
-    // the run/laps so a stale running span can never carry over).
+    // the run/laps and the mode so a stale running span or a left-in-Timer mode can
+    // never carry over -- always reopen in Stopwatch mode).
     state->running = false;
     state->expired = false;
     state->accum_ms = 0;
     state->start_tick = lv_tick_get();
     state->lap_count = 0;
+    state->countdown = false;
     if (state->target_ms == 0)
     {
         state->target_ms = 60000;
@@ -4648,6 +4801,20 @@ uint32_t node_radar_rebuild(NodeRadarPageState* st, bool force)
                                                 : static_cast<int32_t>(n.snr * 10.0f);
         fold(static_cast<uint32_t>(rssi_q));
         fold(static_cast<uint32_t>(snr_q));
+    }
+
+    // Fold the LOCAL GPS fix (quantized to ~1e-5 deg, ~1.1 m) so that when WE move,
+    // the per-node distance labels rebuild even when the heard-node set is unchanged.
+    // Same fix source node_radar_add_row reads for the distances.
+    const gps::GpsState local_fix = platform::ui::gps::get_data();
+    if (local_fix.valid)
+    {
+        fold(static_cast<uint32_t>(static_cast<int32_t>(local_fix.lat * 1e5)));
+        fold(static_cast<uint32_t>(static_cast<int32_t>(local_fix.lng * 1e5)));
+    }
+    else
+    {
+        fold(0xFFFFFFFFu);  // no fix: distance lines are suppressed for every row
     }
 
     if (!force && st->have_signature && sig == st->signature)

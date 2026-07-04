@@ -282,6 +282,32 @@ void set_title(TranslateAppState* st, const char* text)
     }
 }
 
+// Brief, auto-dismissing message floated over the body (e.g. an SD load failure),
+// so a tap that can't proceed says why instead of dying silently. FLOATING keeps it
+// out of the column flex layout; it self-deletes, and is torn down with the tree on
+// exit (LVGL cancels the pending delete anim when the object is deleted first).
+void show_toast(TranslateAppState* st, const char* text)
+{
+    if (!st->root || !lv_obj_is_valid(st->root))
+    {
+        return;
+    }
+    lv_obj_t* toast = lv_label_create(st->root);
+    lv_obj_add_flag(toast, LV_OBJ_FLAG_FLOATING);
+    lv_obj_set_width(toast, LV_PCT(90));
+    lv_label_set_long_mode(toast, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_bg_color(toast, lv_color_hex(0x333333), 0);
+    lv_obj_set_style_bg_opa(toast, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(toast, 8, 0);
+    lv_obj_set_style_pad_all(toast, 14, 0);
+    lv_obj_set_style_text_color(toast, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_set_style_text_font(toast, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_align(toast, LV_TEXT_ALIGN_CENTER, 0);
+    lv_label_set_text(toast, text);
+    lv_obj_align(toast, LV_ALIGN_BOTTOM_MID, 0, -24);
+    lv_obj_delete_delayed(toast, 2500);
+}
+
 void show_language_screen(TranslateAppState* st)
 {
     clear_body(st);
@@ -310,6 +336,10 @@ void show_language_screen(TranslateAppState* st)
                 if (load_language(&s_state, static_cast<int>(idx)))
                 {
                     show_category_screen(&s_state);
+                }
+                else
+                {
+                    show_toast(&s_state, "Language data missing on SD card");
                 }
             },
             i);
@@ -388,10 +418,13 @@ void show_category_screen(TranslateAppState* st)
             i);
         lv_obj_t* lbl = lv_label_create(btn);
         lv_obj_set_style_text_font(lbl, &lv_font_montserrat_24, 0);
-        char text[64];
-        std::snprintf(text, sizeof(text), "%s  (%d)", st->categories[i].c_str(), count);
-        lv_label_set_text(lbl, text);
-        lv_obj_center(lbl);
+        lv_obj_set_width(lbl, LV_PCT(100));
+        lv_label_set_long_mode(lbl, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, 0);
+        // Build with std::string so a long category name wraps to fit instead of being
+        // silently truncated by a fixed stack buffer.
+        std::string text = st->categories[i] + "  (" + std::to_string(count) + ")";
+        lv_label_set_text(lbl, text.c_str());
     }
 }
 
@@ -441,6 +474,12 @@ void show_phrase_list_screen(TranslateAppState* st)
     {
         const Phrase& p = st->phrases[i];
         if (!st->reverse && p.category != st->categories[st->cat_idx])
+        {
+            continue;
+        }
+        // In hand-over mode c03 is already shown as the hint banner above; skip it here
+        // so it isn't duplicated as a tappable row.
+        if (st->reverse && p.id == "c03")
         {
             continue;
         }
@@ -612,6 +651,10 @@ void translate_enter(void* user_data, lv_obj_t* parent)
 
     st->title_label = lv_label_create(bar);
     lv_obj_set_style_text_font(st->title_label, &lv_font_montserrat_24, 0);
+    // Take the remaining row width and ellipsize, so a long SD-sourced title (e.g. a
+    // language/category name) can't overflow the non-wrapping top bar.
+    lv_obj_set_flex_grow(st->title_label, 1);
+    lv_label_set_long_mode(st->title_label, LV_LABEL_LONG_DOT);
     lv_label_set_text(st->title_label, "Translate");
 
     st->body = lv_obj_create(st->root);

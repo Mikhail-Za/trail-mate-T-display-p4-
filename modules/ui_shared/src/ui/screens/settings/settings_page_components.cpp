@@ -423,6 +423,10 @@ static void sync_firmware_update_ui(bool notify_completion)
 {
     const firmware_update_runtime::Status status = firmware_update_runtime::status();
     refresh_firmware_update_state_from_runtime();
+    // Keep the C6 Companion Info row live: it is otherwise only populated once at
+    // settings_load, so refresh it on the same periodic tick as fw_current_version
+    // before pushing values into the visible widgets.
+    refresh_wireless_companion_state_from_runtime();
     refresh_visible_item_values();
 
     if (status.busy)
@@ -4199,9 +4203,13 @@ void create(lv_obj_t* parent)
     ESP_LOGI(kLogTag, "create begin");
 #endif
     refresh_timezone_options();
-    refresh_timezone_option_count();
     ensure_chat_category_built();
     settings_load();
+    // settings_load() appends the dynamic "Fixed <offset>" custom timezone entry
+    // (append_custom_timezone_option_if_needed), so the Enum row's option_count
+    // must be recomputed AFTER it to include that entry -- otherwise an active
+    // fixed-offset timezone falls outside option_count and cannot be shown/picked.
+    refresh_timezone_option_count();
 
     // Avoid auto-adding widgets to the current default group during creation.
     lv_group_t* prev_group = lv_group_get_default();

@@ -236,7 +236,7 @@ void enter(const shell::Host* host, lv_obj_t* parent)
 
     if (platform::ui::device::power_tier() >= 1)
     {
-        ::ui::SystemNotification::show("Low battery - audio disabled", 3000);
+        ::ui::SystemNotification::show("Battery low", 3000);
     }
 
     s_started = false;
@@ -259,7 +259,6 @@ void enter(const shell::Host* host, lv_obj_t* parent)
     lv_obj_set_style_pad_all(s_root, 0, 0);
     lv_obj_set_style_pad_row(s_root, 0, 0);
     lv_obj_clear_flag(s_root, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_event_cb(s_root, root_key_event_cb, LV_EVENT_KEY, nullptr);
 
     ::ui::widgets::top_bar_init(s_top_bar, s_root);
     ::ui::widgets::top_bar_set_title(s_top_bar, ::ui::i18n::tr("Walkie Talkie"));

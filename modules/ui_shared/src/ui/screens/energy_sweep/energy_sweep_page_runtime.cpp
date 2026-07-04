@@ -245,13 +245,19 @@ SweepLayout make_portrait_tall_layout(int parent_w, int parent_h, int top_bar_h)
     l.back_btn_w = 48;
     l.title_x = l.back_btn_x + l.back_btn_w + 12;
     l.title_y = l.back_btn_y + (l.back_btn_h - 26) / 2;
-    // Hide the MODE / CAD chips in portrait (place them off-screen) so the
-    // narrow bar isn't overcrowded; they are status-only.
+    // Keep the radio-status chip (CAD / SIM / MESH) visible at the right end of
+    // the portrait top bar so the active radio mode stays legible; size and align
+    // it to the back button. The static "MODE: RSSI" chip is dropped off-screen to
+    // keep the narrow bar uncluttered.
+    l.cad_chip_w = 96;
+    l.cad_chip_h = l.back_btn_h;
+    l.cad_chip_x = l.screen_w - l.cad_chip_w - side_margin;
+    l.cad_chip_y = l.back_btn_y;
     l.mode_chip_x = l.screen_w + 40;
-    l.cad_chip_x = l.screen_w + 40;
 
     // Larger fonts to fill the tall screen.
     l.title_font = &lv_font_montserrat_20;
+    l.chip_font = &lv_font_montserrat_16;
     l.rp_section_font = &lv_font_montserrat_16;
     l.rp_value_big_font = &lv_font_montserrat_20;
     l.rp_value_mid_font = &lv_font_montserrat_20;
@@ -1302,6 +1308,9 @@ void move_cursor_manual(int delta)
         return;
     }
     s_state.cursor_index = clamp_index(s_state.cursor_index + delta);
+    // Manual cursor movement supersedes an AUTO pick, so drop the AUTO 'applied'
+    // highlight to stop it misrepresenting the (now hand-moved) cursor state.
+    s_state.auto_applied = false;
     refresh_all_ui();
 }
 
