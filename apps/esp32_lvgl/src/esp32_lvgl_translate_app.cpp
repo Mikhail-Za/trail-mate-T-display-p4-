@@ -19,6 +19,7 @@
 #include "lvgl.h"
 #include "ui/app_runtime.h"
 #include "ui/callback_app_screen.h"
+#include "ui/support/lvgl_fs_utils.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -44,6 +45,7 @@ struct LangInfo
 
 struct Phrase
 {
+    std::string id;
     std::string category;
     std::string english;
     std::string translation;
@@ -59,6 +61,7 @@ struct TranslateAppState
     std::vector<Phrase> phrases;
     std::vector<std::string> categories; // first-seen order
     lv_font_t* font = nullptr;           // SD-loaded binfont for the active language
+    bool font_missing = false;           // selected language has non-Latin script but no SD font
     int lang_idx = -1;
     int cat_idx = -1;
     int phrase_idx = -1;
@@ -69,26 +72,13 @@ TranslateAppState s_state;
 
 // ---- SD helpers -----------------------------------------------------------
 
+// Slurp an SD file. Delegates to the shared ui::fs helper, which loops until a
+// zero-length read (true EOF) instead of stopping on the first short read -- the
+// LVGL POSIX driver's read is a single read() that can return a partial count
+// mid-file, so a local "break on br < bufsize" would silently truncate content.
 bool read_text_file(const char* path, std::string& out)
 {
-    out.clear();
-    lv_fs_file_t f;
-    if (lv_fs_open(&f, path, LV_FS_MODE_RD) != LV_FS_RES_OK)
-    {
-        return false;
-    }
-    char buf[512];
-    uint32_t br = 0;
-    while (lv_fs_read(&f, buf, sizeof(buf), &br) == LV_FS_RES_OK && br > 0)
-    {
-        out.append(buf, br);
-        if (br < sizeof(buf))
-        {
-            break;
-        }
-    }
-    lv_fs_close(&f);
-    return !out.empty();
+    return ::ui::fs::read_text_file(path, out);
 }
 
 // Split `text` into lines, then each line into tab-separated fields; calls
@@ -171,18 +161,19 @@ bool load_language(TranslateAppState* st, int idx)
     {
         return false;
     }
-    st->phrases.clear();
-    st->categories.clear();
+    std::vector<Phrase> parsed;
+    std::vector<std::string> cats;
     for_each_tsv_row(text, 4,
-                     [st](const std::vector<std::string>& f)
+                     [&parsed, &cats](const std::vector<std::string>& f)
                      {
                          Phrase p;
+                         p.id = f[1];
                          p.category = f[0];
                          p.english = f[2];
                          p.translation = f[3];
                          p.roman = f.size() >= 5 ? f[4] : std::string();
                          bool seen = false;
-                         for (const auto& c : st->categories)
+                         for (const auto& c : cats)
                          {
                              if (c == p.category)
                              {
@@ -192,10 +183,19 @@ bool load_language(TranslateAppState* st, int idx)
                          }
                          if (!seen)
                          {
-                             st->categories.push_back(p.category);
+                             cats.push_back(p.category);
                          }
-                         st->phrases.push_back(std::move(p));
+                         parsed.push_back(std::move(p));
                      });
+
+    // A present-but-empty/malformed language file: leave state untouched and fail so the
+    // caller stays on the language list rather than committing a half-loaded language.
+    if (parsed.empty())
+    {
+        return false;
+    }
+    st->phrases = std::move(parsed);
+    st->categories = std::move(cats);
 
     // Load the language's display font from SD (glyphs beyond ASCII live only there).
     if (st->font)
@@ -205,9 +205,27 @@ bool load_language(TranslateAppState* st, int idx)
     }
     std::string font_path = std::string(kFontDir) + st->langs[idx].font_file;
     st->font = lv_binfont_create(font_path.c_str());
+    // Latin/Cyrillic-only fallback (montserrat) is legible for Latin scripts, but a
+    // missing font for an RTL or CJK/Cyrillic language means the translations render as
+    // empty boxes -- flag it so the UI can warn the user instead of failing silently.
+    st->font_missing = (st->font == nullptr) && st->langs[idx].rtl;
+    if (st->font == nullptr && !st->langs[idx].rtl)
+    {
+        // Non-Latin non-RTL languages (zh/ja/ko/ru) also need their SD font; treat a
+        // missing font as needing a warning for any language whose native name is
+        // outside ASCII (i.e. it relies on the SD glyphs).
+        for (unsigned char c : st->langs[idx].native_name)
+        {
+            if (c >= 0x80)
+            {
+                st->font_missing = true;
+                break;
+            }
+        }
+    }
 
     st->lang_idx = idx;
-    return !st->phrases.empty();
+    return true;
 }
 
 // The font every translated string is drawn with; falls back to the builtin font if
@@ -315,6 +333,23 @@ void show_category_screen(TranslateAppState* st)
     apply_lang_text_dir(st, native);
     lv_label_set_text(native, st->langs[st->lang_idx].native_name.c_str());
 
+    // If this language needs an SD font that failed to load, its translations would
+    // render as blank boxes. Say so plainly rather than fail silently -- this is meant
+    // to work when handed to a stranger in an emergency.
+    if (st->font_missing)
+    {
+        lv_obj_t* warn = lv_label_create(st->body);
+        lv_obj_set_width(warn, LV_PCT(100));
+        lv_label_set_long_mode(warn, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_font(warn, &lv_font_montserrat_20, 0);
+        lv_obj_set_style_text_color(warn, lv_color_hex(0xD08010), 0);
+        lv_obj_set_style_text_align(warn, LV_TEXT_ALIGN_CENTER, 0);
+        lv_label_set_text(warn,
+                          LV_SYMBOL_WARNING
+                          " Font for this language is missing on the SD card; text may "
+                          "show as boxes. Romanization still works.");
+    }
+
     // Hand-over mode: flat list of phrases in THEIR language, for them to browse.
     lv_obj_t* rev_btn = make_list_button(
         st->body,
@@ -363,6 +398,15 @@ void show_category_screen(TranslateAppState* st)
 void show_phrase_list_screen(TranslateAppState* st)
 {
     clear_body(st);
+    // Defensive: a forward (non-reverse) phrase list requires a valid category index.
+    // If it is somehow stale/unset, fall back to the category screen rather than index
+    // st->categories out of bounds.
+    if (!st->reverse &&
+        (st->cat_idx < 0 || st->cat_idx >= static_cast<int>(st->categories.size())))
+    {
+        show_category_screen(st);
+        return;
+    }
     if (st->reverse)
     {
         set_title(st, "Tap your phrase");
@@ -372,13 +416,14 @@ void show_phrase_list_screen(TranslateAppState* st)
         set_title(st, st->categories[st->cat_idx].c_str());
     }
 
-    // In hand-over mode a short instruction in THEIR language sits on top (phrase c03:
-    // "This device translates. Please tap a phrase in your language.").
+    // In hand-over mode a short instruction in THEIR language sits on top (phrase id
+    // c03: "This device translates. Please tap a phrase in your language."). Keyed on
+    // the stable id, not the English text, so rewording the phrase can't silently drop it.
     if (st->reverse)
     {
         for (const auto& p : st->phrases)
         {
-            if (p.english.rfind("This device translates", 0) == 0)
+            if (p.id == "c03")
             {
                 lv_obj_t* hint = lv_label_create(st->body);
                 lv_obj_set_width(hint, LV_PCT(100));
@@ -428,6 +473,12 @@ void show_phrase_list_screen(TranslateAppState* st)
 void show_card_screen(TranslateAppState* st)
 {
     clear_body(st);
+    // Defensive: never index st->phrases out of bounds if phrase_idx is stale/unset.
+    if (st->phrase_idx < 0 || st->phrase_idx >= static_cast<int>(st->phrases.size()))
+    {
+        show_category_screen(st);
+        return;
+    }
     const Phrase& p = st->phrases[st->phrase_idx];
     set_title(st, st->reverse ? "They said" : st->langs[st->lang_idx].english_name.c_str());
 
@@ -506,11 +557,16 @@ void go_back(TranslateAppState* st)
         st->lang_idx = -1;
         st->phrases.clear();
         st->categories.clear();
+        // Delete the labels that reference the SD font BEFORE destroying it (the
+        // language list uses the builtin font). LVGL does not copy a style font, so a
+        // live label pointing at a freed font is a use-after-free on the next redraw.
+        clear_body(st);
         if (st->font)
         {
             lv_binfont_destroy(st->font);
             st->font = nullptr;
         }
+        st->font_missing = false;
         show_language_screen(st);
         return;
     }
@@ -581,28 +637,28 @@ void translate_exit(void* user_data, lv_obj_t* parent)
     {
         return;
     }
+    // Delete the widget tree FIRST so no live label still references the SD font, THEN
+    // destroy the font (LVGL keeps a raw pointer to a style font; freeing it under a
+    // live label is a use-after-free).
+    if (st->root && lv_obj_is_valid(st->root))
+    {
+        lv_obj_del(st->root);
+    }
+    st->root = nullptr;
+    st->title_label = nullptr;
+    st->body = nullptr;
     if (st->font)
     {
         lv_binfont_destroy(st->font);
         st->font = nullptr;
     }
+    st->font_missing = false;
     st->langs.clear();
     st->phrases.clear();
     st->categories.clear();
     st->lang_idx = -1;
     st->cat_idx = -1;
     st->phrase_idx = -1;
-    if (!st->root || !lv_obj_is_valid(st->root))
-    {
-        st->root = nullptr;
-        st->title_label = nullptr;
-        st->body = nullptr;
-        return;
-    }
-    lv_obj_del(st->root);
-    st->root = nullptr;
-    st->title_label = nullptr;
-    st->body = nullptr;
 }
 
 extern "C"
