@@ -68,11 +68,14 @@ BatteryPowerDetail battery_power_detail()
 {
     BatteryPowerDetail detail{};
 #if defined(TRAIL_MATE_ESP_BOARD_TAB5)
-    // Tab5 exposes no numeric fuel-gauge voltage/current here; leave valid=false.
+    // Tab5 exposes no numeric fuel-gauge voltage/current here; leave valid=false and
+    // current_valid=false (struct defaults).
 #elif defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
     auto& b = ::boards::t_display_p4::TDisplayP4Board::instance();
     detail.voltage_mv = b.getBatteryVoltageMv();
-    detail.current_ma = b.getBatteryCurrentMa();
+    bool cok = false;
+    detail.current_ma = b.getBatteryCurrentMa(&cok);
+    detail.current_valid = cok;
     detail.valid = (detail.voltage_mv >= 0);
 #endif
     return detail;

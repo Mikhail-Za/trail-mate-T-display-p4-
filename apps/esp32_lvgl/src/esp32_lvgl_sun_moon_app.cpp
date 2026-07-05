@@ -38,7 +38,8 @@ constexpr double kRad2Deg = 180.0 / M_PI;
 constexpr double kSynodicMonth = 29.530588853;     // mean synodic month, days
 constexpr double kRefNewMoonJd = 2451550.1;        // JD of new moon 2000-01-06 18:14 UTC
 constexpr double kUnixEpochJd = 2440587.5;         // JD of 1970-01-01 00:00 UTC
-constexpr uint32_t kClockValidEpoch = 1577836800u; // 2020-01-01 UTC; below = RTC unsynced
+constexpr uint32_t kClockValidEpoch = 1577836800u;  // 2020-01-01 UTC; below = RTC unsynced
+constexpr uint32_t kStalePositionMaxSec = 24u * 3600u; // cached fix older than this = refuse
 
 struct SunMoonState
 {
@@ -59,6 +60,10 @@ struct SunMoonState
     double last_lat = 0.0;
     double last_lng = 0.0;
     bool have_last = false;
+    // Epoch (UTC seconds) at which last_lat/last_lng were captured from a genuinely
+    // live fix. Used to disclose the cached position's age and to expire a fix too
+    // old to trust. 0 = never stamped from a valid fix.
+    uint32_t last_fix_epoch = 0;
 };
 
 SunMoonState s_state;
@@ -230,6 +235,23 @@ int wrap_minutes(double minutes)
     return static_cast<int>(v);
 }
 
+// Coarse human-readable age ("45m", "3h", "2d") for the last-known position tag.
+void format_age_short(uint32_t seconds, char* out, size_t n)
+{
+    if (seconds < 3600u)
+    {
+        std::snprintf(out, n, "%um", static_cast<unsigned>(seconds / 60u));
+    }
+    else if (seconds < 86400u)
+    {
+        std::snprintf(out, n, "%uh", static_cast<unsigned>(seconds / 3600u));
+    }
+    else
+    {
+        std::snprintf(out, n, "%ud", static_cast<unsigned>(seconds / 86400u));
+    }
+}
+
 void set_line(lv_obj_t* label, const char* text)
 {
     if (label && lv_obj_is_valid(label))
@@ -275,6 +297,13 @@ void recompute(SunMoonState* st)
         st->last_lat = fix.lat;
         st->last_lng = fix.lng;
         st->have_last = true;
+        // Stamp the capture time only for a genuinely-current fix. Re-reading an
+        // already-stale cached position (coords present but fix.valid == false)
+        // must NOT refresh this, so the age below reflects true position freshness.
+        if (fix.valid)
+        {
+            st->last_fix_epoch = utc;
+        }
     }
     if (!st->have_last)
     {
@@ -282,11 +311,33 @@ void recompute(SunMoonState* st)
         clear_data_lines(st);
         return;
     }
-    set_line(st->status_label, "");
-
     const double lat = st->last_lat;
     const double lng = st->last_lng;
     const bool stale = !fix.valid;
+
+    // Stale-position disclosure + expiry. With no live fix we're drawing from the
+    // last latched position, so work out how old that position actually is: this
+    // lets us both surface the age to the user and refuse a fix too old to trust.
+    // (A user manually choosing a timezone inconsistent with their real location is
+    // configuration the app faithfully honors -- out of scope; this targets only the
+    // silently-stale GPS position.)
+    uint32_t pos_age_sec = 0;
+    bool pos_age_known = false;
+    if (stale && st->last_fix_epoch >= kClockValidEpoch && utc >= st->last_fix_epoch)
+    {
+        pos_age_sec = utc - st->last_fix_epoch;
+        pos_age_known = true;
+    }
+    if (stale && pos_age_known && pos_age_sec > kStalePositionMaxSec)
+    {
+        // A day-old position is too far off to trust for sunrise/sunset; refuse it
+        // rather than showing plausible-looking but wrong solar times.
+        set_line(st->status_label, "Last position too old -- open Map/GPS for a fresh fix");
+        clear_data_lines(st);
+        return;
+    }
+    set_line(st->status_label, "");
+
     const int tz_min = platform::ui::time::timezone_offset_min();
 
     // Local broken-down time: apply the (already DST-resolved) offset to UTC, then
@@ -298,7 +349,7 @@ void recompute(SunMoonState* st)
     const int month = tmv.tm_mon + 1;
     const int day = tmv.tm_mday;
 
-    char buf[96];
+    char buf[128];
     static const char* const kWeekdays[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
     const char* wd = (tmv.tm_wday >= 0 && tmv.tm_wday < 7) ? kWeekdays[tmv.tm_wday] : "";
     std::snprintf(buf, sizeof(buf), "%s %04d-%02d-%02d", wd, year, month, day);
@@ -357,8 +408,23 @@ void recompute(SunMoonState* st)
                   moon.age_days);
     set_line(st->illum_label, buf);
 
-    std::snprintf(buf, sizeof(buf), "Location:  %.4f, %.4f%s", lat, lng,
-                  stale ? "  (last known)" : "");
+    char locsuffix[48];
+    locsuffix[0] = '\0';
+    if (stale)
+    {
+        if (pos_age_known)
+        {
+            char agebuf[16];
+            format_age_short(pos_age_sec, agebuf, sizeof(agebuf));
+            std::snprintf(locsuffix, sizeof(locsuffix), "  (last known %s ago)", agebuf);
+        }
+        else
+        {
+            // No valid-fix timestamp yet (position latched from a non-valid fix).
+            std::snprintf(locsuffix, sizeof(locsuffix), "  (last known)");
+        }
+    }
+    std::snprintf(buf, sizeof(buf), "Location:  %.4f, %.4f%s", lat, lng, locsuffix);
     set_line(st->loc_label, buf);
 }
 

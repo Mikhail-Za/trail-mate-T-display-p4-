@@ -11,6 +11,7 @@
 #include "driver/sdmmc_host.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "esp_vfs_fat.h"
 #include "platform/esp/idf_common/bsp_runtime.h"
 #include "platform/esp/idf_common/gps_runtime.h"
@@ -27,6 +28,9 @@ constexpr int kSdLdoChannel = 4;
 constexpr uint8_t kBatteryRegVoltage = 0x08;
 constexpr uint8_t kBatteryRegCurrent = 0x0C;
 constexpr uint8_t kBatteryRegStateOfCharge = 0x2C;
+// Minimum gap between fuel-gauge probe attempts after a failure, so a dead/absent
+// gauge is not re-probed on every accessor call (Power app polls all four every ~2s).
+constexpr uint32_t kBatteryGaugeProbeCooldownMs = 5000;
 
 constexpr uint8_t kExpanderRegInput0 = 0x00;
 constexpr uint8_t kExpanderRegInput1 = 0x01;
@@ -306,7 +310,7 @@ int TDisplayP4Board::getBatteryVoltageMv()
     return static_cast<int>(voltage_mv);
 }
 
-int TDisplayP4Board::getBatteryCurrentMa()
+int TDisplayP4Board::getBatteryCurrentMa(bool* ok)
 {
     if (!battery_gauge_ready_)
     {
@@ -316,9 +320,17 @@ int TDisplayP4Board::getBatteryCurrentMa()
     int16_t current_ma = 0;
     if (!readBatteryGaugeWordSigned(kBatteryRegCurrent, &current_ma))
     {
+        if (ok != nullptr)
+        {
+            *ok = false;
+        }
         return 0;
     }
 
+    if (ok != nullptr)
+    {
+        *ok = true;
+    }
     return static_cast<int>(current_ma);
 }
 
@@ -1240,6 +1252,19 @@ bool TDisplayP4Board::initializeBatteryGauge()
     {
         return true;
     }
+
+    // Throttle re-probing of an absent/failed gauge: the four battery accessors each
+    // land here while !ready_, and the Power app polls all four every ~2s. Without a
+    // gate that is a lock+I2C probe every call, contending with the touch hot path on
+    // system_i2c_mutex_. After a failed probe, return the cached false fast until the
+    // cooldown elapses. Same ms clock the rest of the codebase uses (esp_timer).
+    const uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
+    if (last_gauge_probe_ms_ != 0 &&
+        (now_ms - last_gauge_probe_ms_) < kBatteryGaugeProbeCooldownMs)
+    {
+        return false;
+    }
+    last_gauge_probe_ms_ = now_ms;
 
     uint16_t voltage_mv = 0;
     if (!readBatteryGaugeWord(kBatteryRegVoltage, &voltage_mv))

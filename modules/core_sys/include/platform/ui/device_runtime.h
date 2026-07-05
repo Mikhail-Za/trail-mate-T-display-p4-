@@ -18,9 +18,12 @@ struct BatteryInfo
 // need the raw voltage/current pay the extra gauge reads via battery_power_detail().
 struct BatteryPowerDetail
 {
-    bool valid = false;
+    bool valid = false;         // voltage read succeeded (voltage_mv is real)
     int voltage_mv = -1;
     int current_ma = 0;
+    bool current_valid = false; // current read succeeded (current_ma is real, not a
+                                // failure-path 0); kept separate from `valid` so a
+                                // current-only I2C failure is distinguishable.
 };
 
 struct MemoryStats

@@ -163,11 +163,15 @@ void load_waypoints(WaypointsAppState* st)
     parse_waypoints(text, st->waypoints);
 }
 
-// Rewrite the whole TSV. The LVGL POSIX driver opens LV_FS_MODE_WR with
-// O_WRONLY|O_CREAT and NO O_TRUNC, so a shorter payload (after a delete) would leave
-// stale bytes past the new end. We pad the payload with '\n' up to the previous
-// on-disk length; those blank lines are inert to the parser. The file therefore never
-// shrinks on disk but stays bounded by kMaxWaypoints rows.
+// Rewrite the whole TSV. Truncation on LV_FS_MODE_WR is backend-dependent for the 'A:'
+// SD driver: the SdFat backend maps mode "w" to O_WRONLY|O_CREAT|O_TRUNC (it DOES
+// truncate), while the ArduinoSd backend's behavior is not verifiable in-repo. Because a
+// truncate is not guaranteed, a shorter payload (after a delete) could leave stale bytes
+// past the new end. We pad the payload with '\n' up to the previous on-disk length; those
+// blank lines are inert to the parser. This length-padding rewrite is a deliberate
+// belt-and-suspenders defense and must NOT be removed regardless of any single backend's
+// current truncate behavior. The file therefore never shrinks on disk but stays bounded
+// by kMaxWaypoints rows.
 bool write_waypoints(WaypointsAppState* st)
 {
     std::string content;
@@ -680,6 +684,32 @@ void waypoints_tick(lv_timer_t* timer)
         return;
     }
     refresh_position(st);
+
+    // Hot-swap the SD each tick: load_waypoints() only probes on enter, so a card
+    // inserted/reseated while the list stays open would otherwise leave Save disabled and
+    // the warning stuck until exit + re-enter. dir_exists() once per ~1s tick is cheap.
+    const bool sd_present = ::ui::fs::dir_exists("A:/");
+    if (sd_present && st->sd_missing)
+    {
+        if (st->view == View::List)
+        {
+            // Card came back: reload from disk and rebuild the rows so the recovered
+            // waypoints reappear and Save re-enables. load_waypoints() clears sd_missing;
+            // show_list_screen() ends in update_live(), so the refresh is already done.
+            load_waypoints(st);
+            show_list_screen(st);
+            return;
+        }
+        // Go-To view keeps its in-memory target; just clear the flag so the list
+        // re-enables Save + drops the warning when the user routes Back.
+        st->sd_missing = false;
+    }
+    else if (!sd_present && !st->sd_missing)
+    {
+        // Card pulled while open: update_live() below disables Save + surfaces the warning.
+        st->sd_missing = true;
+    }
+
     update_live(st);
 }
 

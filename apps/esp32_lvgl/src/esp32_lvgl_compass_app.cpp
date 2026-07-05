@@ -29,6 +29,11 @@ namespace
 // 1.8 km/h -- a slow walk. Under it we treat the device as stationary and hide the
 // needle rather than spin it on jitter.
 constexpr float kMinSpeedMps = 0.5f;
+// Hysteresis lower band: once a heading is showing we keep it until speed drops below
+// this, so a walking pace hovering around kMinSpeedMps doesn't flicker the needle
+// shown/hidden every 300ms tick. Only the speed threshold is hysteretic -- fix/course/
+// speed validity stay hard gates.
+constexpr float kStopSpeedMps = 0.3f;
 constexpr float kPi = 3.14159265358979323846f;
 constexpr uint32_t kRefreshMs = 300;
 
@@ -56,6 +61,10 @@ struct CompassAppState
     // Geometry cached at enter() so the tick doesn't re-query the panel each time.
     float center = 0.0f;     // dial center in dial-local coords (== diameter/2)
     float needle_len = 0.0f; // needle length from center toward the course tip
+
+    // Hysteresis memory for the speed threshold (see kStopSpeedMps): true while the
+    // heading is currently shown. Reset to false on enter().
+    bool was_moving = false;
 };
 
 CompassAppState s_state;
@@ -71,8 +80,28 @@ void update_compass(CompassAppState* st)
 
     const gps::GpsState fix = platform::ui::gps::get_data();
     const bool has_fix = fix.valid;
-    // GPS course is only a heading while actually moving.
-    const bool moving = fix.has_course && fix.speed_mps > kMinSpeedMps;
+    // GPS course is only a heading while actually moving AND while the fix is valid with
+    // live course+speed. On fix loss the upstream parser early-returns and leaves
+    // has_course/course_deg/speed_mps FROZEN at their last values; without these hard
+    // gates a mid-motion fix loss would keep the needle frozen on a stale bearing. So
+    // fix/course/speed validity are hard gates (a lost fix or missing course blanks
+    // immediately); only the speed threshold carries hysteresis so a walking pace near
+    // kMinSpeedMps doesn't flicker.
+    const bool gps_heading_live = fix.valid && fix.has_course && fix.has_speed;
+    bool moving;
+    if (!gps_heading_live)
+    {
+        moving = false; // lost fix / no course / no speed -> blank immediately
+    }
+    else if (st->was_moving)
+    {
+        moving = fix.speed_mps > kStopSpeedMps; // keep heading until below the low band
+    }
+    else
+    {
+        moving = fix.speed_mps > kMinSpeedMps; // only start once above the high band
+    }
+    st->was_moving = moving;
 
     // Speed readout is shown whenever the fix reports it (even ~0 while stopped), since
     // the whole point is that the heading depends on speed.
@@ -332,6 +361,9 @@ void compass_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_style_text_align(note, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_color(note, ui::menu::dashboard::color_text_dim(), 0);
     lv_label_set_text(note, "North-up dial. No magnetometer on this device; heading comes from GPS motion.");
+
+    // Fresh entry: no heading shown yet, so hysteresis must require the high band first.
+    st->was_moving = false;
 
     // Paint one frame now, then refresh on a timer for responsiveness.
     update_compass(st);

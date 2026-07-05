@@ -62,6 +62,12 @@ constexpr double kMoveSpeedMps = 0.5;
 // trip for that interval (so re-entering the app never injects a phantom segment or a
 // huge slug of moving time). Normal cadence is ~1000 ms.
 constexpr uint32_t kMaxGapMs = 5000;
+// Implausible-speed cap for the distance anchor: even after the upstream jitter filter
+// force-accepts a fix (it does so after 3 consecutive rejects), a single wild jump can
+// still reach the anchor commit. A committed displacement whose implied speed exceeds
+// this generous bound (~216 km/h, far above any hiking / vehicle use) is treated as a
+// bad fix: skipped and re-anchored rather than added. Defence-in-depth, conservative.
+constexpr double kMaxPlausibleMps = 60.0;
 
 struct TripState
 {
@@ -185,7 +191,10 @@ void trip_accumulate(TripState* st, const gps::GpsState& fix, uint32_t now)
     else if (dt_s > 0.05)
     {
         const double v = seg_prev / dt_s;
-        st->cur_speed_mps = v; // best-effort; position-derived, noisy
+        // Floor the displayed current speed the same way max is floored: below the
+        // jitter floor this is at-rest GPS wander, not motion, so show 0 rather than a
+        // phantom several-km/h reading.
+        st->cur_speed_mps = (seg_prev > kDistanceFloorM) ? v : 0.0;
         if (seg_prev > kDistanceFloorM && v > st->max_speed_mps)
         {
             st->max_speed_mps = v;
@@ -209,11 +218,25 @@ void trip_accumulate(TripState* st, const gps::GpsState& fix, uint32_t now)
         const double d = dashboard::haversine_m(st->anc_lat, st->anc_lng, fix.lat, fix.lng);
         if (d > kDistanceFloorM)
         {
-            st->total_distance_m += d;
-            st->anc_lat = fix.lat;
-            st->anc_lng = fix.lng;
-            st->anc_tick = now;
-            moving = true; // genuine displacement crossed the floor
+            // Local outlier guard: a still-implausible fix (the upstream jitter filter
+            // force-accepts after 3 consecutive rejects) can carry a large spurious
+            // jump. If the implied speed exceeds a generous bound, skip the commit (do
+            // not add phantom distance) but still re-anchor to the new point so the
+            // outlier is not re-measured and compounded on the next sample.
+            if (dt_s > 0.0 && (d / dt_s) > kMaxPlausibleMps)
+            {
+                st->anc_lat = fix.lat;
+                st->anc_lng = fix.lng;
+                st->anc_tick = now;
+            }
+            else
+            {
+                st->total_distance_m += d;
+                st->anc_lat = fix.lat;
+                st->anc_lng = fix.lng;
+                st->anc_tick = now;
+                moving = true; // genuine displacement crossed the floor
+            }
         }
     }
 
@@ -366,6 +389,15 @@ void trip_enter(void* user_data, lv_obj_t* parent)
     }
     // Accumulators are file-static and intentionally NOT reset here: the trip
     // survives leaving and re-entering the app within a session.
+    //
+    // But the per-sample / anchor / elevation BASELINES are dropped on every enter so
+    // the first sample after re-entry takes the "first fix" branch and folds nothing
+    // for the closed-app interval. Without this a fast Back-then-reopen (<= kMaxGapMs)
+    // would slip past the gap guard and inject the entire closed-app displacement and
+    // moving time as one phantom segment. Only the baseline flags reset; totals stay.
+    st->has_prev = false;
+    st->has_anc = false;
+    st->has_alt_ref = false;
     st->live_fix = false;
 
     st->root = lv_obj_create(parent);

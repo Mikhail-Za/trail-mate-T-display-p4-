@@ -92,14 +92,23 @@ void power_refresh(PowerAppState* st)
         lv_obj_set_style_bg_color(st->bar, fill, LV_PART_INDICATOR);
     }
 
-    // Charge/discharge state. Prefer the signed current when the gauge exposes it,
-    // otherwise fall back to battery_info().charging (current-sign only).
+    // Charge/discharge state. Prefer the signed current only when the current read
+    // actually succeeded (current_valid); a failed current read returns 0 mA and must
+    // NOT be read as "discharging". Otherwise fall back to battery_info().charging.
     const bool charging =
-        detail.valid ? (detail.current_ma > 0) : info.charging;
+        detail.current_valid ? (detail.current_ma > 0) : info.charging;
     if (st->status_label && lv_obj_is_valid(st->status_label))
     {
         const char* status;
-        if (level >= 100)
+        if (level < 0 && !charging)
+        {
+            // Gauge level never read (cold boot / probe failure) and no positive
+            // charging signal: mirror the "--%" percent path's honesty instead of
+            // falsely claiming "Discharging". A known-charging device still reads
+            // "Charging" below even when the level is unknown.
+            status = "Unknown";
+        }
+        else if (level >= 100)
         {
             status = "Full";
         }
@@ -138,7 +147,7 @@ void power_refresh(PowerAppState* st)
     }
     if (st->current_label && lv_obj_is_valid(st->current_label))
     {
-        if (!detail.valid)
+        if (!detail.current_valid)
         {
             std::snprintf(buf, sizeof(buf), "Current: n/a");
         }

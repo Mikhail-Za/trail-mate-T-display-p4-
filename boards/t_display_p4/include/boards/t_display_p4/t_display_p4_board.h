@@ -137,8 +137,11 @@ class TDisplayP4Board final : public BoardBase, public LoraBoard
     // voltage/current the gauge already provides so a diagnostics UI can show them.
     // getBatteryVoltageMv() returns mV, -1 on read failure.
     // getBatteryCurrentMa() returns signed mA (positive = charging), 0 on read failure.
+    // Optional `ok`, when non-null, is set false on the read-failure path (so a real
+    // 0 mA is distinguishable from an I2C failure that also returns 0) and true on
+    // success.
     int getBatteryVoltageMv();
-    int getBatteryCurrentMa();
+    int getBatteryCurrentMa(bool* ok = nullptr);
     bool isSDReady() const override;
     bool isCardReady() override;
     bool isGPSReady() const override;
@@ -239,6 +242,10 @@ class TDisplayP4Board final : public BoardBase, public LoraBoard
     bool expander_ready_ = false;
     bool rtc_accessible_ = false;
     bool battery_gauge_ready_ = false;
+    // Cooldown gate for re-probing an absent/failed fuel gauge. 0 = never probed;
+    // otherwise the ms timestamp of the last (failed) probe. Stops the ~2s Power-app
+    // poll from hammering lock+I2C on system_i2c_mutex_ against a dead gauge.
+    uint32_t last_gauge_probe_ms_ = 0;
     bool gps_uart_configured_ = false;
     bool gps_runtime_prepared_ = false;
     bool sd_ready_ = false;
