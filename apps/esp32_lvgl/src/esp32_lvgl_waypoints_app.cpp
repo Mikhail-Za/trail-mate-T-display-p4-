@@ -36,6 +36,9 @@ namespace
 
 constexpr char kWaypointsPath[] = "A:/waypoints.tsv";
 constexpr size_t kMaxWaypoints = 32;
+// dir_exists("A:/") is real blocking SD I/O on the single UI task; re-probe the drive for
+// a hot-swapped card at most this often rather than on every 1s tick.
+constexpr uint32_t kSdProbeIntervalMs = 5000;
 
 struct Waypoint
 {
@@ -83,6 +86,15 @@ struct WaypointsAppState
     double cur_lng = 0.0;
 
     bool sd_missing = false; // SD card absent at load time (vs. file simply not present)
+
+    // Hot-swap SD re-probe throttle + debounce. last_sd_probe_tick stamps the last probe so
+    // the blocking dir_exists() runs at most every kSdProbeIntervalMs (not every 1s tick).
+    // sd_present_last + sd_probe_streak require two consecutive identical readings before
+    // acting, so one flaky contact reading never triggers a full-list rebuild or a warning
+    // flip.
+    uint32_t last_sd_probe_tick = 0;
+    bool sd_present_last = false;
+    uint8_t sd_probe_streak = 0;
 };
 
 WaypointsAppState s_state;
@@ -683,31 +695,55 @@ void waypoints_tick(lv_timer_t* timer)
     {
         return;
     }
-    refresh_position(st);
+    refresh_position(st); // cheap: reads the latched GPS fix, runs EVERY tick
 
-    // Hot-swap the SD each tick: load_waypoints() only probes on enter, so a card
-    // inserted/reseated while the list stays open would otherwise leave Save disabled and
-    // the warning stuck until exit + re-enter. dir_exists() once per ~1s tick is cheap.
-    const bool sd_present = ::ui::fs::dir_exists("A:/");
-    if (sd_present && st->sd_missing)
+    // Hot-swap the SD while the list stays open: load_waypoints() only probes on enter, so a
+    // card inserted/reseated afterwards would otherwise leave Save disabled and the warning
+    // stuck until exit + re-enter. But dir_exists("A:/") is REAL blocking SD I/O
+    // (lv_fs_dir_open/close) on the single UI task, so on a marginal/half-inserted card it can
+    // stall all rendering/input for the driver timeout. Throttle it to kSdProbeIntervalMs and
+    // debounce it (two consecutive identical readings); the cheap GPS refresh + update_live
+    // still run every tick.
+    if (lv_tick_elaps(st->last_sd_probe_tick) >= kSdProbeIntervalMs)
     {
-        if (st->view == View::List)
+        st->last_sd_probe_tick = lv_tick_get();
+        const bool sd_present = ::ui::fs::dir_exists("A:/");
+        if (sd_present == st->sd_present_last)
         {
-            // Card came back: reload from disk and rebuild the rows so the recovered
-            // waypoints reappear and Save re-enables. load_waypoints() clears sd_missing;
-            // show_list_screen() ends in update_live(), so the refresh is already done.
-            load_waypoints(st);
-            show_list_screen(st);
-            return;
+            if (st->sd_probe_streak < 2)
+            {
+                ++st->sd_probe_streak;
+            }
         }
-        // Go-To view keeps its in-memory target; just clear the flag so the list
-        // re-enables Save + drops the warning when the user routes Back.
-        st->sd_missing = false;
-    }
-    else if (!sd_present && !st->sd_missing)
-    {
-        // Card pulled while open: update_live() below disables Save + surfaces the warning.
-        st->sd_missing = true;
+        else
+        {
+            st->sd_present_last = sd_present;
+            st->sd_probe_streak = 1;
+        }
+
+        // Act only on a debounced reading, and only on a genuine present<->missing edge.
+        if (st->sd_probe_streak >= 2)
+        {
+            if (sd_present && st->sd_missing)
+            {
+                // Card came back (possibly a DIFFERENT card): reload from the now-present
+                // card and route to the list in BOTH views. Clearing sd_missing without a
+                // reload would let the stale in-memory list be re-persisted over the new
+                // card's real file. Reloading + routing to List mirrors show_goto_screen()'s
+                // stale-index guard; show_list_screen() ends in update_live(), so Save
+                // re-enables and the warning drops immediately.
+                load_waypoints(st);
+                st->view = View::List;
+                st->goto_idx = -1;
+                show_list_screen(st);
+                return;
+            }
+            if (!sd_present && !st->sd_missing)
+            {
+                // Card pulled: update_live() below disables Save + surfaces the warning.
+                st->sd_missing = true;
+            }
+        }
     }
 
     update_live(st);
@@ -770,6 +806,11 @@ void waypoints_enter(void* user_data, lv_obj_t* parent)
 
     refresh_position(st); // seed latch so the first render can show distances
     load_waypoints(st);
+    // Seed the hot-swap probe: load_waypoints() just established SD presence, so start the
+    // debounce streak stable and defer the first (blocking) re-probe by a full interval.
+    st->last_sd_probe_tick = lv_tick_get();
+    st->sd_present_last = !st->sd_missing;
+    st->sd_probe_streak = 2;
     show_list_screen(st);
 
     st->timer = lv_timer_create(waypoints_tick, 1000, st);
@@ -810,6 +851,9 @@ void waypoints_exit(void* user_data, lv_obj_t* parent)
     st->cur_lat = 0.0;
     st->cur_lng = 0.0;
     st->sd_missing = false;
+    st->last_sd_probe_tick = 0;
+    st->sd_present_last = false;
+    st->sd_probe_streak = 0;
 }
 
 extern "C"
