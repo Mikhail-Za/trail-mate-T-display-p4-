@@ -242,9 +242,13 @@ class TDisplayP4Board final : public BoardBase, public LoraBoard
     bool expander_ready_ = false;
     bool rtc_accessible_ = false;
     bool battery_gauge_ready_ = false;
-    // Cooldown gate for re-probing an absent/failed fuel gauge. 0 = never probed;
-    // otherwise the ms timestamp of the last (failed) probe. Stops the ~2s Power-app
+    // Cooldown gate for re-probing an absent/failed fuel gauge. Stops the ~2s Power-app
     // poll from hammering lock+I2C on system_i2c_mutex_ against a dead gauge.
+    // battery_gauge_probe_attempted_ is the "have we probed at all yet" sentinel: 0 is a
+    // legitimately reachable ms value (boot within the first ms, esp_timer wraparound),
+    // so it cannot double as "never probed". last_gauge_probe_ms_ holds the ms timestamp
+    // of the last (failed) probe once an attempt has been made.
+    bool battery_gauge_probe_attempted_ = false;
     uint32_t last_gauge_probe_ms_ = 0;
     bool gps_uart_configured_ = false;
     bool gps_runtime_prepared_ = false;

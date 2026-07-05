@@ -262,9 +262,9 @@ bool TDisplayP4Board::isRTCReady() const
 
 bool TDisplayP4Board::isCharging()
 {
-    if (!battery_gauge_ready_)
+    if (!battery_gauge_ready_ && !initializeBatteryGauge())
     {
-        (void)initializeBatteryGauge();
+        return battery_charging_;
     }
 
     int16_t current_ma = 0;
@@ -279,9 +279,9 @@ bool TDisplayP4Board::isCharging()
 
 int TDisplayP4Board::getBatteryLevel()
 {
-    if (!battery_gauge_ready_)
+    if (!battery_gauge_ready_ && !initializeBatteryGauge())
     {
-        (void)initializeBatteryGauge();
+        return last_battery_level_;
     }
 
     uint16_t level = 0;
@@ -296,9 +296,9 @@ int TDisplayP4Board::getBatteryLevel()
 
 int TDisplayP4Board::getBatteryVoltageMv()
 {
-    if (!battery_gauge_ready_)
+    if (!battery_gauge_ready_ && !initializeBatteryGauge())
     {
-        (void)initializeBatteryGauge();
+        return -1;
     }
 
     uint16_t voltage_mv = 0;
@@ -312,9 +312,13 @@ int TDisplayP4Board::getBatteryVoltageMv()
 
 int TDisplayP4Board::getBatteryCurrentMa(bool* ok)
 {
-    if (!battery_gauge_ready_)
+    if (!battery_gauge_ready_ && !initializeBatteryGauge())
     {
-        (void)initializeBatteryGauge();
+        if (ok != nullptr)
+        {
+            *ok = false;
+        }
+        return 0;
     }
 
     int16_t current_ma = 0;
@@ -1259,11 +1263,12 @@ bool TDisplayP4Board::initializeBatteryGauge()
     // system_i2c_mutex_. After a failed probe, return the cached false fast until the
     // cooldown elapses. Same ms clock the rest of the codebase uses (esp_timer).
     const uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
-    if (last_gauge_probe_ms_ != 0 &&
+    if (battery_gauge_probe_attempted_ &&
         (now_ms - last_gauge_probe_ms_) < kBatteryGaugeProbeCooldownMs)
     {
         return false;
     }
+    battery_gauge_probe_attempted_ = true;
     last_gauge_probe_ms_ = now_ms;
 
     uint16_t voltage_mv = 0;
