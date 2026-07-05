@@ -110,3 +110,43 @@ pinch_out / two_finger_tap / double_tap`.
 ## 5. Still pending from earlier arcs (not this session)
 - Walkie-talkie human voice bench test (PTT build, 06-25).
 - Unit A GPS: hardware fault; multimeter the L76K VCC rail before any firmware theories.
+
+## 6. Six new field-toolkit apps (2026-07-05; compile-verified tft+amoled, on-device pending)
+All six appear in the launcher after &g_field_guide_app. Built off a scouted spec,
+then adversarially reviewed (11 fixes applied, Beacon was clean). Use the working-GPS
+unit (B) for the GPS-dependent ones.
+
+- [ ] **Waypoints** (icon: map pin): with a fix, tap "Save current location" -> a row
+      appears with live distance + bearing. Tap it -> Go-To view shows big bearing/
+      distance updating as you move. Power-cycle -> the waypoint reloads (persisted to
+      A:/waypoints.tsv). Delete a row -> file rewrites (save 5, delete 4, power-cycle,
+      exactly 1 reloads). Pull the SD while on the list -> Save disables + warning; reseat
+      it -> Save re-enables and the list reloads within ~1s (no exit/re-enter needed).
+- [ ] **Compass** (icon: gps): stand still -> needle hidden, amber "Move to get a heading".
+      Walk -> north-up dial shows a needle at your course + "043deg NE" + speed. HONEST
+      LIMIT: this is GPS-course, not magnetic (no magnetometer driver on this board), so
+      it only works while moving. Lose the fix mid-walk (canopy) -> needle blanks
+      immediately to "No GPS fix", never freezes on a stale bearing. No flicker at a slow
+      hovering pace (0.3-0.5 m/s hysteresis band).
+- [ ] **Sun & Moon** (icon: gear): shows local date, Sunrise/Solar noon/Sunset/Day length,
+      Moon phase + illumination %, and the position used. Cross-check sunrise/sunset vs a
+      known almanac value for your location/date (algorithm was validated against Rochester
+      MN). No fix -> "Need a GPS position first". Clock not RTC-synced -> "Clock not set yet".
+      A position older than 24h -> "open Map/GPS for a fresh fix"; a stale-but-recent fix
+      shows "(last known Xh ago)".
+- [ ] **Emergency** (icon: SOS): tap ACTIVATE -> screen strobes SOS Morse (... --- ...) at
+      full brightness, an audible SOS tone plays (toggle Sound off/on), and it broadcasts
+      "SOS <lat>,<lng>" over the LoRa mesh every 30s (watch a second node's chat on PRIMARY
+      to confirm receipt; sends silently skip if Walkie holds the radio). "sent N" counter
+      climbs. DEACTIVATE / Back -> strobe stops, tone stops, brightness restored, screen-
+      sleep re-enabled. Leave it armed and hit Back -> it still force-stops everything.
+- [ ] **Trip** (icon: tracker): walk a known loop -> Distance (m/km), Speed, Max, Avg
+      (moving), Moving time, Altitude, Ascent all populate (km/h + mph). Stand still ->
+      Speed reads 0 (no phantom jitter), Distance doesn't creep. Reset zeroes everything.
+      Back and reopen quickly while walking -> the closed gap is NOT folded in (no phantom
+      jump). Note: stats accumulate only while the app is open (v1).
+- [ ] **Battery** (icon: gear): shows percent + bar, charging state, power tier, and (P4
+      gauge) numeric voltage + signed current. Plug/unplug USB -> "Charging"/"Discharging"
+      flip and current sign changes. If the gauge can't be read: "--%" + "Unknown" +
+      "Current: n/a" (never a fake "0 mA / Discharging"). Leave it open a while on a healthy
+      gauge -> no I2C/touch stutter (dead-gauge re-probe is throttled to 5s).
