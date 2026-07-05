@@ -103,9 +103,12 @@ void update_compass(CompassAppState* st)
     }
     st->was_moving = moving;
 
-    // Speed readout is shown whenever the fix reports it (even ~0 while stopped), since
-    // the whole point is that the heading depends on speed.
-    if (fix.has_speed)
+    // Speed readout carries the same hard gates as the needle: shown only when the fix is
+    // valid AND reports speed (even ~0 while stopped, since the heading depends on speed).
+    // On fix loss the upstream parser freezes has_speed/speed_mps at their last values, so
+    // without the fix.valid gate the readout would keep showing a stale speed while the
+    // needle is hidden and the status says "No GPS fix" -- it now blanks in lockstep.
+    if (fix.valid && fix.has_speed)
     {
         const double kmh = fix.speed_mps * 3.6;
         const double mph = fix.speed_mps * 2.2369362920544;

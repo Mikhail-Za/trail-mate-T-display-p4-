@@ -39,7 +39,7 @@ constexpr double kSynodicMonth = 29.530588853;     // mean synodic month, days
 constexpr double kRefNewMoonJd = 2451550.1;        // JD of new moon 2000-01-06 18:14 UTC
 constexpr double kUnixEpochJd = 2440587.5;         // JD of 1970-01-01 00:00 UTC
 constexpr uint32_t kClockValidEpoch = 1577836800u;  // 2020-01-01 UTC; below = RTC unsynced
-constexpr uint32_t kStalePositionMaxSec = 24u * 3600u; // cached fix older than this = refuse
+constexpr uint32_t kStalePositionMaxMs = 24u * 3600u * 1000u; // cached fix older than this = refuse
 
 struct SunMoonState
 {
@@ -60,10 +60,6 @@ struct SunMoonState
     double last_lat = 0.0;
     double last_lng = 0.0;
     bool have_last = false;
-    // Epoch (UTC seconds) at which last_lat/last_lng were captured from a genuinely
-    // live fix. Used to disclose the cached position's age and to expire a fix too
-    // old to trust. 0 = never stamped from a valid fix.
-    uint32_t last_fix_epoch = 0;
 };
 
 SunMoonState s_state;
@@ -297,13 +293,6 @@ void recompute(SunMoonState* st)
         st->last_lat = fix.lat;
         st->last_lng = fix.lng;
         st->have_last = true;
-        // Stamp the capture time only for a genuinely-current fix. Re-reading an
-        // already-stale cached position (coords present but fix.valid == false)
-        // must NOT refresh this, so the age below reflects true position freshness.
-        if (fix.valid)
-        {
-            st->last_fix_epoch = utc;
-        }
     }
     if (!st->have_last)
     {
@@ -316,19 +305,21 @@ void recompute(SunMoonState* st)
     const bool stale = !fix.valid;
 
     // Stale-position disclosure + expiry. With no live fix we're drawing from the
-    // last latched position, so work out how old that position actually is: this
-    // lets us both surface the age to the user and refuse a fix too old to trust.
+    // last latched position, so work out how old that position actually is from the
+    // GPS driver's own monotonic age (fix.age = ms since the last accepted fix, kept
+    // by esp_timer). That is immune to wall-clock resyncs and to our own poll cadence,
+    // and it lets us both surface the age to the user and refuse a fix too old to trust.
     // (A user manually choosing a timezone inconsistent with their real location is
     // configuration the app faithfully honors -- out of scope; this targets only the
     // silently-stale GPS position.)
     uint32_t pos_age_sec = 0;
     bool pos_age_known = false;
-    if (stale && st->last_fix_epoch >= kClockValidEpoch && utc >= st->last_fix_epoch)
+    if (stale && fix.age > 0)
     {
-        pos_age_sec = utc - st->last_fix_epoch;
+        pos_age_sec = fix.age / 1000u;
         pos_age_known = true;
     }
-    if (stale && pos_age_known && pos_age_sec > kStalePositionMaxSec)
+    if (stale && fix.age > kStalePositionMaxMs)
     {
         // A day-old position is too far off to trust for sunrise/sunset; refuse it
         // rather than showing plausible-looking but wrong solar times.
@@ -420,7 +411,7 @@ void recompute(SunMoonState* st)
         }
         else
         {
-            // No valid-fix timestamp yet (position latched from a non-valid fix).
+            // Age unknown (fix.age == 0: no accepted fix has ever been recorded).
             std::snprintf(locsuffix, sizeof(locsuffix), "  (last known)");
         }
     }
