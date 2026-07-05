@@ -290,6 +290,38 @@ int TDisplayP4Board::getBatteryLevel()
     return last_battery_level_;
 }
 
+int TDisplayP4Board::getBatteryVoltageMv()
+{
+    if (!battery_gauge_ready_)
+    {
+        (void)initializeBatteryGauge();
+    }
+
+    uint16_t voltage_mv = 0;
+    if (!readBatteryGaugeWord(kBatteryRegVoltage, &voltage_mv))
+    {
+        return -1;
+    }
+
+    return static_cast<int>(voltage_mv);
+}
+
+int TDisplayP4Board::getBatteryCurrentMa()
+{
+    if (!battery_gauge_ready_)
+    {
+        (void)initializeBatteryGauge();
+    }
+
+    int16_t current_ma = 0;
+    if (!readBatteryGaugeWordSigned(kBatteryRegCurrent, &current_ma))
+    {
+        return 0;
+    }
+
+    return static_cast<int>(current_ma);
+}
+
 bool TDisplayP4Board::isSDReady() const
 {
     return sd_ready_;

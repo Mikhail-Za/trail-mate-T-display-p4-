@@ -5231,6 +5231,13 @@ ui::CallbackAppScreen s_sstv_app("sstv",
 // esp32_lvgl_field_guide_app.cpp), same pattern as Flashlight/Node Radar.
 extern ui::CallbackAppScreen g_translate_app;
 extern ui::CallbackAppScreen g_field_guide_app;
+// Nav/field toolkit apps (own TUs, same self-contained pattern as translate/field_guide).
+extern ui::CallbackAppScreen g_waypoints_app;
+extern ui::CallbackAppScreen g_compass_app;
+extern ui::CallbackAppScreen g_sun_moon_app;
+extern ui::CallbackAppScreen g_beacon_app;
+extern ui::CallbackAppScreen g_trip_app;
+extern ui::CallbackAppScreen g_power_app;
 
 namespace
 {
@@ -5256,7 +5263,13 @@ AppScreen* s_apps[] = {&s_chat_app,
                        &s_walkie_app,
                        &s_sstv_app,
                        &g_translate_app,
-                       &g_field_guide_app};
+                       &g_field_guide_app,
+                       &g_waypoints_app,
+                       &g_compass_app,
+                       &g_sun_moon_app,
+                       &g_beacon_app,
+                       &g_trip_app,
+                       &g_power_app};
 ui::StaticAppCatalogState s_catalog_state = ui::makeStaticAppCatalogState(s_apps);
 ui::AppCatalog s_catalog = ui::makeStaticAppCatalog(&s_catalog_state);
 

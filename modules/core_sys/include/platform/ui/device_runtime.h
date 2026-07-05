@@ -13,6 +13,16 @@ struct BatteryInfo
     int level = -1;
 };
 
+// Numeric fuel-gauge detail for diagnostics UI. Kept separate from BatteryInfo so
+// the frequent topbar battery poll (battery_info()) stays cheap; only callers that
+// need the raw voltage/current pay the extra gauge reads via battery_power_detail().
+struct BatteryPowerDetail
+{
+    bool valid = false;
+    int voltage_mv = -1;
+    int current_ma = 0;
+};
+
 struct MemoryStats
 {
     std::size_t ram_total_bytes = 0;
@@ -26,6 +36,7 @@ void delay_ms(uint32_t ms);
 void restart();
 bool rtc_ready();
 BatteryInfo battery_info();
+BatteryPowerDetail battery_power_detail();
 MemoryStats memory_stats();
 const char* firmware_version();
 void handle_low_battery(const BatteryInfo& info);

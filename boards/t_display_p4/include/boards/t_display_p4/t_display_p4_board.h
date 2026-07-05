@@ -133,6 +133,12 @@ class TDisplayP4Board final : public BoardBase, public LoraBoard
     bool isRTCReady() const override;
     bool isCharging() override;
     int getBatteryLevel() override;
+    // Additive numeric fuel-gauge reads (not part of BoardBase): expose the raw
+    // voltage/current the gauge already provides so a diagnostics UI can show them.
+    // getBatteryVoltageMv() returns mV, -1 on read failure.
+    // getBatteryCurrentMa() returns signed mA (positive = charging), 0 on read failure.
+    int getBatteryVoltageMv();
+    int getBatteryCurrentMa();
     bool isSDReady() const override;
     bool isCardReady() override;
     bool isGPSReady() const override;
