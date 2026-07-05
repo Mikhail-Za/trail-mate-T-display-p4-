@@ -221,13 +221,15 @@ void trip_accumulate(TripState* st, const gps::GpsState& fix, uint32_t now)
             // Local outlier guard: a still-implausible fix (the upstream jitter filter
             // force-accepts after 3 consecutive rejects) can carry a large spurious
             // jump. If the implied speed exceeds a generous bound, skip the commit (do
-            // not add phantom distance) but still re-anchor to the new point so the
-            // outlier is not re-measured and compounded on the next sample.
+            // not add phantom distance) AND leave the anchor untouched, so the next
+            // legitimate fix is measured from the last known-good position rather than
+            // from the glitch (mirrors the upstream jitter filter, which leaves its
+            // reference unchanged on a reject). Moving anchor onto the outlier would
+            // make every subsequent real fix exceed the bound too and permanently lose
+            // the walked distance. Also do not credit moving time for a rejected sample.
             if (dt_s > 0.0 && (d / dt_s) > kMaxPlausibleMps)
             {
-                st->anc_lat = fix.lat;
-                st->anc_lng = fix.lng;
-                st->anc_tick = now;
+                moving = false; // rejected outlier contributes nothing to moving_time_ms
             }
             else
             {
