@@ -99,14 +99,26 @@ inline bool validate_storage_key(const char* op,
     return false;
 }
 
-inline bool open_namespace(const char* ns, bool read_only, nvs_handle_t* handle)
+inline bool open_namespace(const char* ns,
+                           bool read_only,
+                           nvs_handle_t* handle,
+                           esp_err_t* out_err = nullptr)
 {
     if (!ns || !handle)
     {
+        if (out_err)
+        {
+            *out_err = ESP_ERR_INVALID_ARG;
+        }
         return false;
     }
 
-    return nvs_open(ns, read_only ? NVS_READONLY : NVS_READWRITE, handle) == ESP_OK;
+    const esp_err_t err = nvs_open(ns, read_only ? NVS_READONLY : NVS_READWRITE, handle);
+    if (out_err)
+    {
+        *out_err = err;
+    }
+    return err == ESP_OK;
 }
 
 inline void log_open_failure(const char* op,
@@ -400,9 +412,16 @@ int get_int(const char* ns, const char* key, int default_value)
     }
 
     nvs_handle_t handle = 0;
-    if (!open_namespace(ns, true, &handle))
+    esp_err_t open_err = ESP_OK;
+    if (!open_namespace(ns, true, &handle, &open_err))
     {
-        log_open_failure("READ", ns, key, storage_key);
+        // A read-only open of a namespace that has never been written yet returns
+        // ESP_ERR_NVS_NOT_FOUND (see nvs.h). That is expected on first read before
+        // any write, so stay quiet; only genuine open failures are logged as errors.
+        if (open_err != ESP_ERR_NVS_NOT_FOUND)
+        {
+            log_open_failure("READ", ns, key, storage_key);
+        }
         return default_value;
     }
 
@@ -436,9 +455,16 @@ bool get_bool(const char* ns, const char* key, bool default_value)
     }
 
     nvs_handle_t handle = 0;
-    if (!open_namespace(ns, true, &handle))
+    esp_err_t open_err = ESP_OK;
+    if (!open_namespace(ns, true, &handle, &open_err))
     {
-        log_open_failure("READ", ns, key, storage_key);
+        // A read-only open of a namespace that has never been written yet returns
+        // ESP_ERR_NVS_NOT_FOUND (see nvs.h). That is expected on first read before
+        // any write, so stay quiet; only genuine open failures are logged as errors.
+        if (open_err != ESP_ERR_NVS_NOT_FOUND)
+        {
+            log_open_failure("READ", ns, key, storage_key);
+        }
         return default_value;
     }
 
@@ -472,9 +498,16 @@ uint32_t get_uint(const char* ns, const char* key, uint32_t default_value)
     }
 
     nvs_handle_t handle = 0;
-    if (!open_namespace(ns, true, &handle))
+    esp_err_t open_err = ESP_OK;
+    if (!open_namespace(ns, true, &handle, &open_err))
     {
-        log_open_failure("READ", ns, key, storage_key);
+        // A read-only open of a namespace that has never been written yet returns
+        // ESP_ERR_NVS_NOT_FOUND (see nvs.h). That is expected on first read before
+        // any write, so stay quiet; only genuine open failures are logged as errors.
+        if (open_err != ESP_ERR_NVS_NOT_FOUND)
+        {
+            log_open_failure("READ", ns, key, storage_key);
+        }
         return default_value;
     }
 
@@ -509,9 +542,16 @@ bool get_string(const char* ns, const char* key, std::string& out)
     }
 
     nvs_handle_t handle = 0;
-    if (!open_namespace(ns, true, &handle))
+    esp_err_t open_err = ESP_OK;
+    if (!open_namespace(ns, true, &handle, &open_err))
     {
-        log_open_failure("READ", ns, key, storage_key);
+        // A read-only open of a namespace that has never been written yet returns
+        // ESP_ERR_NVS_NOT_FOUND (see nvs.h). That is expected on first read before
+        // any write, so stay quiet; only genuine open failures are logged as errors.
+        if (open_err != ESP_ERR_NVS_NOT_FOUND)
+        {
+            log_open_failure("READ", ns, key, storage_key);
+        }
         return false;
     }
 
@@ -577,9 +617,16 @@ bool get_blob(const char* ns, const char* key, std::vector<uint8_t>& out)
     }
 
     nvs_handle_t handle = 0;
-    if (!open_namespace(ns, true, &handle))
+    esp_err_t open_err = ESP_OK;
+    if (!open_namespace(ns, true, &handle, &open_err))
     {
-        log_open_failure("READ", ns, key, storage_key);
+        // A read-only open of a namespace that has never been written yet returns
+        // ESP_ERR_NVS_NOT_FOUND (see nvs.h). That is expected on first read before
+        // any write, so stay quiet; only genuine open failures are logged as errors.
+        if (open_err != ESP_ERR_NVS_NOT_FOUND)
+        {
+            log_open_failure("READ", ns, key, storage_key);
+        }
         return false;
     }
 

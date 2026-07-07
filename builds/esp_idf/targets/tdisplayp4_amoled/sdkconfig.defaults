@@ -14,7 +14,11 @@ CONFIG_IDF_EXPERIMENTAL_FEATURES=y
 CONFIG_TINYUSB_MSC_ENABLED=y
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 CONFIG_ESP_TASK_WDT_TIMEOUT_S=20
-CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+# Trail-mate runs as a guest app inside the DualMesh launcher's partition table,
+# which has no coredump partition -> flash coredump spammed "No core dump partition
+# found!" every boot and could never work here. Dump over UART instead (works without
+# a partition; a crash prints a decodable ELF dump on the console).
+CONFIG_ESP_COREDUMP_ENABLE_TO_UART=y
 CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
 CONFIG_TRAIL_MATE_T_DISPLAY_P4_PANEL_RM69A10=y
 CONFIG_TRAIL_MATE_T_DISPLAY_P4_PIXEL_FORMAT_RGB565=y

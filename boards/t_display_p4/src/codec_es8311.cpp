@@ -184,15 +184,20 @@ bool CodecEs8311::ensureI2s()
 
 void CodecEs8311::teardownI2s()
 {
+    // No explicit i2s_channel_disable() here: every path that reaches teardown
+    // leaves the channels in READY/REGISTERED state, never RUNNING. On the normal
+    // close() path esp_codec_dev_close() already disables them (back to READY)
+    // before this runs; the open-failure paths only create/init the channels and
+    // never enable them. i2s_del_channel() accepts any non-RUNNING channel, so a
+    // disable here is always redundant and just logs "the channel has not been
+    // enabled yet".
     if (i2s_tx_ != nullptr)
     {
-        (void)i2s_channel_disable(i2s_tx_);
         (void)i2s_del_channel(i2s_tx_);
         i2s_tx_ = nullptr;
     }
     if (i2s_rx_ != nullptr)
     {
-        (void)i2s_channel_disable(i2s_rx_);
         (void)i2s_del_channel(i2s_rx_);
         i2s_rx_ = nullptr;
     }

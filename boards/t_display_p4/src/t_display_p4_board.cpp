@@ -158,6 +158,14 @@ TDisplayP4Board::TDisplayP4Board()
 uint32_t TDisplayP4Board::begin(uint32_t disable_hw_init)
 {
     (void)disable_hw_init;
+
+    // Silence the benign IDF SD-LDO two-step init warning: the on-chip LDO SD
+    // power-control driver acquires the channel with a placeholder 0mV and only
+    // sets the real voltage after SD negotiation, so it logs "voltage value 0 is
+    // out of the recommended range" once at mountSdCard(). Set BEFORE mountSdCard
+    // runs and keep ESP_LOG_ERROR so genuine ldo faults still surface.
+    esp_log_level_set("ldo", ESP_LOG_ERROR);
+
     if (started_)
     {
         return 0;
