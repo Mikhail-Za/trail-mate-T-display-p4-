@@ -204,7 +204,7 @@ def main():
 
     # --- plant photos ------------------------------------------------------------
     # photos_raw/<section>/<article-stem>/{N.jpg|N.png, credits.tsv} -> staged as
-    # guides/photos/<section>/<stem>/N.jpg, re-encoded to 500px-wide BASELINE JPEG
+    # guides/photos/<section>/<stem>/N.jpg, re-encoded to fit 360x480 BASELINE JPEG
     # (TJPGD on-device cannot decode progressive). Credits merge into one file.
     raw_root = os.path.join(HERE, "photos_raw")
     if os.path.isdir(raw_root):
@@ -235,9 +235,12 @@ def main():
                 for out_n, (_src_num, fn) in enumerate(srcs, start=1):
                     img = Image.open(os.path.join(adir, fn))
                     img = ImageOps.exif_transpose(img).convert("RGB")
-                    if img.width > 500:
-                        img = img.resize((500, max(1, round(img.height * 500 / img.width))),
-                                         Image.LANCZOS)
+                    # Fit within 360x480 (preserve aspect, shrink-only). Reduced from a
+                    # former 500px-wide encode: the larger photos (up to 500x750) made the
+                    # Field Guide scroll janky on the P4 because per-frame decode + blit
+                    # cost scales with pixel count. Capping both dimensions ~halves the
+                    # pixels while staying clearly legible on the ~540px-wide screen.
+                    img.thumbnail((360, 480), Image.LANCZOS)
                     os.makedirs(out_dir, exist_ok=True)
                     out_path = os.path.join(out_dir, "%d.jpg" % out_n)
                     img.save(out_path, "JPEG", quality=80, progressive=False,
@@ -257,7 +260,7 @@ def main():
             with open(os.path.join(gdir, "photos", "CREDITS.tsv"), "w",
                       encoding="utf-8", newline="\n") as f:
                 f.write("\n".join(credit_lines) + "\n")
-        print("photos: %d staged (500px baseline JPEG q80)" % photo_total)
+        print("photos: %d staged (fit 360x480 baseline JPEG q80)" % photo_total)
     else:
         print("photos: photos_raw/ not present, skipped")
 

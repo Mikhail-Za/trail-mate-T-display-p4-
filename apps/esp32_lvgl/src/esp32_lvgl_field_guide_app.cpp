@@ -13,6 +13,8 @@
 // through ui_request_exit_to_menu().
 
 #include "lvgl.h"
+#include "src/draw/lv_image_decoder_private.h"     // lv_image_decoder_dsc_t body (.decoded)
+#include "src/misc/cache/instance/lv_image_cache.h" // lv_image_cache_drop
 #include "ui/app_runtime.h"
 #include "ui/callback_app_screen.h"
 #include "ui/support/lvgl_fs_utils.h"
@@ -20,6 +22,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -45,6 +48,11 @@ struct FieldGuideAppState
     std::vector<std::string> categories; // first-seen order
     int cat_idx = -1;
     int entry_idx = -1;
+    // App-owned decoded photo descriptors for the current article view. Each
+    // entry's ->data is a separate lv_malloc'd pixel buffer. Kept so the VARIABLE
+    // image sources outlive their lv_image objects and are freed together on
+    // teardown (see free_photo_dscs).
+    std::vector<lv_image_dsc_t*> photo_dscs;
 };
 
 FieldGuideAppState s_state;
@@ -115,11 +123,36 @@ void show_category_screen(FieldGuideAppState* st);
 void show_entry_list_screen(FieldGuideAppState* st);
 void show_article_screen(FieldGuideAppState* st);
 
+// Free the app-owned decoded photo buffers built for the article view. MUST be
+// called only AFTER the lv_image objects that referenced them are deleted (every
+// caller deletes/cleans the body first). Mirrors map_tiles.cpp's teardown order:
+// drop LVGL's image cache so no draw/cache reference survives, then free each
+// descriptor's pixel buffer and the descriptor itself. Idempotent: safe on an
+// empty vector and on re-entry, so every navigation/exit path may call it.
+void free_photo_dscs(FieldGuideAppState* st)
+{
+    if (st->photo_dscs.empty())
+    {
+        return;
+    }
+    lv_image_cache_drop(NULL);
+    for (lv_image_dsc_t* dsc : st->photo_dscs)
+    {
+        if (dsc != nullptr)
+        {
+            lv_free((void*)dsc->data);
+            lv_free(dsc);
+        }
+    }
+    st->photo_dscs.clear();
+}
+
 void clear_body(FieldGuideAppState* st)
 {
     if (st->body && lv_obj_is_valid(st->body))
     {
-        lv_obj_clean(st->body);
+        lv_obj_clean(st->body);   // delete photo lv_image objects first
+        free_photo_dscs(st);      // then release their owned buffers (no leak/UAF)
         lv_obj_scroll_to_y(st->body, 0, LV_ANIM_OFF);
     }
 }
@@ -343,7 +376,49 @@ void show_article_screen(FieldGuideAppState* st)
             break;
         }
         lv_obj_t* img = lv_image_create(st->body);
-        lv_image_set_src(img, photo_path);
+
+        // Decode the JPEG ONCE into an app-owned descriptor so the image source is
+        // LV_IMAGE_SRC_VARIABLE (in-memory) rather than LV_IMAGE_SRC_FILE. Only the
+        // VARIABLE path is eligible for the P4 hardware PPA blit; a file src stays on
+        // the software renderer, which is why photo scroll was slow. This mirrors the
+        // decode-to-owned-img_dsc tile cache in map_tiles.cpp exactly: copy the header
+        // (w/h/cf/stride/flags/magic) and pixel bytes into buffers we own, tracked in
+        // st->photo_dscs and freed together in free_photo_dscs on teardown.
+        lv_image_decoder_dsc_t dsc;
+        std::memset(&dsc, 0, sizeof(dsc));
+        lv_result_t r = lv_image_decoder_open(&dsc, photo_path, NULL);
+        bool owned_set = false;
+        if (r == LV_RESULT_OK && dsc.decoded != NULL)
+        {
+            const lv_draw_buf_t* decoded = dsc.decoded;
+            lv_image_dsc_t* owned = (lv_image_dsc_t*)lv_malloc(sizeof(lv_image_dsc_t));
+            if (owned != nullptr)
+            {
+                uint8_t* data = (uint8_t*)lv_malloc(decoded->data_size);
+                if (data != nullptr)
+                {
+                    std::memcpy(data, decoded->data, decoded->data_size);
+                    owned->header = decoded->header; // w/h/cf/stride/flags/magic
+                    owned->data_size = decoded->data_size;
+                    owned->data = data;
+                    st->photo_dscs.push_back(owned);
+                    lv_image_set_src(img, owned); // VARIABLE src -> PPA-eligible
+                    owned_set = true;
+                }
+                else
+                {
+                    lv_free(owned);
+                }
+            }
+        }
+        lv_image_decoder_close(&dsc); // safe after a failed open (dsc memset to 0)
+        if (!owned_set)
+        {
+            // Decode/alloc failed: fall back to the file src (software render, but
+            // the photo is never lost). lv_image copies the path via lv_strdup, so
+            // the stack buffer is fine.
+            lv_image_set_src(img, photo_path);
+        }
         lv_obj_set_style_pad_top(img, 6, 0);
         ++photos_shown;
     }
@@ -444,12 +519,16 @@ void field_guide_exit(void* user_data, lv_obj_t* parent)
     st->entry_idx = -1;
     if (!st->root || !lv_obj_is_valid(st->root))
     {
+        // Root (and thus every photo lv_image) already deleted elsewhere; still
+        // release the owned photo buffers so they never leak across exit.
+        free_photo_dscs(st);
         st->root = nullptr;
         st->title_label = nullptr;
         st->body = nullptr;
         return;
     }
-    lv_obj_del(st->root);
+    lv_obj_del(st->root);  // deletes body + photo lv_image objects first
+    free_photo_dscs(st);   // then free the owned buffers (objects, cache drop, free)
     st->root = nullptr;
     st->title_label = nullptr;
     st->body = nullptr;

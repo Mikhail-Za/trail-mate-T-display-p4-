@@ -61,3 +61,11 @@ CONFIG_LV_USE_TJPGD=y
 # Map unaffected (map_tiles.cpp owns its tile cache + calls lv_image_cache_drop(NULL)).
 CONFIG_LV_CACHE_DEF_SIZE=4194304
 CONFIG_LV_IMAGE_HEADER_CACHE_DEF_CNT=16
+# Hardware 2D accel: enable the P4's PPA for LVGL image draw (see tft defaults for the
+# full rationale). Image blit was 100% software; PPA needs in-memory image sources, so
+# the Field Guide photo loader also decodes to an app-owned img_dsc like map_tiles.cpp.
+# PPA DMAs the draw buffers, so they must align to the L2 cache-line size (128B on P4);
+# the PPA backend hard-#errors if LV_DRAW_BUF_ALIGN != CACHE_L2_CACHE_LINE_SIZE.
+CONFIG_LV_DRAW_BUF_ALIGN=128
+CONFIG_LV_USE_PPA=y
+CONFIG_LV_USE_PPA_IMG=y

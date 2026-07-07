@@ -97,6 +97,19 @@ CONFIG_LV_USE_TJPGD=y
 # calls lv_image_cache_drop(NULL), so it neither relies on nor accumulates in this cache.
 CONFIG_LV_CACHE_DEF_SIZE=4194304
 CONFIG_LV_IMAGE_HEADER_CACHE_DEF_CNT=16
+# Hardware 2D accel: enable the P4's PPA (Pixel Processing Accelerator) for LVGL image
+# draw. Image blitting was 100% software single-threaded, so scrolling large Field Guide
+# photos was CPU-bound and janky (the cache avoids re-decode but not the software blit).
+# The PPA image path only accepts IN-MEMORY (VARIABLE) image sources, so the Field Guide
+# photo loader also decodes each photo once into an app-owned img_dsc (like map_tiles.cpp,
+# which is why map panning is smooth). Ineligible draws (file src / scaled / rounded) fall
+# back to software safely.
+# PPA does DMA on the LVGL draw buffers, so they must be aligned to the L2 cache-line
+# size (128B on the P4) for cache coherency; the PPA backend hard-#errors if
+# LV_DRAW_BUF_ALIGN != CACHE_L2_CACHE_LINE_SIZE. Default was 4.
+CONFIG_LV_DRAW_BUF_ALIGN=128
+CONFIG_LV_USE_PPA=y
+CONFIG_LV_USE_PPA_IMG=y
 # Offline Translate app: Arabic needs glyph shaping + right-to-left layout. BIDI is
 # label-level and inert for LTR text; the Arabic/Persian pass only touches strings
 # containing those codepoints. Fonts themselves load from the SD card (binfont).
