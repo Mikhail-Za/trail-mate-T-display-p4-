@@ -111,10 +111,18 @@ pinch_out / two_finger_tap / double_tap`.
 - Walkie-talkie human voice bench test (PTT build, 06-25).
 - Unit A GPS: hardware fault; multimeter the L76K VCC rail before any firmware theories.
 
-## 6. Six new field-toolkit apps (2026-07-05; compile-verified tft+amoled, on-device pending)
+## 6. Six new field-toolkit apps (2026-07-05; compile-verified tft+amoled)
 All six appear in the launcher after &g_field_guide_app. Built off a scouted spec,
-then adversarially reviewed (11 fixes applied, Beacon was clean). Use the working-GPS
-unit (B) for the GPS-dependent ones.
+then adversarially reviewed in TWO rounds (11 + 11 = 22 fixes; Beacon was clean).
+Use the working-GPS unit (B) for the GPS-dependent ones.
+
+ON-DEVICE BOOT + LIFECYCLE VERIFIED 2026-07-06 (both units, @c3a53bd flashed via
+deploy-both-units.ps1): boot self-test logged `appselftest:begin count=28` and
+`waypoints/compass/sun_moon/beacon/trip/power` each `:enter`->`:ok`, `appselftest:done`,
+zero panics on BOTH units -> every new app's screen-build + teardown runs clean on
+real hardware. The interactive UI checks below (needle motion, beacon strobe/tone/mesh,
+waypoint save+reload, trip accumulation, solar values, battery voltage) still need a
+human at the screen -- the self-test only enters+exits, it does not tap or run ticks.
 
 - [ ] **Waypoints** (icon: map pin): with a fix, tap "Save current location" -> a row
       appears with live distance + bearing. Tap it -> Go-To view shows big bearing/
