@@ -87,6 +87,16 @@ CONFIG_LV_USE_CLIB_MALLOC=y
 # decoder-aware map_source_directory_available gate un-gates it automatically if
 # satellite tiles are ever loaded onto the card.
 CONFIG_LV_USE_TJPGD=y
+# Image cache: LVGL's decoded-image cache was OFF (LV_CACHE_DEF_SIZE=0), so every repaint
+# re-decoded through TJPGD/lodepng. Scrolling a photo-heavy Field Guide article re-decoded
+# the same JPEGs on every frame -> stutter. Give the cache a 4MB budget so LVGL keeps
+# recently-decoded images (keyed by their "A:/..." src path) and reuses them on repaint
+# instead of re-decoding. Cached buffers are >=16KB so they land in PSRAM via the
+# CLIB-malloc routing above; 4MB of the 32MB PSRAM is a conservative, LRU-bounded cap.
+# The map is unaffected: map_tiles.cpp keeps its OWN img_dsc tile cache and explicitly
+# calls lv_image_cache_drop(NULL), so it neither relies on nor accumulates in this cache.
+CONFIG_LV_CACHE_DEF_SIZE=4194304
+CONFIG_LV_IMAGE_HEADER_CACHE_DEF_CNT=16
 # Offline Translate app: Arabic needs glyph shaping + right-to-left layout. BIDI is
 # label-level and inert for LTR text; the Arabic/Persian pass only touches strings
 # containing those codepoints. Fonts themselves load from the SD card (binfont).

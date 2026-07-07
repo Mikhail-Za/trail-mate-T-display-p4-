@@ -55,3 +55,9 @@ CONFIG_LV_USE_CLIB_MALLOC=y
 CONFIG_SPIRAM_USE_MALLOC=y
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
 CONFIG_LV_USE_TJPGD=y
+# Image cache (see tft defaults for the full rationale): LVGL's decoded-image cache was
+# OFF, so Field Guide photos re-decoded through TJPGD on every scroll repaint -> stutter.
+# 4MB LRU cache keyed by src path; cached buffers >=16KB land in PSRAM via CLIB-malloc.
+# Map unaffected (map_tiles.cpp owns its tile cache + calls lv_image_cache_drop(NULL)).
+CONFIG_LV_CACHE_DEF_SIZE=4194304
+CONFIG_LV_IMAGE_HEADER_CACHE_DEF_CNT=16
