@@ -68,6 +68,8 @@ GUIDE_SECTIONS = [
     ("plants_edible", "Edible Plants"),
     ("plants_hazard", "Plant Hazards"),
     ("nature", "Wildlife & Nature"),
+    ("animals", "Animals"),
+    ("medicinal", "Medicinal & First Aid"),
     ("preparedness", "Preparedness"),
 ]
 
@@ -177,7 +179,16 @@ def main():
     total = 0
     for section, display in GUIDE_SECTIONS:
         src = os.path.join(HERE, "guides", section)
+        # Content lands incrementally: a section's source dir may not exist yet, or
+        # exist but hold no articles. Skip it with a note instead of crashing so the
+        # build keeps working before animals/ or medicinal/ is populated.
+        if not os.path.isdir(src):
+            print("  guides/%s: source dir not present yet, skipped" % section)
+            continue
         files = sorted(f for f in os.listdir(src) if f.endswith(".txt"))
+        if not files:
+            print("  guides/%s: no articles yet, skipped" % section)
+            continue
         os.makedirs(os.path.join(gdir, section), exist_ok=True)
         for fn in files:
             with open(os.path.join(src, fn), "rb") as f:
@@ -201,6 +212,21 @@ def main():
     with open(os.path.join(gdir, "index.tsv"), "w", encoding="ascii", newline="\n") as f:
         f.write("\n".join(index_lines) + "\n")
     print("guides: %d articles indexed" % total)
+
+    # --- region tags (GPS "Near me") ---------------------------------------------
+    # Copy the authored region-tag file VERBATIM to staging as guides/regions.tsv
+    # (rows: "section/file.txt \t region1,region2,...", or "all"). The app loads it
+    # separately from index.tsv so the index parser stays untouched. Absent = the
+    # "Near me" feature simply yields no matches; never fail the build over it.
+    regions_src = os.path.join(HERE, "guides_regions.tsv")
+    if os.path.exists(regions_src):
+        with open(regions_src, "rb") as rf:
+            regions_bytes = rf.read()
+        with open(os.path.join(gdir, "regions.tsv"), "wb") as wf:
+            wf.write(regions_bytes)
+        print("regions: copied guides_regions.tsv -> guides/regions.tsv")
+    else:
+        print("regions: guides_regions.tsv not present, skipped")
 
     # --- plant photos ------------------------------------------------------------
     # photos_raw/<section>/<article-stem>/{N.jpg|N.png, credits.tsv} -> staged as

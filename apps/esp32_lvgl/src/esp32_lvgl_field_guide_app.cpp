@@ -15,6 +15,7 @@
 #include "lvgl.h"
 #include "src/draw/lv_image_decoder_private.h"     // lv_image_decoder_dsc_t body (.decoded)
 #include "src/misc/cache/instance/lv_image_cache.h" // lv_image_cache_drop
+#include "platform/ui/gps_runtime.h"          // platform::ui::gps::get_data() for "Near me"
 #include "ui/app_runtime.h"
 #include "ui/callback_app_screen.h"
 #include "ui/support/lvgl_fs_utils.h"
@@ -23,6 +24,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -62,9 +64,45 @@ struct FieldGuideAppState
     std::string photo_stem; // "<section>/<name>" for A:/guides/photos/<stem>/<n>.jpg
     int photo_idx = -1;     // 0-based index of the photo on screen; -1 = viewer closed
     int photo_count = 0;    // N contiguous photos for the current article
+    // GPS "Near me" regional filter. region_tags maps an article path
+    // ("section/file.txt", matches GuideEntry.path) to the region ids it is tagged
+    // for (the token "all" is expanded to all 8 ids at load time). Loaded from
+    // A:/guides/regions.tsv; a missing file just leaves this empty (no matches).
+    std::map<std::string, std::vector<std::string>> region_tags;
+    // True while the current screen is the Near-me list, OR an article/photo opened
+    // FROM the Near-me list. Selects which parent go_back returns to (Near-me list
+    // vs the category/entry-list path) without touching cat_idx/entry_idx meaning.
+    bool from_near_me = false;
 };
 
 FieldGuideAppState s_state;
+
+// 8 US regions for the GPS "Near me" filter. id matches the tokens in regions.tsv;
+// name is the on-screen label; the bbox (lat_min,lat_max,lon_min,lon_max) maps a GPS
+// fix to a region. Ids/names/bboxes mirror the shared Field Guide expansion spec.
+struct RegionInfo
+{
+    const char* id;
+    const char* name;
+    double lat_min;
+    double lat_max;
+    double lon_min;
+    double lon_max;
+};
+
+constexpr RegionInfo kRegions[] = {
+    {"pnw", "Pacific Northwest", 42.0, 49.0, -125.0, -116.0},
+    {"cal", "California", 32.0, 42.0, -124.0, -114.0},
+    {"swdesert", "Southwest & Desert", 31.0, 37.0, -115.0, -103.0},
+    {"rockies", "Rocky Mountains", 36.0, 49.0, -116.0, -104.0},
+    {"plains", "Great Plains", 29.0, 49.0, -104.0, -95.0},
+    {"midwest", "Upper Midwest & Lakes", 36.0, 49.0, -97.0, -80.0},
+    {"northeast", "Northeast", 39.0, 47.0, -80.0, -67.0},
+    {"southeast", "Southeast & Gulf", 24.0, 39.0, -95.0, -75.0},
+};
+constexpr int kRegionCount = static_cast<int>(sizeof(kRegions) / sizeof(kRegions[0]));
+
+constexpr char kRegionsPath[] = "A:/guides/regions.tsv";
 
 // Slurp an SD file via the shared ui::fs helper (loops to true EOF; a local
 // break-on-short-read would silently truncate an article since the LVGL POSIX
@@ -72,6 +110,117 @@ FieldGuideAppState s_state;
 bool read_text_file(const char* path, std::string& out)
 {
     return ::ui::fs::read_text_file(path, out);
+}
+
+// Load A:/guides/regions.tsv into st->region_tags. Each row is
+// "section/file.txt \t r1,r2,..." where the ids are comma-separated region ids and
+// the token "all" expands to all 8 regions. A missing file is fine: region_tags is
+// left empty and the "Near me" screen simply finds no matches. Reuses read_text_file.
+void load_region_tags(FieldGuideAppState* st)
+{
+    st->region_tags.clear();
+    std::string text;
+    if (!read_text_file(kRegionsPath, text))
+    {
+        return; // no regions.tsv -> feature yields no matches
+    }
+    size_t pos = 0;
+    while (pos < text.size())
+    {
+        size_t eol = text.find('\n', pos);
+        if (eol == std::string::npos)
+        {
+            eol = text.size();
+        }
+        size_t len = eol - pos;
+        if (len > 0 && text[pos + len - 1] == '\r')
+        {
+            --len;
+        }
+        if (len > 0)
+        {
+            const std::string line = text.substr(pos, len);
+            const size_t tab = line.find('\t');
+            if (tab != std::string::npos)
+            {
+                const std::string path = line.substr(0, tab);
+                const std::string ids = line.substr(tab + 1);
+                std::vector<std::string> regions;
+                size_t rp = 0;
+                while (rp <= ids.size())
+                {
+                    size_t comma = ids.find(',', rp);
+                    const size_t rend = (comma == std::string::npos) ? ids.size() : comma;
+                    std::string tok = ids.substr(rp, rend - rp);
+                    // Trim incidental whitespace around a token.
+                    while (!tok.empty() && (tok.front() == ' ' || tok.front() == '\t'))
+                    {
+                        tok.erase(tok.begin());
+                    }
+                    while (!tok.empty() && (tok.back() == ' ' || tok.back() == '\t'))
+                    {
+                        tok.pop_back();
+                    }
+                    if (tok == "all")
+                    {
+                        for (int i = 0; i < kRegionCount; ++i)
+                        {
+                            regions.push_back(kRegions[i].id);
+                        }
+                    }
+                    else if (!tok.empty())
+                    {
+                        regions.push_back(tok);
+                    }
+                    if (comma == std::string::npos)
+                    {
+                        break;
+                    }
+                    rp = rend + 1;
+                }
+                if (!path.empty() && !regions.empty())
+                {
+                    st->region_tags[path] = std::move(regions);
+                }
+            }
+        }
+        pos = eol + 1;
+    }
+}
+
+// Map a GPS lat/lon to one of the 8 regions, returning an index into kRegions.
+// Point-in-bbox first; if the point falls inside several bboxes, pick the region
+// whose bbox center is nearest; if it falls inside none, pick the region whose
+// center is nearest overall. Distance is a plain squared lat/lon delta (adequate to
+// rank the coarse CONUS bboxes; no need for great-circle math here).
+int region_for_location(double lat, double lon)
+{
+    int best_contained = -1;
+    double best_contained_d = 1e18;
+    int best_any = 0;
+    double best_any_d = 1e18;
+    for (int i = 0; i < kRegionCount; ++i)
+    {
+        const RegionInfo& r = kRegions[i];
+        const double clat = (r.lat_min + r.lat_max) * 0.5;
+        const double clon = (r.lon_min + r.lon_max) * 0.5;
+        const double dlat = lat - clat;
+        const double dlon = lon - clon;
+        const double d = dlat * dlat + dlon * dlon;
+        if (d < best_any_d)
+        {
+            best_any_d = d;
+            best_any = i;
+        }
+        const bool inside = (lat >= r.lat_min && lat <= r.lat_max && lon >= r.lon_min &&
+                             lon <= r.lon_max);
+        if (inside && d < best_contained_d)
+        {
+            best_contained_d = d;
+            best_contained = i;
+        }
+    }
+    return best_contained >= 0 ? best_contained : best_any;
 }
 
 bool load_index(FieldGuideAppState* st)
@@ -83,6 +232,9 @@ bool load_index(FieldGuideAppState* st)
     }
     st->entries.clear();
     st->categories.clear();
+    // Region tags load alongside the index (same "index-load time"); tolerant of a
+    // missing regions.tsv.
+    load_region_tags(st);
     size_t pos = 0;
     while (pos < text.size())
     {
@@ -132,6 +284,7 @@ void show_category_screen(FieldGuideAppState* st);
 void show_entry_list_screen(FieldGuideAppState* st);
 void show_article_screen(FieldGuideAppState* st);
 void show_photo_viewer_screen(FieldGuideAppState* st);
+void show_near_me_screen(FieldGuideAppState* st);
 
 // Free the app-owned decoded photo buffers built for the article view. MUST be
 // called only AFTER the lv_image objects that referenced them are deleted (every
@@ -202,6 +355,28 @@ void show_category_screen(FieldGuideAppState* st)
         return;
     }
 
+    // Synthetic FIRST entry: GPS "Near me" regional filter, above the real category
+    // buttons. It does NOT set cat_idx; it flips from_near_me so go_back unwinds the
+    // Near-me branch (list -> category) distinctly from the category/entry path.
+    {
+        lv_obj_t* nm_btn = make_list_button(
+            st->body,
+            [](lv_event_t*)
+            {
+                s_state.from_near_me = true;
+                s_state.entry_idx = -1;
+                s_state.photo_idx = -1;
+                show_near_me_screen(&s_state);
+            },
+            0);
+        lv_obj_t* nm_lbl = lv_label_create(nm_btn);
+        lv_obj_set_width(nm_lbl, LV_PCT(100));
+        lv_label_set_long_mode(nm_lbl, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_font(nm_lbl, &lv_font_montserrat_24, 0);
+        lv_obj_set_style_text_align(nm_lbl, LV_TEXT_ALIGN_CENTER, 0);
+        lv_label_set_text(nm_lbl, LV_SYMBOL_GPS "  Near Me (what's in your area)");
+    }
+
     for (size_t i = 0; i < st->categories.size(); ++i)
     {
         int count = 0;
@@ -255,6 +430,95 @@ void show_entry_list_screen(FieldGuideAppState* st)
         lv_label_set_long_mode(lbl, LV_LABEL_LONG_WRAP);
         lv_obj_set_style_text_font(lbl, &lv_font_montserrat_20, 0);
         lv_label_set_text(lbl, st->entries[i].title.c_str());
+    }
+}
+
+// GPS "Near me": read the current fix, map it to a region, and list every article
+// whose regions.tsv tags include that region id. Rows open the EXISTING article
+// screen (so photos/viewer/credits all work). No GPS fix -> a friendly prompt; no
+// tagged matches -> a short note. This screen creates NO photos, so its clear_body
+// path stays a no-op for free_photo_dscs. Nav: from_near_me is already true on entry
+// (set by the category button); tapping a row keeps it true so go_back returns here.
+void show_near_me_screen(FieldGuideAppState* st)
+{
+    clear_body(st);
+    st->photo_idx = -1; // not in the photo viewer on this screen
+    set_title(st, "Near Me");
+
+    const gps::GpsState fix = platform::ui::gps::get_data();
+    if (!fix.valid)
+    {
+        lv_obj_t* msg = lv_label_create(st->body);
+        lv_obj_set_width(msg, LV_PCT(100));
+        lv_label_set_long_mode(msg, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_font(msg, &lv_font_montserrat_20, 0);
+        lv_label_set_text(msg,
+                          "No GPS fix yet.\n\n"
+                          "Go outside or open Map to get a location, then come back.");
+        return;
+    }
+
+    const RegionInfo& region = kRegions[region_for_location(fix.lat, fix.lng)];
+
+    lv_obj_t* head = lv_label_create(st->body);
+    lv_obj_set_width(head, LV_PCT(100));
+    lv_label_set_long_mode(head, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(head, &lv_font_montserrat_24, 0);
+    char htext[80];
+    std::snprintf(htext, sizeof(htext), "Your area: %s", region.name);
+    lv_label_set_text(head, htext);
+
+    int matches = 0;
+    for (size_t i = 0; i < st->entries.size(); ++i)
+    {
+        const auto it = st->region_tags.find(st->entries[i].path);
+        if (it == st->region_tags.end())
+        {
+            continue;
+        }
+        bool tagged = false;
+        for (const auto& rid : it->second)
+        {
+            if (rid == region.id)
+            {
+                tagged = true;
+                break;
+            }
+        }
+        if (!tagged)
+        {
+            continue;
+        }
+        // Opens the same article view a category listing would; entry_idx is the
+        // global index into st->entries. from_near_me stays true so go_back returns
+        // to this Near-me list rather than the category's entry list.
+        lv_obj_t* btn = make_list_button(
+            st->body,
+            [](lv_event_t* e)
+            {
+                auto idx = reinterpret_cast<uintptr_t>(lv_event_get_user_data(e));
+                s_state.entry_idx = static_cast<int>(idx);
+                show_article_screen(&s_state);
+            },
+            i);
+        lv_obj_t* lbl = lv_label_create(btn);
+        lv_obj_set_width(lbl, LV_PCT(100));
+        lv_label_set_long_mode(lbl, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_font(lbl, &lv_font_montserrat_20, 0);
+        char rowtext[160];
+        std::snprintf(rowtext, sizeof(rowtext), "%s  (%s)", st->entries[i].title.c_str(),
+                      st->entries[i].category.c_str());
+        lv_label_set_text(lbl, rowtext);
+        ++matches;
+    }
+
+    if (matches == 0)
+    {
+        lv_obj_t* none = lv_label_create(st->body);
+        lv_obj_set_width(none, LV_PCT(100));
+        lv_label_set_long_mode(none, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_font(none, &lv_font_montserrat_20, 0);
+        lv_label_set_text(none, "No tagged articles for this area yet.");
     }
 }
 
@@ -617,8 +881,24 @@ void go_back(FieldGuideAppState* st)
     }
     if (st->entry_idx >= 0)
     {
+        // Article -> its parent list. An article opened from Near me returns to the
+        // Near-me list; otherwise to the category's entry list (unchanged path).
         st->entry_idx = -1;
-        show_entry_list_screen(st);
+        if (st->from_near_me)
+        {
+            show_near_me_screen(st);
+        }
+        else
+        {
+            show_entry_list_screen(st);
+        }
+        return;
+    }
+    if (st->from_near_me)
+    {
+        // Near-me list -> category screen (leave the Near-me branch).
+        st->from_near_me = false;
+        show_category_screen(st);
         return;
     }
     if (st->cat_idx >= 0)
@@ -642,6 +922,7 @@ void field_guide_enter(void* user_data, lv_obj_t* parent)
     st->photo_idx = -1;
     st->photo_count = 0;
     st->photo_stem.clear();
+    st->from_near_me = false;
 
     st->root = lv_obj_create(parent);
     lv_obj_set_size(st->root, LV_PCT(100), LV_PCT(100));
@@ -697,11 +978,13 @@ void field_guide_exit(void* user_data, lv_obj_t* parent)
     }
     st->entries.clear();
     st->categories.clear();
+    st->region_tags.clear();
     st->cat_idx = -1;
     st->entry_idx = -1;
     st->photo_idx = -1;
     st->photo_count = 0;
     st->photo_stem.clear();
+    st->from_near_me = false;
     if (!st->root || !lv_obj_is_valid(st->root))
     {
         // Root (and thus every photo lv_image) already deleted elsewhere; still
