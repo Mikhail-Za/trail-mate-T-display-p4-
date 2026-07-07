@@ -20,6 +20,12 @@ CONFIG_ESP_TASK_WDT_TIMEOUT_S=20
 # a partition; a crash prints a decodable ELF dump on the console).
 CONFIG_ESP_COREDUMP_ENABLE_TO_UART=y
 CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
+# FATFS long filenames: the SD content uses names longer than 8.3 (guide articles
+# like 01-first-priorities.txt, waypoints.tsv). The IDF default (LFN_NONE) can only
+# read/create 8.3 names, so those files failed ("could not read" / "SD write error")
+# while short ones (03-fire.txt, lastfix.dat) worked. Enable heap-backed LFN.
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_MAX_LFN=255
 CONFIG_TRAIL_MATE_T_DISPLAY_P4_PANEL_RM69A10=y
 CONFIG_TRAIL_MATE_T_DISPLAY_P4_PIXEL_FORMAT_RGB565=y
 CONFIG_TRAIL_MATE_T_DISPLAY_P4_LVGL_BUFFER_LINES=80
