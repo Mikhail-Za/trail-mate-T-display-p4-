@@ -1,46 +1,121 @@
 OTHER CONTACT HAZARDS
 
-Some plants injure through stings, burning sap, or embedded spines.
-These reactions can be painful and, with a few plants, severe.
+Some plants injure through stings, burning sap, or embedded
+spines. Most of these you can treat yourself with what you
+carry or improvise, and this article leads with that field
+care. Reaching help is one option, not the only answer. For
+eye burns and severe allergy it also states plainly what the
+field cannot fix, so you can act on the truth.
 
 == STINGING NETTLE ==
 - ID: upright plant 2 to 6 feet tall; opposite, toothed, heart-
   shaped to lance-shaped leaves; square stem; tiny hairs on stems
   and leaf undersides; small greenish flower clusters.
 - Habitat: moist soil, stream banks, disturbed ground, shade.
-- The hairs inject a stinging fluid causing burning, redness, and
-  raised bumps that usually fade within hours to a day.
-- Treatment: do not rub. Rinse with water; remove hairs with tape.
-  A paste of baking soda or a cool compress helps. Antihistamines
-  ease itching. Reactions are usually mild but can bother sensitive
-  people longer.
-- Note: stinging nettle is edible when cooked; heat destroys the
-  sting. See the foraging notes elsewhere in this guide. Never eat
-  it raw, and be fully certain of ID before eating any wild plant.
+- What happens: the hairs inject a mix of irritants (histamine,
+  formic acid, and others) causing burning, redness, and raised
+  bumps that usually fade within hours to a day.
+- FIELD TREATMENT (handle this yourself):
+  - Do not rub or scratch. Rubbing drives hairs deeper and
+    spreads the fluid.
+  - Do not touch the spot with the plant-contaminated hand.
+  - Lift the embedded hairs first: press tape onto the skin and
+    peel it off, repeating with fresh tape. A thin layer of dried
+    mud or peeled-off glue also lifts hairs.
+  - Rinse with cool water. A cool wet cloth or cold stream water
+    eases the burning.
+  - A baking soda paste calms the acid part of the sting. If you
+    carry antihistamine tablets or cream, they cut the itch.
+  - Crushed dock or jewelweed leaf rubbed on is a long-used folk
+    remedy. It is unproven, but low risk; the cool moisture may be
+    what actually helps.
+- Most stings need nothing more and settle on their own.
+- RARE but serious: a few people react with spreading hives,
+  swelling of the lips or throat, wheezing, or faintness. That is
+  an allergic reaction. If you carry an epinephrine auto-injector,
+  use it in the outer thigh. There is no reliable field substitute
+  for epinephrine: keep the person calm, sitting up if breathing is
+  hard or lying flat with legs raised if faint, and rest them.
+  Evacuate if you can reach help.
+- Edible when cooked: heat destroys the sting. Never eat it raw,
+  and be fully certain of ID first. See the foraging notes.
 
 == WILD PARSNIP AND GIANT HOGWEED ==
-- These cause phytophotodermatitis: sap on skin plus sunlight
-  triggers chemical burns and blisters, often hours later.
+- What they do: sap on skin plus sunlight causes a chemical burn
+  (phytophotodermatitis). Chemicals in the sap (furanocoumarins)
+  react with UV light. Redness and deep blisters can appear hours
+  later, often the next day.
 - Wild parsnip: 2 to 5 feet tall; flat-topped clusters of small
   YELLOW flowers; grooved stem; leaves with toothed leaflets.
 - Giant hogweed: very large, 8 to 14 feet tall; huge umbrella-
   shaped clusters of white flowers; thick green stem with purple
   blotches and coarse hairs; leaves up to 5 feet wide. Rare but
-  serious; the burns can be deep and scarring.
-- If sap touches skin: get OUT of sunlight immediately. Wash the
-  area with soap and water at once. Keep the skin covered and out
-  of sun for at least 48 hours.
-- If sap reaches the eyes, rinse with water and shield from light.
-  Seek medical care for eye contact or large blisters.
+  serious; its burns can be deep and scarring.
+- FIRST MINUTES (do at once, this is what limits the damage):
+  - Get the skin OUT of sunlight immediately. Light drives the
+    burn, so shade or cover the area first.
+  - Wash the sap off fast with soap and water. The sooner the
+    better, because the chemical soaks in within minutes. Rinse
+    well, then wash again.
+  - Keep the skin covered and out of the sun for at least 48
+    hours. Hogweed can leave skin sun-sensitive for weeks to
+    years, so keep healing skin shaded or covered long after.
+- IF BLISTERS OR BURNS FORM (manage it in the field):
+  - Do NOT pop blisters. Intact skin is your best natural bandage
+    against infection. Leave them alone.
+  - If a blister tears open on its own, trim only the loose dead
+    skin, rinse with the cleanest water you have (boiled and cooled
+    is best), and cover it.
+  - Cover burns with the cleanest cloth or dressing you have,
+    loosely, not tight.
+  - Change the dressing twice a day and any time it gets wet or
+    dirty.
+  - If help is days away, a thin layer of honey or antibiotic
+    ointment under the dressing lowers the infection risk on open
+    burns.
+  - Cool wet compresses ease pain. Ibuprofen or acetaminophen if
+    carried helps too.
+  - Drink water. Burns leak fluid and dehydrate you.
+  - Watch for infection: spreading redness, red streaks up the
+    limb, pus, a bad smell, or fever. These mean the wound is
+    turning dangerous.
+- SAP IN THE EYES:
+  - Flush the eye with clean water for several minutes, right away,
+    holding the lid open.
+  - Shield the eye from light: keep it closed, or cover with a
+    clean cloth or pad.
+  - Hard truth: hogweed sap in the eye can cause lasting or
+    permanent vision loss, and nothing in the field reverses it.
+    Immediate flushing and keeping the eye out of light give the
+    best odds. Protect the person and guide their footing while
+    their vision is impaired.
+- Evacuate if you can safely reach help, above all for eye contact,
+  burns over a large area, or spreading infection. If you cannot,
+  the wound care above IS your plan: keep it clean, covered, out of
+  sun, and watched.
 
-== CACTUS SPINE REMOVAL ==
-- Large spines: pull straight out with tweezers or pliers.
-- Fine hair-like spines (glochids) from prickly pear are worse;
-  they lodge in skin and break off.
-- Remove glochids by pressing tape or a thin layer of white glue
-  over the area, letting it set, then peeling it off with the
-  spines. A fine comb can lift larger clusters.
-- Clean the area, watch for infection, and do not squeeze the skin.
+== CACTUS AND FINE SPINES ==
+- Large spines: grip close to the skin and pull straight out with
+  tweezers, pliers, or a multitool. Pulling at an angle snaps them
+  off under the skin.
+- Fine hair-like spines (glochids, as on prickly pear) lodge by the
+  dozen and break off. They are the real problem.
+- Best removal order, which beats any single method:
+  1. Lift the big clumps first with tweezers or a fine comb.
+  2. Then spread a thin layer of white glue over the area, press a
+     piece of gauze or thin cloth into it, let it dry about 30
+     minutes, and peel it off. The fine spines come out with the
+     glue and cloth.
+  - Glue plus cloth removes far more than tape. Use tape only if
+    you have nothing else, pressing and peeling with fresh strips.
+- After removal: wash with clean water, pat dry, keep it clean.
+- Do not squeeze the skin to force spines out. That drives them
+  deeper and invites infection.
+- Spines too deep to reach: leave them rather than dig and tear the
+  skin. Keep the area clean and watch it. A retained spine may form
+  a sore lump over days; warm soaks a few times a day can bring a
+  shallow one to the surface where you can lift it out. Watch for
+  spreading redness or pus.
 
 == SEASON ==
 - These are warm-season hazards, worst spring through fall when
@@ -50,6 +125,11 @@ These reactions can be painful and, with a few plants, severe.
 - Stinging nettle stings hardest on lush spring and summer
   growth. Prickly pear glochids are a year-round risk.
 
-== GENERAL ==
-- When unsure, do not touch. Long sleeves and gloves prevent most
-  contact injuries on the trail.
+== PREVENTION AND GENERAL ==
+- When unsure, do not touch.
+- Long sleeves, long pants, and gloves prevent most contact
+  injuries on the trail.
+- After handling any suspect plant, wash your hands before touching
+  your face or eyes.
+- Rinse tools, gloves, and clothing that touched sap. Dried parsnip
+  and hogweed sap stays active and can burn you later.

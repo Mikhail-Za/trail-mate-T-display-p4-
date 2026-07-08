@@ -1,41 +1,102 @@
 Ticks, Insects, and Spiders
 
-== TICKS ==
-- Habitat: tall grass, brush, leaf litter, and the edge zone between woods and field. Ticks quest by waiting on vegetation and grabbing what brushes past; they do not jump or drop from trees.
-- Prevention: treat clothing, boots, and gear with 0.5 percent permethrin (clothing ONLY, never skin; let it dry first). Use DEET 20 to 30 percent or picaridin 20 percent on exposed skin. Wear light colors, tuck pants into socks, stay in the center of trails.
-- Do a full-body check every day in tick season: hairline, in and behind ears, armpits, waistband, groin, behind knees, between toes. Check kids and dogs too.
+== IF YOU ARE ON YOUR OWN ==
+- Assume no phone and no fast way out. Almost every bite and sting here is survivable with calm field care. Panic and mass stings hurt you more than most venoms.
+- Your strongest tools are prevention, fast correct removal, wound hygiene, and pain control. Evacuation is one option, not the answer. Do the field care first; it stands on its own.
+- What actually saves lives if you carry it: an epinephrine auto-injector (allergy), doxycycline (tick-borne illness), an antihistamine, and clean water for wounds. Doses for these are below.
+- Two hard truths up front: true anaphylaxis without epinephrine, and Rocky Mountain spotted fever without an antibiotic, can kill and have no reliable field substitute. Everything else you can manage. Read those sections closely.
+
+== TICKS: PREVENT ==
+- Habitat: tall grass, brush, leaf litter, the edge zone between woods and field. Ticks quest by waiting on vegetation and grabbing what brushes past. They do not jump or drop from trees.
+- Treat clothing, boots, and gear with 0.5 percent permethrin (clothing ONLY, never skin; let it dry first). Permethrin survives several washes and kills ticks on contact.
+- Use DEET 20 to 30 percent or picaridin 20 percent on exposed skin. Reapply per the label.
+- Wear light colors so you can see ticks. Tuck pants into socks, shirt into pants. Stay in the center of trails.
+- No chemicals? Long sleeves and tucked-in clothing, a tight waistband, and frequent checks still cut your risk a lot.
+
+== TICKS: CHECK AND REMOVE ==
+- Do a full-body check every day in tick season: hairline, in and behind ears, armpits, waistband, groin, behind knees, between toes. Check kids and companions too.
+- If you can wash and high-heat dry clothing, water over 130 F and ten minutes of high-heat drying kills ticks in fabric.
 - Correct removal: fine-tipped tweezers, grip as close to the skin as possible, pull straight up with slow steady pressure. No twisting, burning, petroleum jelly, or nail polish; those make the tick regurgitate into the wound.
-- Clean the site with soap and water or alcohol. Note the date. Save the tick in a bag or take a photo for identification.
-- Lyme disease: watch 3 to 30 days for an expanding red rash, often a bullseye with central clearing (erythema migrans). Important: the rash is absent in a meaningful fraction of cases, so also watch for fever, chills, headache, fatigue, and joint or muscle aches.
-- Seek care promptly for any rash or fever after a tick bite, especially if the tick was attached more than 24 to 36 hours. Sudden high fever with headache or spotted rash after a bite can be Rocky Mountain spotted fever; that is urgent.
+- No tweezers: loop a length of thread or floss around the mouthparts flush to the skin and lift straight up. Last resort, use fingers shielded with cloth or plastic. Never crush the body.
+- If mouthparts break off and stay in: try once to lift them out with a clean point, then leave them alone. Retained mouthparts do NOT raise disease risk and usually work out on their own in days. Do not dig or gouge; that just causes infection.
+- Clean the site with soap and water or alcohol. Note the date. Keep the tick in tape or a bag, or photograph it, to help identify the species later.
+
+== TICKS: AFTER THE BITE ==
+- Most tick bites transmit nothing. Risk of Lyme rises the longer the tick is attached, and is low under about 36 hours of attachment. Early, clean removal is your best prevention.
+- If you carry doxycycline and the bite was high risk (a deer/black-legged Ixodes tick, in a Lyme area, attached 36 hours or more), a single 200 mg dose within 72 hours of removal prevents most Lyme (adult 200 mg once; child 4.4 mg per kg, up to 200 mg, once). This is preventive only, not a full treatment.
+- No doxycycline, or bite was low risk: clean the wound and watch it. Watchful waiting is a valid, evidence-based choice. You are looking for the illness, not treating the bite.
+- Do not rely on burning, cutting, or sucking the site. None of that removes infection.
+
+== TICK-BORNE ILLNESS: WATCH AND TREAT ==
+- Watch 3 to 30 days for: an expanding red rash, often a bullseye with central clearing (erythema migrans), OR fever, chills, bad headache, deep fatigue, muscle and joint aches. The rash is ABSENT in a large share of cases, so fever alone after a bite counts.
+- A sudden high fever with severe headache, and later a spotted rash starting on wrists and ankles, days after a bite, points to Rocky Mountain spotted fever (RMSF). This one is a true emergency: untreated it kills a large fraction of people, and the window to treat is the first few days.
+- If you carry doxycycline and develop fever or the bullseye rash after a bite: this is the field-treatment dose. Adult 100 mg twice a day. Child under about 100 lb (45 kg): 2.2 mg per kg twice a day. Take with a full glass of water, stay upright 30 minutes, expect sun sensitivity.
+  - For a suspected spotted fever or other severe tick illness (fever plus headache): start doxycycline at first suspicion. Do NOT wait for the rash or for certainty. Continue until at least 3 days after the fever breaks, usually a 7 to 10 day course.
+  - For the Lyme bullseye rash: a 10 to 14 day course.
+  - Doxycycline is first-line even for young children and in pregnancy when a spotted fever is suspected, because the disease is far more dangerous than a short course of the drug. Skip it only for a true doxycycline/tetracycline allergy.
+- Honest limits: for RMSF, ehrlichiosis, and anaplasmosis, doxycycline is effectively the only field-usable cure. There is no herbal or improvised substitute. If you have none and cannot reach care, your job is to control fever, keep drinking water, rest, and get to help as fast as you safely can; some people survive these untreated, but the odds are far worse.
+- For early Lyme only, if doxycycline is truly unavailable, amoxicillin is an alternative some carry. It does NOT cover the spotted fevers.
+- Evacuate toward help if you can do so safely, especially with high fever or a spreading rash. Start any antibiotic you have first; do not delay a dose waiting to move.
 
 == MOSQUITOES ==
-- Disease note: in North America mosquitoes can carry West Nile virus and, less commonly, other encephalitis viruses. Most bites are only itchy, but repellent is cheap insurance.
-- Peak activity is dawn and dusk; plan camp chores accordingly. Camp away from standing water and marsh edges.
-- DEET or picaridin on skin, permethrin on clothes, head net when they are thick.
+- In North America mosquitoes can carry West Nile virus and, less commonly, other encephalitis viruses. Most bites are only itchy, but there is no treatment for the virus, so prevention is the whole game.
+- Peak activity is dawn and dusk; schedule camp chores around it. Camp away from standing water and marsh edges; drain or avoid pooled water near camp.
+- DEET or picaridin on skin, permethrin on clothes, a head net when they are thick. Smoke from a fire and full clothing help when you have no repellent.
+- For itch: cool water, a cool wet cloth, or an antihistamine if you carry one. Do not scratch open; broken skin invites infection.
 
 == BLACK WIDOW ==
 - Glossy black spider with a red hourglass on the UNDERSIDE of the abdomen; messy, strong web low to the ground.
 - Habitat: woodpiles, outhouses, under rocks and logs, crawl spaces, stored gear.
-- Bite: pinprick, then within an hour severe muscle cramping, rigid abdomen, sweating. Rarely fatal but painful; get medical care.
+- Bite: a pinprick, then within 1 to 3 hours severe muscle cramping, a rigid painful abdomen, sweating, restlessness. It looks alarming.
+- Field management, which is usually enough:
+  - Clean the bite. Apply a cool compress (wet cloth, cool water, or snow) to ease local pain.
+  - Control pain and spasm. Ibuprofen or acetaminophen for pain; a stronger painkiller if you carry one. If you carry a muscle relaxant or a benzodiazepine, it eases the cramping. Gentle movement, warmth over cramping muscles, and steady reassurance all help.
+  - Keep drinking water and rest. Symptoms peak in hours and fade over 1 to 3 days.
+- Honest limits: an antivenom exists but is hospital-only, so do not count on it. In an otherwise healthy adult a black widow bite is very rarely fatal; expect a miserable day or two, not death. Highest concern is for small children, the elderly, or someone with heart disease; watch them closely and get them to care if you can.
 
 == BROWN RECLUSE ==
-- Range: mainly the south-central and midwestern US. Uniform tan-brown, about quarter-sized with legs, a dark violin shape on the back (unreliable alone) and six eyes in three pairs.
+- Range: mainly the south-central and midwestern US. Uniform tan-brown, about quarter-sized with legs out, a dark violin shape on the back (unreliable alone), and six eyes in three pairs.
 - Habitat: dry undisturbed spaces: stored boxes, boots, gloves, bedding, woodpiles. Shake out boots, clothes, and sleeping bags in its range.
-- Bite is often painless at first; some develop a slow necrotic ulcer over days. Persistent worsening wounds need medical care.
+- Bite is often painless at first. Most heal on their own. Some develop a slow, sinking, discolored sore over days.
+- Field management:
+  - Clean the wound. Apply a cool compress, not heat; the venom is more active when warm, so cooling helps limit tissue damage.
+  - Elevate the limb, keep it loosely still, and take pain relief as needed.
+  - Keep the wound clean and covered and watch for infection: spreading redness, heat, pus, red streaking, fever. In the field, a spreading skin infection is a bigger threat than the venom itself.
+  - Do NOT cut out, burn, or apply harsh chemicals to the sore, and do not use dapsone; none of that helps and it can worsen the wound.
+- Honest limits: there is no field antidote and nothing that speeds the sore's healing. Clean wound care is the real treatment and most bites resolve. Rarely the venom goes systemic (fever, chills, body aches, dark or red urine from blood breakdown); that is dangerous, and beyond keeping the person hydrated and resting there is no field cure. Move toward care if those systemic signs appear.
 
 == FIRE ANTS ==
 - Southeastern US and Texas: soft dome mounds with no visible entrance. Disturb one and workers swarm silently up your leg, then all sting at once.
-- Brush them off fast with your hand and move well away; water does not remove them. Stings form itchy pustules; do not pop them.
-- Multiple stings or any wheezing, swelling of the face, or dizziness means possible anaphylaxis: use an epinephrine auto-injector if available and evacuate.
+- Brush them off fast with your hand or a cloth and move well away; water does not remove them.
+- Stings form itchy pustules over a day. Do NOT pop them; the intact blister protects against infection. Cool compress and an antihistamine ease the itch. Keep them clean; watch for spreading infection.
+- Many stings at once, or any wheezing, throat or face swelling, or dizziness, means possible anaphylaxis: see the allergic-reaction section now.
 
-== AFRICANIZED BEES ==
-- Southern US. Same venom as ordinary honey bees but they defend the hive in far greater numbers and pursue a quarter mile or more.
-- If attacked: RUN, far and fast, in a straight line toward shelter (building, vehicle). Cover your face and eyes with your shirt as you go.
-- Do NOT jump into water; the swarm waits above the surface and stings you each time you breathe.
-- Do not swat or flail; crushed bees release alarm scent that draws more. Once safe, scrape stingers out sideways with a fingernail or card as fast as possible; speed matters more than method.
+== BEES, WASPS, AND AFRICANIZED BEES ==
+- Africanized bees (southern US) have the same venom as ordinary honey bees but defend the hive in far greater numbers and pursue a quarter mile or more.
+- If attacked: RUN, far and fast, in a straight line toward shelter (building or vehicle). Pull your shirt over your face and eyes as you go; most stings land on the head and face.
+- Do NOT jump into water; the swarm waits above the surface and stings you each time you come up to breathe.
+- Do not swat or flail; crushed bees release an alarm scent that draws more.
+- Once safe, remove stingers immediately. Scrape sideways with a fingernail, knife back, or card. Do not pinch or tweeze a stinger; that squeezes in more venom. Speed matters more than method; get them all out fast.
+- Aftercare: wash the sites, cool compress, antihistamine and pain relief for swelling and itch.
+- Many stings (roughly the hundreds in a healthy adult, far fewer in a child, the elderly, or the ill) can cause venom poisoning even without allergy: vomiting, weakness, and delayed kidney or heart trouble hours to days later. If badly stung, keep drinking water steadily to protect the kidneys, rest, watch for dark urine, and move toward help. There is no field antidote for heavy envenomation; supportive care and fluids are what you have.
+
+== SEVERE ALLERGIC REACTION (ANAPHYLAXIS) ==
+- Applies to any sting or bite. Signs, minutes to an hour after: hives spreading beyond the site, swelling of lips, tongue, or throat, tight or wheezing breathing, trouble swallowing, vomiting, dizziness, or collapse. This kills fast; act at the first clear sign.
+- If you have an epinephrine auto-injector, use it NOW. Do not wait to be sure.
+  - Adult: 0.3 mg into the outer thigh, through clothing if needed, hold in place several seconds.
+  - Child (about 33 to 66 lb): 0.15 mg. Same thigh site.
+  - No improvement in 5 to 15 minutes: give a second dose if you have one. Carry two when you can.
+- Positioning while it works: lay the person flat and raise the legs. If they are struggling to breathe, let them sit up. If vomiting or unconscious, roll them on their side. Do NOT let them suddenly stand or sit up after epinephrine; that can cause sudden collapse.
+- Antihistamines (like diphenhydramine) and any inhaler help ONLY as add-ons for mild symptoms and itch. They are slow and do NOT stop true anaphylaxis. Never rely on them in place of epinephrine.
+- Keep the person warm, monitor breathing, and be ready to give rescue breaths. A reaction can return hours later, so keep watching even after they improve.
+- Honest limit: without epinephrine there is no reliable field substitute for severe anaphylaxis. Do everything above, keep the airway open, and get toward help. This is exactly why anyone with a known sting or food allergy should carry two auto-injectors into the backcountry.
 
 == SEASON ==
-- Ticks are most active spring through early fall: a strong peak from spring into early summer (tiny nymphs) and a second rise in fall (adults). In mild regions adults quest on any thawed winter day, so check year-round.
-- Mosquitoes run the warm months, worst at dawn and dusk and after rains fill standing water.
-- Fire ants and Africanized bees are most aggressive in warm weather. Black widow and brown recluse spiders shelter in gear and buildings year-round, so shake out boots and bags in any season.
+- Ticks: strongest peak from spring into early summer (tiny nymphs), a second rise in fall (adults). In mild regions adults quest on any thawed winter day, so check year-round.
+- Mosquitoes: warm months, worst at dawn and dusk and after rains fill standing water.
+- Fire ants and Africanized bees: most aggressive in warm weather.
+- Black widow and brown recluse: shelter in gear and buildings year-round, so shake out boots and bags in any season.
+
+== FIELD MEDICINE KIT ==
+- Carry if you can: fine-tipped tweezers, an epinephrine auto-injector (two if allergic), an oral antihistamine, ibuprofen and acetaminophen, and doxycycline in tick country. These turn most bites and stings from a crisis into a chore.
+- Doses in this article are for medicines you carry and can use safely. Know your own allergies. When in doubt, prevention and clean wound care never hurt.

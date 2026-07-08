@@ -1,60 +1,178 @@
 POISON IVY, OAK, AND SUMAC
 
 These three plants carry urushiol, an oil that causes an itchy,
-blistering rash in most people. You do not need to eat them to be
-harmed; contact is enough. Learn them, then keep your distance.
+blistering rash in most people. Contact is enough; you do not
+need to eat them. The rash is miserable but almost never
+deadly, and it clears on its own in 1 to 3 weeks. Your job in
+the field is simple: get the oil off fast, calm the itch, and
+keep the skin from getting infected. You can do all of that
+yourself with what you carry or can improvise.
 
-== LEAVES OF THREE ==
-- "Leaves of three, let it be" is a useful start but NOT complete.
-- Poison ivy and poison oak usually show three leaflets per stem.
-- Poison sumac does NOT follow this rule (see below).
-- Many harmless plants also have three leaflets, so treat three-
-  leaflet plants as suspect, not as proof.
+== FIRST: IF YOU JUST TOUCHED IT, WASH NOW ==
+This is the single most useful thing you can do, and it is
+100 percent do-it-yourself. Urushiol starts binding to skin
+within minutes and is locked in within a few hours. Washing
+within about 10 minutes stops the rash in many people. Even an
+hour or more later it is still worth washing to remove oil you
+can still get off and to stop spreading it to new skin.
+- Use LOTS of cool or lukewarm running water. Volume matters
+  more than soap. Rinse under a flow; do not soak in one small
+  pool that just redeposits the oil.
+- Add soap if you have it, especially a grease-cutting dish
+  soap. Urushiol is an oil. Rinse well and often.
+- Rubbing alcohol or an alcohol wipe dissolves the oil: wipe,
+  then rinse with water. Alcohol hand sanitizer works too.
+- Scrub gently with fingertips under flowing water, NOT a
+  washcloth or sponge that just smears oil around.
+- Clean under your fingernails. That is where hidden oil rides.
+- Cool water, not hot, while the oil is still on you. Hot water
+  helps it spread and soak in.
+- Branded products (Tecnu, Zanfel) work but are only slightly
+  better than plain soap and water. Do not wait for them.
+- No clean water at all? Crushed jewelweed stems rubbed on and
+  rinsed can help a little, but ONLY because they act like a
+  weak soap. Plain water or real soap is as good or better.
+  Do not trust any plant as a cure.
 
-== TELLING THEM APART ==
-- Poison ivy: three pointed leaflets, middle leaflet on a longer
-  stalk; edges smooth, toothed, or lobed; grows as a vine or low
-  shrub; often a hairy "furry rope" vine on trees; found across
-  most of North America.
-- Poison oak: three leaflets with rounded, lobed edges resembling
-  oak leaves; shrub or vine; more common in the West and Southeast.
+== THEN DECONTAMINATE EVERYTHING ==
+The oil rides on gear and keeps re-dosing you for a long time.
+- Urushiol stays active on clothing, tools, boots, and pack
+  straps for a year or more, sometimes several years, if not
+  washed off.
+- Handle contaminated gear with gloves or a barrier such as a
+  plastic bag over your hand. Wash it with soap and hot water,
+  separately from clean items.
+- Wipe hard gear and tool handles with alcohol.
+- Rinse the dog (gloves on) before it spreads oil to everyone
+  who pets it.
+
+== IF THE RASH HAS ALREADY STARTED: FIELD CARE ==
+The rash shows up 12 to 72 hours after exposure: redness,
+swelling, blisters, hard itch, often in streaks where the
+plant brushed you. It is self-limiting. Nothing in a pack
+makes it vanish overnight, but you can control it and keep it
+from getting worse. Work down these options by what you have.
+
+Option 1, best kit:
+- Apply a topical steroid cream EARLY: over-the-counter
+  hydrocortisone 1 percent, or a stronger prescription steroid
+  if you carry one. It works best in the first days and on
+  intact (not broken-open) skin.
+- Take an ORAL antihistamine at night. A sedating one such as
+  diphenhydramine helps you sleep through the itch.
+- Cool compresses on the worst spots as needed.
+
+Option 2, basic supplies:
+- Cool wet compresses or short cool soaks several times a day.
+  They knock down itch and dry weeping blisters.
+- Calamine lotion, or aluminum acetate (Burow's solution /
+  Domeboro) as an astringent, to dry and soothe.
+- Colloidal oatmeal soak: grind plain oats to a fine powder,
+  tie it in cloth, and soak the skin in cool water. Oat starch
+  calms the itch.
+- Baking soda: a paste (baking soda plus a little water) on
+  hot spots, or a spoonful stirred into a cool soak.
+
+Option 3, nothing but water:
+- Repeated cool water soaks and air-drying are the workhorse.
+  They genuinely reduce itch and dry the blisters.
+- A cool saltwater (saline) compress acts as a mild drying
+  astringent for weeping areas.
+- Keep the area clean and open to air when you can.
+- Keep nails short and do NOT scratch. Distract yourself and
+  ride it out. It clears in 1 to 3 weeks on its own.
+
+Blisters:
+- The clear fluid does NOT contain urushiol and does NOT spread
+  the rash. New patches come from more oil, not from the fluid.
+- Leave blisters intact. Unbroken skin is your infection
+  barrier. If a big blister tears open, keep it clean and cover
+  it with a clean dry dressing.
+
+== IF YOU CARRY ORAL STEROIDS (SEVERE, WIDESPREAD RASH) ==
+For a severe or widespread reaction, oral steroids are the one
+thing that truly blunts it, if you carry them and know the dose.
+- Typical course: prednisone about 1 mg per kg of body weight
+  per day, tapered slowly over 2 to 3 WEEKS.
+- Do NOT use a short 5 to 7 day course or a 6-day dose pack for
+  this. Too short, and the rash rebounds hard when you stop.
+- If you are unsure of the dose, or you have diabetes or other
+  medical conditions, this is a real reason to evacuate if you
+  can safely reach help.
+
+== DANGER SIGNS AND THE HARD TRUTH ==
+You handle most cases yourself. These few are serious. Field-
+manage them, and also evacuate if you can safely reach help:
+- Rash on the face near the eyes, an eye swelling shut, or the
+  genitals involved.
+- Rash covering a large part of the body.
+- You breathed smoke from burning plants, or your mouth or
+  throat was exposed, AND you have trouble breathing or
+  swallowing.
+Honest truth: airway swelling and a true whole-body allergic
+reaction (anaphylaxis) can kill, and there is NO field
+substitute for epinephrine and advanced care. If you carry an
+epinephrine auto-injector for anaphylaxis, this is what it is
+for; use it and get help. Without it, keep the airway as open
+as you can (sit upright, stay calm, breathe cool air) and move
+toward help. Do not pretend a plant, a cream, or a home trick
+fixes a closing airway. It does not.
+For the eyes: flush with plenty of clean water. The lids can
+swell dramatically; the rash itself still resolves, but protect
+your vision and evacuate if you cannot see.
+
+== INFECTION WATCH ==
+Over days, infection of scratched-open skin, not the rash
+itself, is the real field danger.
+- Warning signs: spreading redness and warmth, pus, red streaks
+  running up a limb, fever, or pain that grows AFTER the rash
+  had started improving.
+- Prevent it: keep skin clean, keep nails short, cover open
+  areas with a clean dry dressing.
+- If you carry oral antibiotics and see clear signs of skin
+  infection, that is when they earn their place. Evacuate if
+  the infection keeps spreading and you cannot control it.
+
+== WHAT NOT TO DO ==
+- Do NOT use topical antihistamine creams (diphenhydramine
+  cream) or topical anesthetics (benzocaine and other "-caine"
+  products). They can make you MORE sensitized and worsen the
+  reaction. Oral antihistamines are fine; the creams are not.
+- Do NOT burn these plants. Smoke carries urushiol into the
+  eyes, throat, and lungs and can cause a dangerous internal
+  reaction. This is the one exposure that can be deadly.
+- Do NOT scratch, and do NOT deliberately pop blisters.
+- Do NOT scrub raw skin with harsh solvents like gasoline or
+  bleach. You would trade a rash for a chemical burn.
+
+== IDENTIFY AND AVOID (YOUR BEST DEFENSE) ==
+Not touching it beats every treatment. Learn the plants.
+- "Leaves of three, let it be" is a useful start but NOT
+  complete. Poison ivy and oak usually show three leaflets, but
+  so do many harmless plants, so treat any three-leaflet plant
+  as suspect, not as proof. Poison sumac breaks this rule.
+- Poison ivy: three pointed leaflets, middle one on a longer
+  stalk; edges smooth, toothed, or lobed; grows as a vine or
+  low shrub; often a hairy "furry rope" vine on trees; found
+  across most of North America.
+- Poison oak: three leaflets with rounded, lobed, oak-like
+  edges; shrub or vine; more common in the West and Southeast.
 - Poison sumac: 7 to 13 leaflets in pairs along a reddish stem;
   a shrub or small tree of wet swamps and bogs in the East.
-- All three can show small white or cream berries in clusters.
+- All three can show clusters of small white or cream berries.
   White berries on a woody plant are a strong warning sign.
+- Black-dot sign: urushiol turns black in air, so small black
+  dots or streaks can mark these plants. Observe only. Never
+  handle a suspect plant to check.
 
-== HOW URUSHIOL SPREADS ==
-- The oil clings to skin, clothing, tools, packs, and dog fur.
-- Petting a dog that walked through it can give you the rash.
-- The oil stays active on gear for months if not washed off.
-- NEVER burn these plants. Smoke carries urushiol into the eyes,
-  throat, and lungs and can cause a dangerous internal reaction.
-
-== WASHING TIMELINE ==
-- Wash exposed skin as soon as possible, ideally within 30 minutes.
-- Use soap and cool water, or an alcohol wipe, then rinse well.
-- Wash tools, boots, and clothing separately; wear gloves.
-- Rinse the dog before it spreads oil to everyone.
-
-== RASH AND TREATMENT ==
-- Rash appears in 12 to 72 hours: redness, swelling, blisters,
-  intense itch, often in streaks where the plant brushed skin.
-- The rash fluid does NOT spread the rash; new patches come from
-  more oil, not from scratching open blisters.
-- Cool compresses, calamine, oatmeal baths, and antihistamines
-  ease symptoms. Do not scratch; broken skin can get infected.
-- Seek care for face or genital involvement, widespread rash,
-  breathing trouble, or signs of infection.
-
-== BLACK-DOT SIGN ==
-- Urushiol turns black on exposure to air.
-- Small black dots or streaks on a leaf can mark these plants.
-- Never handle a suspect plant to look for this; observe only.
-
-== SEASON ==
-- The urushiol oil is active YEAR-ROUND: bare winter stems and
-  leafless vines still cause the rash, so do not grab an unknown
-  hairy vine for a handhold in any season.
+== THE OIL IS ACTIVE YEAR-ROUND ==
+- Bare winter stems and leafless vines still carry urushiol.
+  Do not grab an unknown hairy vine for a handhold in any
+  season.
 - Spring and summer bring the most exposure from green leaves.
-- In fall the leaflets often turn bright red or orange; do not
+- In fall the leaflets often turn bright red or orange. Do not
   reach for the colorful foliage.
+- If you know you are heading into it: a barrier product with
+  bentoquatam (organoclay, sold as IvyBlock) applied 15 minutes
+  before exposure and reapplied every 4 hours reduces the
+  reaction. Long sleeves, long pants, and gloves help even more.

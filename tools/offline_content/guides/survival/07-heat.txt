@@ -1,49 +1,117 @@
 Heat Illness
 
-Heat kills by outpacing the body's cooling. The spectrum runs from heat cramps to heat exhaustion to heat stroke, and the line between the last two is the most important thing on this page.
+Heat kills by outpacing the body's cooling. The spectrum runs from heat cramps to heat exhaustion to heat stroke. The line between the last two is the most important thing on this page, and the treatment for the worst case is something you can do right now with water and your hands.
 
-== HEAT EXHAUSTION VS HEAT STROKE ==
+== KNOW THE LINE: EXHAUSTION VS STROKE ==
 
-Heat exhaustion: heavy sweating, pale and clammy skin, weakness, headache, nausea, dizziness, cramps. The person feels terrible but is thinking normally.
+Heat exhaustion: heavy sweating, pale and clammy skin, weakness, headache, nausea, dizziness, cramps. The person feels awful but is thinking clearly and can answer questions normally.
 
-Heat stroke: the brain is overheating. Altered mental status is the red flag: confusion, combativeness, slurred speech, stumbling, seizures, or collapse. Skin is hot and flushed and may be dry or still sweaty. Body temperature is dangerously high.
+Heat stroke: the brain is overheating. The red flag is altered mental status: confusion, strange or combative behavior, slurred speech, stumbling, seizures, or collapse. Skin is hot and flushed and may be dry or still sweaty. Core temperature is dangerously high (roughly above 104 F / 40 C).
 
-The difference that matters: heat exhaustion is treated with rest, shade, and fluids. Heat stroke is a life threatening emergency measured in minutes.
+The one test that matters: are they thinking clearly? If mental status is off in the heat, treat it as heat stroke and cool them now. Do not wait for a thermometer you may not have.
 
-== HEAT STROKE: EMERGENCY RESPONSE ==
+== HEAT STROKE: COOL NOW, COOLING IS THE WHOLE GAME ==
 
-- Cool first, evacuate second. Aggressive cooling right now is what saves the brain.
-- Move them to shade, strip excess clothing, and soak them with any water available. Fan hard; evaporation is your best tool in dry air.
-- Cool the neck, armpits, and groin with wet cloth. If a stream or lake is at hand and you can keep the airway safe, cool the whole body in it.
-- Do not give fluids to anyone who is confused or not fully awake; they can choke.
-- Call for rescue immediately. Even if they seem to recover, they need medical care.
+Cooling in the first minutes is what saves the brain and the life. Cooled fast, most people survive. This is a treatment you carry in your hands, not something only a hospital can give. Cool first. Everything else, including any attempt to reach help, comes second.
 
-== HEAT EXHAUSTION: TREATMENT ==
+Do this immediately:
+- Move them into shade or make shade over them.
+- Strip off clothing and boots.
+- Get water onto the whole body by any means, and keep them cool the whole time.
 
-- Stop all work. Shade, rest, loosen clothing, wet the skin, and fan.
-- Give small, steady sips of water with electrolytes, or water plus salty food. Recovery takes hours, not minutes. Do not resume hard effort the same day if you can avoid it.
-- Watch closely. Any confusion or worsening means treat it as heat stroke.
+BEST METHOD, cold water immersion:
+- Put them in a stream, lake, spring, stock tank, or any pool of cool water, immersed neck-down.
+- Keep the head and face out and hold the airway clear. Never leave them unattended in water.
+- Stir or circulate the water against the skin; still water warms into a jacket around them.
+- Colder is better, but any water cooler than the body pulls heat out fast.
+
+IF YOU CANNOT IMMERSE, use these in order, and combine them:
+- Tarp cradle: two or more people hold a tarp or ground sheet into a hammock, put the person in it, pour in your water, and rock it so the water washes over the body.
+- Douse and fan: soak them head to toe and fan hard and continuously. In dry desert air, evaporation off wet skin is your strongest tool. Re-wet as fast as they dry.
+- Rotating wet cloth: drape soaked shirts, towels, or a wet sheet over as much skin as possible and swap them for freshly cooled ones every 1 to 2 minutes, before they warm up on the body.
+- Cold to the hot spots: pack snow, ice, cold packs, or cold water bottles against the neck, both armpits, the groin, and the sides of the chest. Wet skin plus moving air beats ice packs alone, so do both if you can.
+
+WHEN TO EASE OFF:
+- Overcooling into shivering and hypothermia is a real risk once the crisis breaks.
+- With no thermometer, stop the aggressive cooling when the mind clearly comes back and hard shivering starts (target is roughly 101 to 102 F / 38.5 to 39 C).
+- Then keep them shaded, dry them off, and watch. If they heat up and get foggy again, cool hard again. Relapse is common.
+
+AIRWAY AND FLUIDS:
+- Do NOT pour fluids into anyone confused, drowsy, or not fully awake. They will choke and can drown it into the lungs.
+- Lay a vomiting or out-of-it person on their side (recovery position) and keep the airway clear.
+- Once they are fully alert and swallowing well, give cool water with a little salt in steady sips.
+
+SEIZURES:
+- Clear hard objects away, do not pin them down, do not force anything into the mouth.
+- Keep cooling through the seizure and protect the airway after.
+
+DO NOT waste effort on:
+- Fever medicines. Acetaminophen (Tylenol), ibuprofen, and aspirin do NOTHING for heat stroke, which is not a fever, and can worsen the liver, kidney, and clotting damage heat already causes. Skip them.
+- There is no pill, herb, or folk remedy that treats heat stroke. Water on skin and moving air are the medicine.
+
+== HEAT STROKE: THE HARD TRUTH AND NO-RESCUE PLAN ==
+
+Fast cooling is the only field treatment that changes whether someone lives. Do it well and most survive. But be clear-eyed: severe heat stroke can still kill, or leave lasting brain, kidney, or organ damage, even when you do everything right. The definitive fixes, IV fluids and dialysis for failing kidneys, do not exist in the backcountry. Cooling is what you can do, so do it hard and early.
+
+If you cannot evacuate, this is the job:
+- Cool aggressively until the mind returns, as above.
+- Keep them shaded, still, and cool for hours. Re-cool at any sign of relapse.
+- Once fully alert, rehydrate steadily with water plus salt or salty food.
+- Watch the urine. Dark tea or cola colored urine, severe muscle pain, or little urine means muscle breakdown that can poison the kidneys. Your only field lever is fluids: keep them drinking so urine keeps flowing and lightens toward pale. This does not replace hospital IV care, but it buys time.
+- Expect a fragile person for days. No hard exertion, no heat, keep hydrating.
+
+Evacuate if you can safely reach or signal help. But cooling happens first and does not wait on a rescue that may be hours away or may never come.
+
+== HEAT EXHAUSTION: FIELD TREATMENT ==
+
+- Stop all work at once. Get into shade and lie down.
+- Elevate the legs, loosen or remove clothing, wet the skin, and fan.
+- Give cool fluids with electrolytes, or water plus salty food, in small steady sips.
+- Improvement should start within about 30 minutes. Full recovery takes hours, not minutes.
+- If they do NOT improve, or mental status changes at all, treat it as heat stroke and cool aggressively.
+- Do not resume hard effort the same day. This person overheats easily now.
+
+== HEAT CRAMPS ==
+
+- Hard, painful muscle spasms during or after heavy sweating. Usually salt and fatigue, not just water.
+- Stop, rest in shade, and gently stretch and massage the cramping muscle.
+- Drink salted water: about 1/4 to 1/2 teaspoon of salt in a liter (one quart) of water, or a sports drink, or water with salty snacks or broth.
+- Ease back in slowly. Cramps often warn that heat exhaustion is coming.
 
 == HYDRATION AND ELECTROLYTES ==
 
-- Drink steadily during hot effort, roughly half a liter to a liter per hour, and let urine guide you: pale yellow is good, dark means drink more.
-- Water alone is not enough over long, sweaty days. Replace salt with electrolyte mix, salty snacks, or regular food.
-- Warning: drinking large amounts of plain water without salt or food can cause hyponatremia, low blood sodium, which also causes confusion and can be fatal, and it mimics heat illness. If someone is bloated and nauseated and has been drinking heavily without eating, more plain water is the wrong medicine. Give salty food and rest, and get help if their mental status changes.
+- Drink to thirst. Thirst is the safest guide and protects against both dehydration and overdrinking. In hard heat that is often about half a liter to a liter per hour, but do not force water far past thirst (do not exceed roughly 1 to 1.5 liters per hour).
+- Let urine confirm it: pale yellow is good, dark means drink more, and a lot of clear urine means you can ease off.
+- Water alone is not enough over long, sweaty days. Replace salt with an electrolyte mix, salty snacks, broth, or regular meals.
 
-== WORK-REST CYCLES ==
+== HYPONATREMIA: TOO MUCH PLAIN WATER ==
 
-- In serious heat, work in short bouts with shaded rests. In the worst conditions, favor 15 to 20 minutes of effort with equal or longer rest, and adjust honestly to conditions and how people look.
-- Slow your pace before you feel bad. In heat, the feeling of "fine" lags behind reality.
+- Drinking large amounts of plain water without salt or food dilutes the blood sodium. This is hyponatremia, and it can be fatal from brain swelling.
+- It MIMICS heat illness: headache, nausea, bloating, confusion. The trap is that more water makes it worse, not better.
+- Suspect it when someone has been drinking heavily, has not eaten, and is bloated and queasy rather than dehydrated.
+- Treatment flips the usual advice:
+  - Stop giving plain water.
+  - Give concentrated salt: salty foods, or a strong broth (3 to 4 bouillon cubes, or 3 ramen seasoning packets, in about half a cup of water), sipped only once they are urinating.
+  - Restrict fluids until they pass a good volume of urine.
+  - Rest and observe at least 60 minutes; water still in the gut can absorb and worsen things after they stop.
+- If confusion or seizures set in, this is life threatening. Keep salt and food going only if they can swallow safely, protect the airway, and get help if you can reach it.
+
+== WORK-REST AND PACING ==
+
+- In serious heat, work in short bouts with shaded rests. In the worst conditions favor 15 to 20 minutes of effort with equal or longer rest, and adjust honestly to conditions and how people look.
+- Slow your pace before you feel bad. In heat, feeling "fine" lags behind reality.
 - Watch each other. The person overheating is usually the last one to notice.
+- If you have days, let the body acclimatize: build heat exposure gradually over 1 to 2 weeks and sweating and salt conservation improve markedly.
 
-== SHADE IMPROVISATION ==
+== SHADE AND STAYING COOL ==
 
-- Any shade cuts heat load sharply. Rig a tarp, emergency blanket, or spare clothing high enough for air to flow underneath. A double layer with an air gap between is cooler than a single layer.
+- Any shade cuts heat load sharply. Rig a tarp, emergency blanket (shiny side out), or spare clothing high enough for air to flow underneath. A double layer with an air gap between is cooler than a single layer.
 - Get off the ground. Desert ground can be 30 to 50 degrees F hotter than the air. Sit on a pack or a brush pile in the shade.
 - In open desert, the shadow of a boulder, a cutbank, or a vehicle can be the difference that gets you to evening.
+- Wet a bandana or shirt and wear it on the neck or head. Damp cloth plus a breeze cools better than dry.
 
-== DESERT TRAVEL TIMING ==
+== DESERT TRAVEL AND RATIONING SWEAT ==
 
 - Travel at dawn, at dusk, or at night when it is safe to do so. Hole up in shade through midday, roughly 10 a.m. to 4 p.m.
-- If stranded with a vehicle, stay with it. It is shade, shelter, and a signal that searchers can see. Do not sit inside a closed, hot car.
-- Ration sweat, not water: move slowly, rest often, and drink what you carry. People have been found dead with water still in their packs.
+- If stranded with a vehicle, stay with it. It is shade, shelter, and a signal searchers can see. Do not sit inside a closed, hot car; use its shadow and open it up.
+- Ration sweat, not water. Move slowly, rest often, keep clothing on to slow evaporation, and drink what you carry. People have been found dead with water still in their packs.

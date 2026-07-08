@@ -1,56 +1,148 @@
 OTHER DEADLY PLANTS
 
-These plants poison if eaten and several are found around homes,
-gardens, and disturbed ground. All parts should be treated as
-unsafe. Keep children and pets away.
+These plants poison if eaten. Several grow around homes,
+gardens, and disturbed ground. Treat all parts as unsafe and
+keep children and pets away. This guide leads with what to do
+if someone has ALREADY eaten one and you cannot reach a
+doctor. Plant IDs are further down. If unsure of a plant, do
+not eat it.
+
+== IF SOMEONE HAS EATEN ONE: DO THIS FIRST ==
+- Stay calm. Stop the exposure. Have them spit out any plant
+  still in the mouth and wipe the mouth out with a finger or
+  cloth.
+- Do NOT make them vomit (see the DO NOT list).
+- Activated charcoal, IF you carry it: give it only while the
+  person is fully awake and able to swallow, and best within
+  about 1 hour of eating. Adult dose about 50 g (1 g per kg),
+  stirred into water. It binds jimsonweed, foxglove, oleander,
+  ricin, and buckeye toxins in the gut. Do not force it. Skip
+  it if they are drowsy, confused, or seizing (choking risk).
+- Rest, lying down or on the side. No walking, no exertion.
+  Effort strains a poisoned heart and drives the toxin around
+  the body faster. This matters most for oleander and foxglove.
+- Sip fluids if fully awake: water, or a rehydration drink
+  (1 liter water, a pinch of salt, a small scoop of sugar).
+  This replaces fluid lost to vomiting and diarrhea.
+- If drowsy or vomiting, roll them onto their side (recovery
+  position) so they cannot choke. Never pour liquid into a
+  sleepy or limp person.
+- Note the plant, the part, how much, and the time eaten. Keep
+  a piece of the plant if you safely can.
+- Watch for danger signs: fainting, a very slow or very fast
+  pulse, seizures, trouble breathing, no urine passed.
+- Evacuate ONLY if you can reach help without the patient
+  having to exert themselves. If you cannot, the steps above
+  ARE the treatment. Carry them or bring help to them; do not
+  make a poisoned person walk out.
+
+== DO NOT ==
+- Do NOT induce vomiting. No salt water, no finger down the
+  throat, no ipecac. Vomiting rarely clears enough toxin and
+  can choke a drowsy or seizing person (common with jimsonweed)
+  or burn the throat a second time.
+- Do NOT give charcoal to anyone drowsy, confused, or seizing.
+- Do NOT let a heart-poisoned person exert themselves.
+- Do NOT trust folk cures, drawing poultices, or drinking oil
+  or milk to neutralize the poison. They do not work and some
+  make it worse.
+
+== THE HONEST LIMITS ==
+Some of these poisons have no field cure, and no real cure even
+in a hospital without drugs and monitors you will not have:
+- Castor bean (ricin): no antidote anywhere.
+- Oleander and foxglove: the fix is a hospital antidote (digoxin
+  antibody) plus heart monitoring.
+- Severe jimsonweed: needs hospital sedation and cooling.
+For all of these, early charcoal, rest, fluids, cooling, and
+airway protection are the best you can do, and they DO save
+lives in milder poisonings. A large dose may be fatal whatever
+you do. Do the steps anyway. Do not waste effort on fake cures.
 
 == JIMSONWEED / DATURA ==
-- Coarse plant with large white to purple trumpet flowers and
-  spiny seed pods holding many dark seeds; foul-smelling leaves.
-- Grows in disturbed soil, fields, and roadsides across North
-  America.
-- All parts, especially seeds, cause anticholinergic poisoning:
-  dry mouth, flushed skin, blurred vision, dilated pupils, racing
-  heart, high fever, agitation, hallucinations, delirium, and
-  possible death. Do not eat, chew, or brew any part.
+- Coarse plant, large white to purple trumpet flowers, spiny
+  seed pods full of dark seeds; foul-smelling leaves.
+- Disturbed soil, fields, roadsides across North America.
+- Seeds and all parts cause anticholinergic poisoning: dry
+  flushed skin, wide pupils, blurred vision, racing heart, high
+  fever, agitation, hallucinations, delirium; can kill. Effects
+  can last 1 to 3 days because it slows the gut.
+- If eaten: give charcoal early, but only while still awake.
+  After that the job is to keep them COOL and SAFE. Move to
+  shade, strip off layers, wet the skin and fan it to fight the
+  fever, and dim bright light for their eyes. Stay with them and
+  gently keep them from wandering or hurting themselves. Do not
+  fight or tightly restrain them; struggling raises body heat.
+  Sip water. Most people who are kept cool and safe ride it out
+  over 1 to 2 days.
 
 == WHITE SNAKEROOT ==
-- Woodland plant, 1 to 4 feet, with clusters of small fluffy white
-  flowers and toothed, pointed opposite leaves.
-- Contains tremetol. Cattle that graze it pass the toxin into milk,
-  which historically caused "milk sickness" and many human deaths,
-  including reportedly the mother of Abraham Lincoln.
-- Toxic to people and livestock. Do not eat.
+- Woodland plant, 1 to 4 ft, clusters of small fluffy white
+  flowers, toothed pointed leaves set opposite each other.
+- Poison is tremetol. It passes into the milk and meat of
+  animals that graze it; people are usually poisoned that way
+  ("milk sickness"), which killed many settlers. Eating the
+  plant directly is also toxic.
+- Signs: weakness, loss of appetite, nausea, vomiting, tremors,
+  belly pain.
+- If eaten or suspected: stop eating the source at once. Rest
+  and sip rehydration fluid steadily; the illness is drawn out.
+  Supportive care only. There is no antidote.
 
 == CASTOR BEAN ==
-- Large ornamental with star-shaped leaves and spiny seed pods
-  holding mottled, bean-like seeds.
-- Seeds contain ricin, one of the most potent plant toxins; a few
-  chewed seeds can kill. Escapes gardens into warm regions.
-- Never handle or eat the seeds; keep them away from children.
+- Large ornamental, star-shaped leaves, spiny pods holding
+  mottled bean-like seeds. Escapes gardens in warm areas.
+- Seeds contain ricin, among the deadliest plant toxins. A few
+  thoroughly chewed seeds can kill. Swallowed whole and unbroken
+  they are far less dangerous, because the hard shell blocks the
+  toxin.
+- Signs in 4 to 10 hours: burning mouth, vomiting, heavy and
+  sometimes bloody diarrhea, then collapse.
+- If chewed or eaten: give charcoal early if carried. There is
+  NO antidote. Your one useful field action is to replace fluids
+  without stopping: rehydration drink in small, frequent sips,
+  day and night, because death comes largely from fluid loss and
+  shock. Rest, keep warm. A large dose may still be fatal; give
+  the fluids anyway.
 
 == FOXGLOVE ==
-- Tall spike of tubular, thimble-shaped flowers, often pink,
-  purple, or white with spotted throats; soft fuzzy leaves.
-- Contains heart-affecting toxins (cardiac glycosides). Causes
-  nausea, vision changes, and dangerous heart rhythm problems.
-- All parts are toxic. Do not eat; do not mistake leaves for
-  edible greens.
+- Tall spike of tubular, thimble-shaped flowers, pink, purple,
+  or white with spotted throats; soft fuzzy leaves.
+- Leaves are sometimes mistaken for comfrey or other edible
+  greens. Do not eat them.
+- Contains cardiac glycosides. Causes nausea, vomiting, vision
+  changes (yellow or green haze), and dangerous slow or
+  irregular heartbeats.
+- If eaten: give charcoal early if carried. Then absolute rest,
+  lying down, NO exertion, for a full day; effort can trigger a
+  fatal heart rhythm. Sip water. The real fix is a hospital
+  antidote you will not have, so keep them still and calm and
+  check the pulse by hand.
 
 == OLEANDER ==
-- Evergreen shrub with narrow leathery leaves and clusters of pink,
-  white, or red flowers; common in warmer southern ranges.
-- Extremely toxic; all parts affect the heart. Smoke from burning
-  it and even water it has stood in can be harmful.
-- Never eat any part or use the stems as skewers.
+- Evergreen shrub, narrow leathery leaves, clusters of pink,
+  white, or red flowers; common in warm southern ranges.
+- All parts are extremely toxic and act on the heart, like
+  foxglove. Do not eat any part, do not use stems as skewers, do
+  not drink water or tea it has steeped in, and do not cook over
+  or breathe its burning smoke.
+- If eaten: treat exactly like foxglove. Charcoal early if
+  carried, then absolute rest and no exertion, sip water, watch
+  the pulse. No field antidote; a large dose can be fatal.
 
 == HORSE CHESTNUT vs EDIBLE CHESTNUT ==
-- Horse chestnut (buckeye) is TOXIC; true sweet chestnut is edible.
+- Horse chestnut (buckeye) is TOXIC (esculin); true sweet
+  chestnut is edible.
 - Husk: horse chestnut has a thick husk with few, thick, widely
   spaced spines; true chestnut has a dense husk covered in many
-  fine, sharp spines like a hedgehog.
-- Nuts: horse chestnut usually holds one smooth, rounded nut; true
-  chestnut holds two to three flatter nuts with a tassel-like tip.
-- Leaves: horse chestnut has leaflets spread like fingers from one
-  point; true chestnut has single long, toothed leaves.
-- If unsure, do not eat it.
+  fine, sharp spines, like a hedgehog.
+- Nuts: horse chestnut usually holds one smooth, rounded nut;
+  true chestnut holds two to three flatter nuts with a
+  tassel-like tip.
+- Leaves: horse chestnut has leaflets spread like fingers from
+  one point; true chestnut has single long, toothed leaves.
+- If eaten: signs come in 15 minutes to 3 hours: belly pain,
+  vomiting, diarrhea, weakness, poor coordination. Give charcoal
+  early if carried, rest, and sip rehydration fluid. Most people
+  recover over 2 to 3 days with fluids and rest. If unsure which
+  chestnut it is, do not eat it.

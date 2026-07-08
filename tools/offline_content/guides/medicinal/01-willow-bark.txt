@@ -1,42 +1,80 @@
 Willow Bark (Salix species): pain and fever
 
-== WHAT IT DOES ==
-- The inner bark of willow contains salicin, the natural relative of aspirin.
-- The body turns salicin into salicylic acid, which can ease pain, fever, and inflammation.
-- It is a weak, slow aspirin, not a strong painkiller. Expect mild relief at best.
+== WHAT TO EXPECT (READ FIRST) ==
+- Willow inner bark contains salicin. The body converts it to salicylic acid, the natural relative of aspirin.
+- It can take the edge off mild pain, fever, and inflammation. It is slow: expect 1 to 2 hours to feel anything, because salicin has to be absorbed and converted first.
+- It is WEAK. In studies, a strong dose of concentrated extract produced only about the salicylate level of one low-dose aspirin. Homemade twig or bark tea gives far less, and the amount swings wildly by species and season.
+- Treat it as mild comfort, not a real painkiller. It will not touch severe pain (a broken bone, a deep wound, a kidney stone, a bad burn).
+- It eases the symptom. It does not cure the cause. A fever from a spreading infection still needs the wound cleaned and drained, and still gets worse if the infection wins.
 
-== CRITICAL WARNINGS: READ BEFORE USE ==
-- This IS the aspirin family. Every aspirin warning applies to it.
-- Do NOT use if you are allergic to aspirin or to anti-inflammatory drugs (NSAIDs).
-- Do NOT use if you are on blood thinners, or already taking aspirin or ibuprofen. Bleeding risk stacks.
-- NEVER give it to a child or teenager who has a fever or viral illness. It risks Reye's syndrome, a rare but deadly brain and liver reaction. This rule is absolute.
-- Avoid it with stomach ulcers or any history of stomach bleeding. Salicylates irritate the gut.
-- Avoid it in pregnancy and while nursing.
-- Stop immediately if you get ringing in the ears, nausea, or stomach pain. Those are early signs of too much salicylate.
+== FIELD PLAN FOR PAIN (DO THIS FIRST) ==
+Non-drug measures do more than any tea. Lead with these:
+- REST and stop using the hurt part. Pain is a signal to protect it.
+- IMMOBILIZE and SPLINT an injured limb or joint. Less movement, less pain. Pad it and tie it to a rigid support or to the body.
+- ELEVATE the injury above heart level when you can. Cuts swelling and throbbing.
+- COLD for a fresh injury or swelling: cold stream water, snow, or a wet cloth. Wrap it, do not put ice bare on skin. 20 minutes on, 20 off.
+- HEAT for muscle spasm, cramp, or old aches: a warmed cloth, a sun-heated water bottle, or nearness to the fire.
+- POSITION for comfort. Support the part so nothing pulls on it.
+- SLOW, steady breathing and keeping busy genuinely lower how much pain you feel. Panic makes pain worse.
+- THEN add willow tea as a mild extra, not as the main treatment.
+
+== FIELD PLAN FOR FEVER (DO THIS FIRST) ==
+Fever is usually the body fighting infection. The fever itself is rarely the emergency. The infection is. Your job is to support the body and attack the source.
+- HYDRATE hard. This matters more than any medicine. Fever burns water fast. Sip water or water with a pinch of salt and sugar, steadily, all day.
+- REST. Do not push on. Let the body work.
+- COOL if hot and uncomfortable: remove extra layers, wet a cloth and lay it on the neck, armpits, and groin, sit in shade, get air moving.
+- TREAT THE SOURCE if you can find it: clean and drain an infected wound, pull a splinter, wash out dirt. Removing the cause does more than blunting the fever.
+- WILLOW tea can add mild comfort, but it only masks the number. Keep watching the person, not the tea.
+- DO NOT confuse fever with heat stroke. If someone got hot from sun or hard effort (hot skin, confused, staggering, may stop sweating), that is heat illness, and willow does NOTHING for it. Cool them aggressively instead: shade, soak with water, fan hard, immerse in cool water if you have it.
+
+== HOW TO PREPARE WILLOW ==
+- Scrape the thin green-white inner bark from young twigs or small branches.
+- Tea: simmer about a teaspoon of shredded inner bark per cup of water for 10 to 15 minutes, then strain. It is bitter (that bitterness is the salicin).
+- Chewing a fresh peeled twig is the simplest form.
+- Keep it weak and occasional. You cannot know the real dose, so err low.
+- Take it with a little food or water to ease the stomach.
+- Do NOT stack it on top of aspirin, ibuprofen, or naproxen. That just doubles the salicylate and NSAID load and the gut irritation for no added benefit.
+
+== IF WILLOW IS NOT ENOUGH OR NOT THERE ==
+Other real options, in rough order:
+- POPLAR and ASPEN (Populus): same Salicaceae family, same salicin, used the same way and interchangeably. Same rules and same warnings apply.
+- BIRCH (Betula): inner bark and leaf tea carry salicylates and give mild relief. Same warnings apply.
+- MEADOWSWEET (Filipendula): a wetland herb whose flowers and leaves contain salicylates and are traditionally gentler on the stomach. Same warnings apply.
+- The NON-DRUG measures above (rest, splint, elevate, cold or heat, hydration, cooling, wound care) remain your mainstay. They work whether or not you find a plant.
+DEADLY LINE, DO NOT CROSS:
+- NEVER swallow concentrated oil of wintergreen or distilled birch oil. That oil is nearly pure methyl salicylate. One teaspoon equals roughly twenty aspirin and can kill an adult, and far less can kill a child. A weak leaf or bark TEA is not the same as the oil. Never distill it, never drink the essential oil.
+
+== CRITICAL WARNINGS ==
+- This is the aspirin family. Aspirin cautions apply, but note the corrections below.
+- REYE'S SYNDROME, ABSOLUTE RULE: never give willow, poplar, aspen, birch, or meadowsweet to a child or teenager who has a fever or a viral illness (flu, chickenpox, cold). It risks a rare but deadly brain and liver reaction. No exceptions.
+- ALLERGY: do not use if you are allergic to aspirin or NSAIDs, or if aspirin gives you asthma attacks, hives, or nasal polyps. Reactions can be severe.
+- BLOOD THINNING (corrected): willow's blood-thinning effect is much weaker than aspirin's. Studies found even a strong extract dose barely changed clotting. So the fear that a cup of willow tea dangerously thins your blood is overstated. Still, do not stack it with actual aspirin or NSAIDs, and stay cautious if you are on a prescription blood thinner (warfarin, apixaban, and the like).
+- STOMACH: gentler on the gut than aspirin, but still an irritant. Go easy if you have ulcers or a history of stomach bleeding, and take it with food.
+- PREGNANCY and NURSING: avoid, as with aspirin, especially late in pregnancy.
+- STOP if you get ringing in the ears, nausea, or stomach pain. Ringing ears is the classic early sign of too much salicylate. True poisoning from weak tea is unlikely, but let that ringing be your signal to stop.
 
 == WHERE ==
-- Willows grow along streams, rivers, ponds, and other wet ground across nearly all of North America.
+- Willows grow along streams, rivers, ponds, lakes, and other wet ground across nearly all of North America.
 
 == IDENTIFY ==
-- Shrubs or small trees in wet ground, with slender, flexible twigs that bend without snapping.
-- Leaves: narrow, long, lance-shaped, often finely toothed, usually pale or silvery underneath, set singly (alternate) along the twig.
-- Catkins: the fuzzy "pussy willow" flower spikes in spring.
+- Shrubs or small trees on wet ground, with slender, flexible twigs that bend without snapping.
+- Buds: a single smooth cap-like scale over each bud (like a hood). This is the strongest willow tell. Poplars and aspens have buds with several overlapping scales, often sticky.
+- Leaves: narrow, long, lance-shaped, often finely toothed, often pale or silvery underneath, set singly (alternate) along the twig.
+- Catkins: the fuzzy pussy-willow flower spikes in spring.
 - Fresh inner bark and twigs taste bitter.
 
 == LOOKALIKES ==
-- Willow has no deadly lookalike, but confirm the wet habitat, narrow leaves, and flexible twigs together.
+- Willow has no deadly lookalike, and its close relatives (poplar, aspen) are also usable.
+- Still, confirm the wet habitat, narrow leaves, flexible twigs, and single-scale buds together.
 - Never strip bark from any tree you cannot name.
 
-== HOW TO USE ==
-- Scrape the thin green-white inner bark from young twigs or small branches.
-- Simmer a small amount, about a teaspoon of shredded bark per cup, in water for 10 to 15 minutes, then strain. It is bitter.
-- Keep it weak and occasional. Salicin content swings widely by species and season, so you cannot know the real dose.
-- Chewing a fresh twig is the simplest form.
-- Never combine it with any other pain or fever medicine.
+== SEASON AND HARVEST ==
+- Salicin runs highest in spring, when sap is rising and bark peels easily. Young twigs are usable year-round in a pinch.
+- Take thin strips from a few young twigs. Never cut a ring all the way around a trunk or branch: that girdles and kills it.
 
-== CAUTION ==
-- This is a comfort measure only. Treat the underlying cause and evacuate for anything serious.
-
-== SEASON ==
-- Harvest inner bark in spring, when sap is rising and bark peels easily.
-- Take thin strips from a few young twigs. Never cut a ring around a trunk; that kills the tree.
+== THE HONEST LIMITS ==
+- Willow is mild comfort, nothing more. Do not expect it to control serious pain or to cure an infection.
+- The dose is unknown and low. You cannot titrate it like a pill.
+- It masks fever but does not fight the germs causing it. A deep or spreading infection still needs wound care now and, if it keeps worsening, antibiotics and outside help that no plant replaces.
+- EVACUATE IF you can safely reach help, and especially for: pain from a major injury, an infection with red streaks or spreading swelling, a stiff neck with fever, confusion, a rash that does not fade under pressure, trouble breathing, or a fever you cannot bring down while dehydration climbs.
+- Until then, and if help is not reachable at all, the field plans above are what you rely on: rest, splint, elevate, cold or heat, hard hydration, cooling, wound care, and willow or its relatives as the mild add-on. Do these well and you buy time and comfort. That is the honest most any of us can do out here.

@@ -1,56 +1,138 @@
 Shock and the Unresponsive Person
 
-Shock and unresponsiveness are signs the body is failing. Field care supports the casualty; it does not fix the cause. Treat what you can (stop the bleeding, give epinephrine for anaphylaxis) and start working on evacuation early.
+Your job is to keep this person alive with what you carry and what you can improvise. You usually cannot fix the root cause in the field, but steady hands-on care buys hours to days and is often the difference between living and dying. Work the steps below in order. Getting help is one of those steps, not a replacement for them: send for rescue or move toward it only if you can do so without abandoning care or endangering yourself.
+
+== WHAT TO DO FIRST, IN ORDER ==
+1. Make the scene safe for you. A second casualty helps no one.
+2. Stop bleeding you can see: hard direct pressure, pack the wound, tourniquet high and tight on a limb that will not stop.
+3. Check response and breathing (see THE UNRESPONSIVE PERSON). Recovery position or CPR as needed.
+4. If it is a severe allergic reaction, give epinephrine now (see ANAPHYLAXIS).
+5. Get them off the cold ground and insulate top and bottom. Over time this is your highest-value move.
+6. Lay them flat, keep them still, keep them calm.
+7. Monitor and write down the trend.
 
 == RECOGNIZING SHOCK ==
-Shock means the body cannot circulate enough blood. Backcountry causes: bleeding you can see, bleeding you cannot, severe dehydration, anaphylaxis, major injury.
+Shock means the body cannot circulate enough blood and oxygen. Backcountry causes: bleeding you can see, bleeding you cannot see (chest, belly, pelvis, thigh), severe dehydration or heat illness, anaphylaxis, crush or major injury, spinal injury.
 
+Early:
 - Rapid, weak pulse; rapid shallow breathing.
-- Pale, cool, sweaty skin; blue lips or nail beds.
-- Anxiety, restlessness, unusual thirst, confusion.
-- Late and grave: drowsiness and fading responses.
+- Pale, cool, sweaty, clammy skin; blue lips or nail beds.
+- Anxiety, restlessness, unusual thirst.
+Getting worse:
+- Confusion, then drowsiness, then fading responses.
+- Radial (wrist) pulse weak or gone.
+The two most reliable signs: a person acting confused or dull with no head injury, and a weak or absent wrist pulse. Trust a bad trend even if one number looks okay.
 
-== POSITIONING AND INSULATION ==
-- Lay the casualty flat on insulation. The ground steals heat fast; get a pad, pack, or boughs underneath and wrap over the top. A cold casualty in shock does worse.
-- Raise the legs 6 to 12 inches if there is no leg, pelvis, or spine injury and breathing is fine.
-- If breathing is hard, let them semi-sit if the spine is not suspect.
-- Nothing to eat. Small sips of water only if fully alert and help is far away.
+== KEEP THEM WARM: YOUR BIGGEST LEVER ==
+Cold is not a side issue. Cold blood clots poorly, so a chilled casualty bleeds more and slides deeper into shock. This is the single field action you control that most improves survival, and it works even when you cannot treat the cause.
+
+- Get a barrier under them: pad, pack, rope, life jacket, spare clothes, pine boughs. The ground pulls heat out fast.
+- Insulate over and around: sleeping bag, jackets, emergency blanket, tarp. Cover the head, leave the face clear.
+- Get them dry. Wet clothing sheds heat many times faster than dry. Cut or peel off soaked layers, then wrap.
+- Shelter from wind and rain. A trash bag, tarp, or bivy over the top stops convective and evaporative loss.
+- If you can make heat safely (warm water bottles, chemical warmers, a shielded fire nearby), place it at the chest, armpits, neck, and groin, wrapped so it does not burn skin.
+- Do not overheat a heat-illness casualty. For heat stroke the goal is the opposite: cool them fast (shade, wet skin, fan, cool water immersion if possible).
+
+== POSITIONING ==
+- Default: flat on the back, on insulation. Flat is a proven-safe position for shock.
+- You may raise the legs a hand's width if there is no leg, pelvis, spine, or belly injury. This is optional and unproven: it may give a brief lift and no more. If breathing gets harder when the legs are up, put them back down. Do not tip the whole body head-down.
+- If breathing is labored and the spine is not suspect, let them sit up part way. Easy breathing beats any theory about leg height.
+- If unresponsive but breathing, use the recovery position (below).
+- Keep movement to a minimum. Every struggle, shiver, and panic spike burns oxygen the body cannot spare.
+
+== FLUIDS WHEN YOU CANNOT EVACUATE ==
+Without an IV you cannot replace lost blood. But when the cause is dehydration, heat, or slow ongoing losses, drinking is real, useful resuscitation and may be the only tool you have.
+
+Give fluids by mouth only if the person is fully alert, can swallow and protect their own airway, and is not vomiting.
+
+- Best: an oral rehydration mix, sipped steadily. Field recipe for 1 liter of clean or disinfected water: about 6 level teaspoons sugar plus 1/2 level teaspoon salt. A pinch of salt substitute (potassium) helps if you have it. It should taste no saltier than tears.
+- No mix on hand: plain disinfected water, or broth, diluted juice, or sports drink.
+- Small frequent sips, not big gulps. Aim to keep urine pale. Slow down if they feel sick.
+
+Do NOT give fluids by mouth if: they are drowsy or confused, cannot swallow, are vomiting, or you suspect internal bleeding or a belly injury or a fracture that may need surgery. In those cases fluids risk choking and can cause harm later. Wetting the lips is fine.
+
+Withhold solid food while shock is active or surgery is possible. Once a dehydrated, heat, or exhaustion casualty is clearly recovering and fully alert, small amounts of easy food help.
+
+== TREAT THE CAUSE YOU CAN REACH ==
+Bleeding you can see:
+- Direct hard pressure first. Pack a deep wound tight with clean cloth or gauze and keep pressing.
+- Life-threatening limb bleeding: tourniquet 2 to 3 inches above the wound (not on a joint), tighten until bleeding stops, note the time. It will hurt. Leave it on; do not loosen to peek.
+
+Fractures and crush:
+- A broken thigh or pelvis can hide over a liter of blood and drive shock. Splint fractures to reduce movement, blood loss, and pain. Straighten and gently pull traction on a badly angled long bone if you have hours of care ahead and no pulse below the break, then splint.
+- Pain and fear worsen shock. Calm voice, steady presence, and immobilizing injuries all help.
+
+Anaphylaxis (see below) and heat or cold illness: fixing these can reverse the shock outright, so act on them fast.
+
+The hard truth about internal bleeding:
+- Bleeding inside the chest, belly, or pelvis cannot be stopped without surgery. No field maneuver, herb, or pressure point changes that. Do not chase a folk cure.
+- What genuinely helps and buys time: keep them still, flat, and warm, handle them gently, give nothing by mouth, and control any external bleeding. Cold and rough movement make internal bleeding worse.
+- Be honest with yourself and the group about the odds, and make the person as comfortable as you can.
+
+== ANAPHYLAXIS ==
+A severe allergic reaction (spreading hives, swelling lips or tongue, wheeze or tight throat, vomiting, faintness) can kill in minutes.
+
+- If you have epinephrine, use it now. Do not wait to see if it gets worse; delay kills. Autoinjector or 0.3 mg of epinephrine drawn up, injected into the muscle of the outer thigh (through clothing is fine). Repeat every 5 to 15 minutes if there is no improvement and you have more.
+- Position: sit them up if the main problem is breathing; lay them flat with legs up if they are faint or in shock. Do NOT let them suddenly stand or sit bolt upright, and do not walk them; sudden upright posture has caused deaths.
+- Adjuncts, weak and slow, never a substitute for epinephrine: an antihistamine (for example diphenhydramine 25 to 50 mg) helps itch and hives only. An asthma inhaler (albuterol) can ease wheeze. Neither reopens a closing throat or reverses shock.
+- Be ready to give rescue breaths and CPR if breathing stops.
+
+The hard truth without epinephrine:
+- Epinephrine is the only treatment that reverses a severe reaction. Antihistamines and inhalers do not. If the airway is closing and you have no epinephrine, a severe reaction may not be survivable. Keep the airway as open as you can, keep them calm and still, and do everything above. State it plainly to the group.
 
 == MONITORING ==
-- Every 5 to 15 minutes check: response level (alert, responds to voice, responds to pain, unresponsive), breathing rate, pulse, skin color.
-- Write it down with times. The trend matters more than any single check, and rescuers will want the record.
+- Every 5 to 15 minutes check: response level (alert, responds to voice, responds to pain, unresponsive), breathing rate, pulse, skin color and warmth.
+- Write it down with times. The trend matters more than any single reading, and a rescuer or the next caregiver will want the record.
 
 == THE UNRESPONSIVE PERSON ==
-Shout and squeeze the shoulder. No response: check breathing for up to 10 seconds, watching the chest.
+Shout and squeeze the shoulder. No response: open the airway (tilt head, lift chin) and check breathing for up to 10 seconds, watching the chest and listening.
 
 - Breathing normally: recovery position, keep warm, monitor.
 - Not breathing, or only occasional gasps: start CPR.
 
 == RECOVERY POSITION ==
-An unresponsive person on their back can choke on their tongue or vomit. The recovery position protects the airway.
+An unresponsive person on their back can choke on their tongue or vomit. The recovery position keeps the airway open and draining.
 
 - Kneel beside them. Place the near arm out at a right angle. Bring the far hand against their near cheek. Bend the far knee up, then roll them toward you onto their side.
-- Tilt the head back slightly, mouth pointed downhill.
-- Recheck breathing every few minutes. If waiting hours, swap sides about every 30 minutes.
+- Tilt the head back slightly, mouth pointed downhill so fluid drains out.
+- Either side works; roll to whichever side is easier and safer. A pregnant casualty goes on the left side.
+- Recheck breathing every few minutes. Over long waits, swap sides about every 30 minutes to spare the down arm and shoulder.
 
-== COMPRESSION-ONLY CPR (ADULT) ==
-Be honest with yourself: CPR keeps blood moving until a defibrillator and hospital care arrive. Far from rescue, survival from cardiac arrest is very unlikely. Start anyway when the story favors it: cold-water drowning, lightning strike, avalanche burial, or a collapse you witnessed. It is acceptable to stop when you are exhausted, the scene turns unsafe, or after about 30 minutes with no sign of life. Exception: a severely hypothermic casualty is not dead until warm and dead; continue and push for rescue.
+== CPR: HONEST AND SPECIFIC ==
+Be honest with yourself: CPR keeps a trickle of blood moving until a defibrillator and hospital care take over. Far from rescue, survival from cardiac arrest is very unlikely, and CPR to exhaustion can endanger you in a harsh place.
 
+Commit to it when the cause may be reversible and you witnessed or just missed the collapse:
+- Cold-water drowning.
+- Lightning strike (start with the one who looks dead; breathing often restarts).
+- Avalanche burial with an airway.
+- Severe hypothermia: a cold casualty is not dead until warm and dead. Keep going and keep pushing for rescue.
+
+Chest compressions (adult):
 - Kneel over the center of the chest. Heel of one hand on the lower half of the breastbone, other hand on top, arms straight.
 - Push hard and fast: at least 2 inches deep, 100 to 120 pushes per minute, letting the chest fully rebound each time.
 - Swap rescuers every 2 minutes; quality drops fast with fatigue.
 
+Rescue breaths matter for drowning and other suffocation causes:
+- Drowning, avalanche, and choking arrests come from lack of air, so breaths are essential, not optional. If you are willing and able, give 5 rescue breaths first, then cycles of 30 compressions to 2 breaths. Pinch the nose, seal over the mouth, blow until the chest just rises.
+- For a collapse that looks like a sudden heart problem, or if you cannot or will not give breaths, do compression-only CPR (nonstop pushing). It is far better than nothing.
+
+When to stop:
+- It is acceptable to stop when you are exhausted, the scene turns unsafe, or after about 30 minutes with no sign of life.
+- Sooner for obvious major trauma with no vital signs: CPR is rarely effective there and about 10 minutes is reasonable.
+- Exception again: severe hypothermia. Do not call it on a frozen casualty until they are warmed or you truly cannot continue.
+
 == PROTECTING THE SPINE ==
-Suspect a spine injury after a fall from height, a high-speed impact, a blow to the head, or if there is neck or back pain, numbness, or tingling.
+Suspect a spine injury after a fall from height, a high-speed impact, a blow to the head, or if there is neck or back pain, numbness, tingling, or weakness.
 
-- Hold the head steady in line with the body. Do not twist or bend the neck.
+- Hold the head steady, in line with the body. Do not twist or bend the neck.
 - If you must move or roll them, move head, shoulders, and hips as one unit, one person controlling the head.
-- Airway beats spine: if an unresponsive breathing casualty may vomit, a careful, aligned roll into the recovery position is the right call.
+- Airway beats spine: if an unresponsive breathing casualty may vomit, a careful, aligned roll into the recovery position is the right call. A blocked airway kills faster than a spine injury.
 
-== GO FOR HELP OR STAY ==
-If the group is big enough, send two people with written details: location or coordinates from this device, the casualty's condition, and the time. If you are alone with the casualty:
+== WHEN NO HELP IS COMING ==
+Assume you are the whole rescue. Keep the person warm, positioned, hydrated when safe, and monitored, and keep treating reversible causes. Below is how to handle the go-or-stay choice, which is one lever, not the answer.
 
+If the group is big enough, send two people out together with written details: coordinates from this device, the casualty's condition, and the time. If you are alone with the casualty:
 - Stay if they need constant care (airway, CPR, bleeding), the weather is dangerous, or someone knows your plan and rescue is likely.
-- Go if nobody knows you are out here and there is no way to signal. Before leaving: stop any bleeding, insulate them, leave water in reach, mark the spot visibly, and note your route.
+- Go for help only if nobody knows you are out here and you have no way to signal. Before leaving: stop any bleeding, insulate them well, leave water within reach if they are alert, mark the spot so you and rescuers can find it, and note your route.
 
-Decide early, in daylight, before exhaustion decides for you.
+Decide early, in daylight, before exhaustion decides for you. If no one is coming, settle in for the long haul: rotate warmth and airway checks, ration your own energy and water, and keep the record going.

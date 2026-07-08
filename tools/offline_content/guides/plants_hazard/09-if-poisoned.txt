@@ -1,55 +1,172 @@
 IF SOMEONE IS POISONED BY A PLANT
 
-Stay calm and act. Plant and mushroom poisonings can be serious even
-when the person seems fine at first. These steps apply in the field,
-away from immediate help. When life-threatening signs appear, treat
-it as an emergency and evacuate at once.
+You may be hours or days from help, or on your own for good.
+Most plant and mushroom poisonings are survived by good field
+care: protect the airway, replace lost fluids, and match your
+actions to the signs. Start now. Do not wait for symptoms;
+some deadly toxins are silent for many hours.
 
-== FIRST STEPS ==
-- STOP eating. Remove any remaining plant or mushroom from the
-  mouth. Do not let the person eat any more.
-- Rinse the mouth with clean water and have them spit it out.
-- Check breathing and alertness. Seizures, trouble breathing,
-  fainting, chest pain, or unresponsiveness are life-threatening.
+== ACT NOW (FIRST MINUTES) ==
+- Stop the exposure. Get any plant or mushroom out of the
+  mouth. No one eats any more, not even a "test" bite.
+- Rinse the mouth with clean water and spit it out.
+- Check the person: Are they awake? Breathing normally? Can
+  they swallow and talk?
+- Danger signs: seizures, trouble breathing, blue lips,
+  fainting, chest pain, or no response. Treat as dire and
+  do everything below at once.
 
-== SAVE EVIDENCE ==
-- Keep a SAMPLE of the plant or mushroom, including leaves, berries,
-  and the base or root if you can gather it safely.
-- Take clear PHOTOS of the plant where it grew.
-- Note WHAT was eaten, HOW MUCH, and WHEN. Identifying the plant
-  guides the right treatment.
+== KNOW THE CLOCK (THIS GUIDES EVERYTHING) ==
+- Fast onset, under 6 hours: usually GI upset, sweating, or
+  a wild mental state. Serious but most survive with care.
+- Slow onset, 6 hours or more before the first symptom: this
+  is the danger pattern. Amatoxin mushrooms (destroying
+  angel, death cap) and some plants hide, then hit the liver
+  or kidneys. Assume the worst and manage hard.
+- FALSE RECOVERY is real. Symptoms can ease for a day, then
+  return far worse as organs fail. Feeling better is NOT
+  proof of safety. Keep treating and keep watching.
+
+== KEEP THEM ALIVE ON YOUR OWN ==
+This is the core of field survival. Do all that apply.
+- Airway first. If they vomit or pass out, roll them onto
+  their side (recovery position) so they cannot choke.
+  Sweep the mouth clear. Never leave them alone.
+- FIGHT DEHYDRATION. Vomiting and diarrhea kill by draining
+  fluid and salts, especially with mushrooms. Replacing that
+  loss is the single most useful thing you can do without a
+  hospital.
+  Field rehydration drink (per 1 liter clean water):
+    - 6 level teaspoons sugar
+    - one half teaspoon salt
+    - stir until dissolved
+  Give small sips often, every few minutes. Small and
+  frequent stays down better than big gulps. Match what
+  goes out: the more they vomit or purge, the more they
+  must sip. If you have no salt, still give the sugar
+  water and plain clean water; it helps less but helps.
+  NEVER use wood ash or campfire ash: wet ash is caustic
+  lye and will burn the mouth and gut. Salty food you
+  carry (bouillon, jerky, salted crackers) safely adds
+  the salt if you have it.
+- Rest and warmth. Lay them down, shade or shelter, keep
+  them from chilling. Minimize exertion; do not make a sick
+  heart or liver work harder than it must.
+- Reassure them. Fear and panic worsen fast heartbeat and
+  hallucinations. A calm voice and a calm camp help.
+
+== ACTIVATED CHARCOAL (ONLY IF YOU CARRY IT) ==
+Charcoal can bind many toxins and is a real field tool, but
+only under strict limits. It is not a cure and does little
+once hours have passed.
+- Give ONLY if the person is fully awake, alert, and can
+  swallow and protect their own airway.
+- Best within about 1 hour of eating the plant. Later gives
+  little benefit.
+- Adult dose: about 25 to 50 grams stirred into water.
+- Do NOT give if: drowsy, confused, seizing, vomiting
+  uncontrollably, or if they swallowed a caustic (burning)
+  or fuel/solvent-type substance. In those cases it can
+  choke them or make things worse.
+- This is pharmacy or medical activated charcoal. Campfire
+  charcoal or briquettes are NOT a substitute.
+
+== MATCH YOUR CARE TO THE SIGNS ==
+You may not know the plant. Treat the pattern you see.
+
+WET AND DROOLING (sweating, drooling, tearing, watery gut,
+slow pulse; certain small mushrooms, the Inocybe and
+Clitocybe types):
+- Keep the airway clear; expect heavy secretions and vomit.
+- Side position, sweep the mouth often, rehydrate hard.
+- Most survive with airway care and fluids. The true fix
+  (atropine) is hospital-only, but death is uncommon.
+
+HOT, DRY, AND WILD (dry mouth, big pupils, flushed dry skin,
+racing heart, fever, agitation, seeing things; jimsonweed,
+angel's trumpet, nightshade, henbane):
+- Cool them down: shade, remove extra layers, wet the skin
+  and fan it. Overheating is a top killer here.
+- Keep them safe from themselves: calm, dim, quiet spot;
+  clear away hazards; hold or pad them gently if thrashing.
+- Sip fluids when they can swallow safely.
+- Symptoms can last 1 to 2 days. Many pull through on
+  supportive care alone. Ride it out and protect them.
+
+SLOW OR ERRATIC HEARTBEAT, FAINTING (nausea then a slow,
+skipping, or pounding pulse; weakness; foxglove, oleander,
+lily of the valley):
+- Absolute rest, flat, no walking or exertion. Exertion can
+  trigger a fatal rhythm.
+- Sip fluids only if fully alert. Watch breathing and pulse.
+- Be honest: the antidote is hospital-only. Rest and calm
+  buy time; evacuate by carry, not by making them walk.
+
+DELAYED GUT STORM AFTER 6+ HOURS (cramps, vomiting, watery
+"cholera-like" diarrhea starting many hours after eating a
+mushroom): treat as possible amatoxin, the deadliest group.
+- Rehydrate aggressively and continuously (see the drink
+  above). Dehydration and shock are what kill first; fluids
+  are your one real weapon in the field.
+- Expect false recovery, then possible liver failure.
+- Straight truth: there is no field cure. The definitive
+  drugs (silibinin, NAC) and liver support exist only in
+  hospitals. Fluids maximize the odds of lasting long
+  enough to reach one. If none exists, aggressive fluids
+  and comfort remain the best and most humane care you can
+  give.
+
+RAPID COLLAPSE, GASPING, ALMOND-LIKE SMELL (very fast onset;
+some seeds, pits, and cassava-type roots hold cyanide):
+- There is no field antidote. Fresh air, keep the airway
+  open, rescue breathing if trained and they stop.
+- This is a true emergency with no self-reliant fix. Do the
+  basics and get help if it exists.
 
 == WHAT NOT TO DO ==
-- Do NOT induce vomiting. It can cause choking and further harm and
-  usually does not help.
-- Do NOT give salt water, syrup of ipecac, charcoal, or any home
-  remedy unless a medical professional directs you.
-- Do NOT wait for symptoms with mushrooms or the deadly plants in
-  this guide; some toxins are silent for hours.
+- Do NOT force vomiting. It rarely helps and can cause
+  choking or burns on the way back up. Ipecac is obsolete.
+- Do NOT give salt water, milk, or campfire charcoal as a
+  "cure." These do not help and can harm.
+- Do NOT chug large amounts of water to "dilute" the poison.
+  That is different from sipping the rehydration drink to
+  replace fluids they are losing. Sip to replace, do not
+  flush to dilute.
+- Do NOT trust a false recovery and stop caring for them.
+- Do NOT eat an unknown plant again to "confirm" it.
 
-== KEEP THEM STABLE ==
-- If the person is alert and not vomiting, give small sips of plain
-  water. Do not force fluids.
-- Keep them calm, resting, and warm. Watch them closely and do not
-  leave them alone.
-- If they vomit, turn them on their side to keep the airway clear.
-- If unresponsive but breathing, place on their side (recovery
-  position) and monitor.
+== SAVE EVIDENCE AND TRACK THE TIMELINE ==
+Useful for your own decisions and vital if you do reach help.
+- Keep a SAMPLE: leaves, berries, cap, and the base or root
+  if you can gather it safely without more exposure.
+- Take clear PHOTOS of the plant where it grew.
+- Write the time it was eaten, how much, and the time each
+  symptom starts: nausea, vomiting, drooling, sweating,
+  dizziness, confusion, vision changes, fast or slow pulse,
+  weakness, seizures.
+- Note whether symptoms started before or after 6 hours.
+  That single fact tells medics how worried to be.
 
-== TRACK THE TIMELINE ==
-- Write down the time of ingestion and the time each symptom starts:
-  nausea, vomiting, drooling, sweating, dizziness, confusion,
-  vision changes, racing or slow heartbeat, weakness, seizures.
-- With some toxins symptoms EASE and then return worse. A false
-  recovery is not real recovery; keep heading toward help.
-- This timeline is critical information for medics and doctors.
+== IF YOU CAN REACH HELP ==
+Evacuation is one option among the actions above, not the
+whole plan. Keep doing the field care while you try.
+- Evacuate only if you can do it safely. For a weak, faint,
+  or heart-affected person, carry or shelter in place and
+  send others for rescue rather than making them walk.
+- POISON CONTROL (United States): 1-800-222-1222. Free,
+  staffed 24/7, works the moment you regain phone signal.
+  Program it before the trip.
+- For breathing or consciousness emergencies, call your
+  local emergency number (911 in the US) when you have
+  signal.
+- Bring the sample, photos, and timeline to the medics.
 
-== EVACUATE AND CALL FOR HELP ==
-- Move toward help and phone coverage. For serious signs, send for
-  rescue if you cannot self-evacuate.
-- POISON CONTROL (United States): 1-800-222-1222. Free, staffed
-  24/7. It works once you are back in phone coverage; program it
-  into your phone before the trip.
-- For emergencies with breathing or consciousness problems, call
-  your local emergency number (911 in the US) when you have signal.
-- Bring the sample, photos, and your timeline notes to the medics.
+== THE HARD TRUTH ==
+For the deadliest exposures (amatoxin liver failure, severe
+foxglove or oleander, cyanide), no field remedy replaces a
+hospital. Anyone who promises a wilderness "cure" for these
+is wrong, and following them can kill. What you CAN do is
+real and it matters: protect the airway, replace lost fluids,
+prevent overheating, enforce rest, and stay with them. That
+care carries many people through, and for the rest it gives
+them the best and most dignified chance you have to offer.

@@ -1,52 +1,130 @@
 DEATH CAMAS vs WILD ONION
 
-Death camas (Toxicoscordion and related genera) is a classic killer
-of foragers because it grows among and looks like wild onions and
-edible camas bulbs. All parts are poisonous. Eating the bulb can be
-fatal. This is one of the most important pairs to get right, so the
-safe move is to skip wild onions entirely unless expertly trained.
+Death camas (Toxicoscordion, formerly Zigadenus) is a classic
+killer of foragers because it grows among, and looks like, wild
+onions and edible blue camas. All parts are poisonous, and the
+toxin is not destroyed by cooking or drying. As few as two bulbs
+can kill an adult. The single best protection is prevention: do
+not eat any onion-like or camas-like bulb unless you are certain.
+This file tells you how to be certain, and what to do if someone
+has already eaten it.
 
-== THE NO-ONION-SMELL RULE ==
-- True wild onions and wild garlic smell strongly of onion or
-  garlic when a leaf or bulb is crushed.
+== IF SOMEONE MAY HAVE EATEN IT: DO THIS NOW ==
+Act in this order. There is no antidote, so field care is about
+protecting the airway and buying time (see THE HARD TRUTH).
+- Stop the exposure. Spit out any plant. Rinse the mouth with
+  water and spit, then wipe out any residue.
+- Do NOT force vomiting. It rarely removes enough to help, and it
+  risks choking, because this poison brings on weakness,
+  drowsiness, and sometimes seizures. If the body vomits on its
+  own, let it.
+- Save a piece of the plant if you can. It helps anyone who later
+  treats the patient.
+
+== SECOND OPTION: BLOCK ABSORPTION ==
+- If you carry activated charcoal AND the person is fully awake,
+  able to swallow, and not vomiting: give it. It can bind toxin
+  still in the gut. Best within about 1 hour of eating.
+- Adult dose: about 25 to 50 grams stirred into water.
+- Child dose: about 1 gram per kg of body weight.
+- Do NOT give charcoal to anyone who is sleepy, confused, seizing,
+  or vomiting hard. They can inhale it and drown. When unsure,
+  skip it and protect the airway instead.
+
+== THIRD OPTION: SUPPORT THE BODY ==
+Protect the airway (the top survival step):
+- Vomiting plus weakness can choke a person. Roll them onto their
+  side (recovery position), head low and turned so vomit drains
+  out, not in. Never leave them face-up or alone.
+Hold up the heart and blood pressure:
+- This poison slows the heart and drops blood pressure. Lay the
+  person flat and raise the legs about a foot to feed the brain.
+- Keep them still and warm, and insulate them from the ground.
+  Any exertion strains a struggling heart. Do NOT let a
+  symptomatic person walk.
+Give fluids (a partial stand-in for a hospital IV drip):
+- If they are fully alert and not vomiting, give small frequent
+  sips of water, or water with a pinch of salt and sugar, to
+  replace losses and support blood pressure. Stop if they get
+  drowsy or start vomiting.
+If breathing or the heart stops:
+- Give rescue breaths if they are not breathing. If there is no
+  pulse and you are trained, start CPR and continue as long as you
+  are able. In severe slowing of the heart this is the only field
+  tool left.
+Watch closely:
+- Recheck pulse and alertness every few minutes. Danger signs are
+  a pulse that keeps slowing, fainting, confusion, or seizures.
+- Symptoms usually begin within 30 minutes to a few hours. In
+  people who survive, they ease within about 24 hours. Your job is
+  to get them through the first day.
+
+== THE HARD TRUTH: NO FIELD ANTIDOTE ==
+- Nothing in a pack reverses this poison. The tools that do
+  (atropine to speed the heart, IV fluids and drugs to hold up
+  blood pressure) exist only at a hospital.
+- A large dose can cause a fatal slow or irregular heartbeat that
+  field care cannot fix. There is no folk remedy that works.
+  Chasing one wastes the time you need for real care.
+- What field care does buy you: it stops choking, slows the
+  crisis, and keeps the brain and heart supplied while the body
+  clears the toxin. Most people who survive the first 24 hours
+  recover fully.
+- Evacuate if you can safely reach help. This is one of the few
+  poisonings where a hospital truly changes the odds, so if a
+  realistic path to care exists, move toward it, carried rather
+  than self-walking if symptoms have started. If no evacuation is
+  possible, the steps above are your full and best effort. Do them
+  well, and do not give up.
+
+== PREVENTION: THE NO-ONION-SMELL RULE ==
+- True wild onions and wild garlic (Allium) smell strongly of
+  onion or garlic when a leaf or bulb is crushed.
 - Death camas has NO onion or garlic smell.
 - Rule: if it looks like a wild onion but does NOT smell like one,
-  do not eat it. No smell means no eat.
-- Caution: a nearby crushed onion can leave the scent on your
-  hands and fool you. Smell a fresh, clean sample, and when in any
-  doubt, do not eat it.
+  do not eat it. No smell, no eat.
+- Limit of the rule: it separates death camas from onions only.
+  Edible blue camas also has no onion smell, so smell will NOT
+  tell death camas from blue camas. For that you need flowers
+  (see below).
+- Trap: a crushed onion nearby can leave scent on your hands and
+  fool you. Smell a fresh, clean sample. Any doubt at all: do not
+  eat it.
 
 == FLOWER DIFFERENCES ==
-- Wild onion: flowers form a rounded cluster at the top of a single
-  stalk, often pink, white, or lavender, sometimes with small
-  bulblets mixed in.
-- Death camas: flowers are cream, white, or greenish-yellow in an
-  elongated cluster (a spike or narrow raceme) along the upper
-  stem, with six petal-like segments, often with a small gland
-  spot near the base of each segment.
-- Leaves of both are grass-like and narrow, which is exactly why
+- Wild onion: flowers in a rounded cluster at the top of one
+  stalk, often pink, white, or lavender, sometimes with tiny
+  bulblets mixed in, and an oniony smell.
+- Blue camas (edible): star-shaped flowers, blue to purple.
+- Death camas: flowers cream, white, or greenish-yellow in a long
+  narrow cluster (a spike or raceme), with six petal-like
+  segments, often with a small gland spot near the base of each.
+- All three have narrow, grass-like leaves, which is exactly why
   flowers and smell matter so much.
-- Bulbs look alike underground; you cannot tell them apart by the
-  bulb, so never rely on the bulb for ID.
+- Bulbs look alike underground. You cannot tell them apart by the
+  bulb, so never dig and eat when the plant is not in flower.
 
 == HABITAT OVERLAP ==
 - Death camas grows in meadows, grasslands, open woods, foothills,
   and prairies across much of North America, especially the West.
-- Wild onions grow in many of the same open, grassy places, so the
-  two are commonly found side by side.
-- They may bloom at similar times, and before flowering the two are
-  very hard to separate.
+- Wild onions and blue camas share these same open, grassy places,
+  so the plants are commonly found side by side.
+- They bloom at similar times, and before flowering they are very
+  hard to tell apart.
 
-== WHY IT KILLS ==
-- The toxins (zygacine and related alkaloids) cause vomiting,
-  drooling, weakness, slowed heartbeat, low blood pressure,
-  confusion, and can progress to death.
-- Livestock and people have died from small amounts.
-- Any suspected ingestion is a medical emergency; evacuate and get
-  help at once (see the poisoning-response file).
+== WHY IT IS DEADLY ==
+- The toxins (zygacine and related steroidal alkaloids) jam the
+  sodium channels in nerve and muscle and drive up vagal (heart-
+  slowing) signals to the heart and gut.
+- Early: numb or tingling lips and mouth, watering mouth, nausea.
+- Then: vomiting, belly pain, weakness, dizziness, staggering,
+  slowed heartbeat, and low blood pressure.
+- Severe: confusion, seizures, a very slow or irregular heart,
+  coma, and death. Livestock and people have died from small
+  amounts.
 
 == THE SAFE RULE ==
-- Do not eat any wild onion-like plant unless it clearly smells of
-  onion or garlic AND you are certain of its ID.
-- If there is no smell, or any doubt at all, leave it. The risk of
-  a fatal mistake outweighs a wild onion.
+- Do not eat any onion-like or camas-like plant unless it clearly
+  smells of onion or garlic AND you are certain of its ID.
+- No smell, or any doubt at all: leave it. No wild bulb is worth a
+  fatal mistake.

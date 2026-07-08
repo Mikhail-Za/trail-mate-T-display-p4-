@@ -1,29 +1,88 @@
 Spiders: Real Risk and Common Harmless Kinds
 
 == KEEP THIS IN PROPORTION ==
-- Spider bites are rare, and the great majority of spiders in North America cannot meaningfully hurt you. Two kinds are worth knowing: the black widow and the brown recluse.
-- Most sores blamed on spider bites are actually skin infections. Real bites are uncommon and usually happen when a spider is trapped against skin, in clothing, a boot, a glove, or bedding.
-- Prevention is simple: shake out boots, clothing, and sleeping gear, and take care reaching into woodpiles, rock walls, and dark corners.
+- Spider bites are rare. The great majority of spiders in North America cannot meaningfully hurt you.
+- Only two matter: the black widow and the brown recluse. Both bites are survivable on your own in most cases. This article is built to help you do exactly that.
+- Most sores blamed on spiders are actually ordinary skin infections. Real bites usually happen when a spider is trapped against skin: in clothing, a boot, a glove, or bedding.
+- Good news for the stranded: a healthy adult almost never dies from either bite, and the main treatment for a recluse wound is the same wound care you can do yourself.
 
-== BLACK WIDOW ==
-- Glossy jet-black round body about the size of a large pea, with a red hourglass mark on the underside of the belly. Males and young are smaller and drab and rarely bite.
-- Lives across most of the continental US in dark, sheltered spots: woodpiles, rock crevices, sheds, under seats and steps, and in old outhouses.
-- Bite: a pinprick, then within an hour cramping muscle pain in the belly, back, or limbs, with sweating. Rarely fatal to a healthy adult but genuinely severe. Evacuate for care.
+== FIRST STEPS FOR ANY SUSPECTED BITE ==
+Do these no matter which spider:
+- Stay calm and sit down. Panic and racing heart make widow pain worse. Slow your breathing.
+- Wash the area with clean water, and soap if you have it.
+- Note the time and mark the edge of any redness with a pen or scratch so you can tell later if it is spreading.
+- Take off rings, watch, or tight clothing near the bite before swelling starts.
+- Put a cold pack on the bite: ice, a cold wet cloth, or a bottle from cold water, wrapped in fabric so it does not freeze skin. About 10 to 15 minutes on, then off. Cold reduces pain and, for a recluse, actually slows the venom.
+- If a limb was bitten, keep it raised to heart level or a little above.
+- Do NOT cut the bite, suck it, squeeze it, burn it, apply a tourniquet, or use electric shock. These do not remove venom and cause real harm.
+- If you can safely catch or photograph the spider without a second bite, do it. Otherwise do not chase it.
 
-== BROWN RECLUSE ==
-- Sandy brown, long-legged, body under half an inch, with a darker violin shape on the back pointing toward the rear.
-- Range is limited, mainly the south-central and lower midwestern states. It is heavily over-reported elsewhere; outside that range a suspected recluse bite is almost always something else.
-- Bite: often painless at first, then over days a blister and a dark, sunken sore. Clean it, cover it, and seek care.
+== BLACK WIDOW: KNOW IT ==
+- Glossy jet-black round body about the size of a large pea, with a red hourglass mark on the UNDERSIDE of the belly. Males and young are smaller, drab, and rarely bite.
+- Lives across most of the continental US in dark, sheltered spots: woodpiles, rock crevices, sheds, under seats and steps, old outhouses.
+- Bite feels like a pinprick. Within about an hour: cramping, gripping muscle pain that spreads from the bite into the belly, back, or limbs, plus sweating, a fast heart, high blood pressure, and sometimes nausea.
+- The pain is severe but the venom is self-limited. It peaks in the first day and usually eases a lot by 24 to 48 hours, mostly gone by about 3 days.
+
+== BLACK WIDOW: MANAGE IT ON YOUR OWN ==
+Your goal is to ride out the pain and cramps. A healthy adult can almost always do this without a hospital.
+- Rest still in the most comfortable position. Movement fires off the cramps.
+- Keep the cold pack on the bite site for local pain.
+- For the deep muscle cramps, gentle WARMTH over the cramping muscle helps: a warm (not scalding) compress, a sun-warmed water bottle, or a cloth-wrapped warm rock on the belly or back.
+- Pain relief you may carry: ibuprofen and acetaminophen at label doses, taken on schedule. Both together are safe for most adults and work better combined. They take the edge off but will not fully erase severe cramps.
+- If you carry a benzodiazepine (such as diazepam) prescribed to you, it eases muscle spasm. If you carry an opioid prescribed to you, it eases pain. Use only your own prescription and your known dose. Do not take someone else's.
+- Diphenhydramine (an antihistamine) can calm sweating and restlessness and help you sleep through the worst of it.
+- Drink water. Stay warm. Keep breathing slow and steady.
+- Expect it to feel bad for a day, then steadily better. That is the normal course, not a sign you are losing.
+
+The honest truth about widow bites:
+- A specific antivenom exists and cuts symptoms within about half an hour, but it is hospital-only and there is no field substitute. You cannot make or replace it.
+- You almost certainly do not need it to survive. It is reserved for the worst cases.
+- Higher danger applies to very young children, the elderly, pregnant people, and those with heart disease, mainly from dangerously high blood pressure. For those people, reaching help matters more (see below). For a healthy adult, riding it out is the expected plan.
+
+== BROWN RECLUSE: KNOW IT ==
+- Sandy brown, long-legged, body under half an inch, with a darker violin shape on the back pointing toward the rear. Look closely and it has six eyes in three pairs, not the usual eight.
+- Range is limited: mainly the south-central and lower-midwestern states. It is massively over-reported elsewhere. Outside that range a suspected recluse bite is almost always something else, often a common skin infection.
+- Bite is often painless at first. Over hours to days it may redden, blister, then form a dark, sunken, crusted sore. A firm red-white-blue bullseye can appear.
+- Most recluse bites are minor and heal on their own. A serious necrotic wound is the exception, not the rule.
+
+== BROWN RECLUSE: MANAGE THE WOUND YOURSELF ==
+There is NO antivenom for the brown recluse anywhere in the US. Hospital treatment is wound care and watching for complications, which is largely what you can do in the field.
+- Clean the wound gently with clean water, and soap if available.
+- Keep it COOL, not hot. Cold packs slow the venom because its main toxin works faster when warm. Never apply heat to a recluse bite.
+- Elevate the limb, rest it, and keep it loosely still.
+- Cover with a clean, non-stick dressing. Change it daily. Keep the wound clean and dry between changes.
+- Let any black scab (dead tissue) separate on its own over days to weeks. Do NOT cut it out, dig at it, squeeze it, or pop blisters early. Cutting into a fresh recluse wound makes it bigger and invites infection.
+- If dead tissue is already loose and clearly detached, you can trim only that loose dead skin with the cleanest scissors or blade you have. Stop the moment you reach tissue that is pink, living, or bleeding.
+- Pain: ibuprofen and acetaminophen. Itch: an antihistamine.
+- Do NOT use dapsone or steroids on your own. They are unproven for this and can cause serious harm.
+
+Watch for the two real dangers:
+1. Wound infection (common). Signs: spreading hot redness beyond your marked line, increasing pain, pus, red streaks running up the limb, or fever.
+   - Keep it clean, keep it drained, keep changing the dressing.
+   - If you carry antibiotics and know how to dose them, a skin-infection course is your tool here. Infection, not venom, is what most often turns a small bite into a big problem.
+2. Systemic loxoscelism (rare, worse in children). Signs in the first day or two: fever, chills, body aches, and especially dark, red, or brown urine, or yellowing skin. That means the venom is breaking down blood.
+   - Push fluids to keep urine flowing and protect the kidneys. Rest.
+   - Be honest with yourself: this is genuinely dangerous and has no field cure. This is the case to spend real effort reaching help if you possibly can.
+
+== WHEN TO TRY TO REACH HELP ==
+Most spider bites do not need evacuation, and you can manage them where you are. Reaching care is one option among your actions, not the whole plan. Evacuate if you can safely reach help AND one of these is true:
+- A widow bite in a young child, an elderly person, a pregnant person, or someone with heart disease, with severe symptoms.
+- A recluse bite with signs of systemic loxoscelism: dark or bloody urine, spreading yellow skin, or worsening whole-body illness.
+- A wound infection you cannot control, spreading despite clean care and any antibiotics you have.
+- A true allergic reaction (very rare from spiders): swelling lips or throat, trouble breathing, hives all over. Its only fix is epinephrine. If you carry an auto-injector, use it. There is no field substitute for it.
+If you cannot reach help, the field steps above are still your best odds. Keep doing them.
 
 == THE HARMLESS MANY ==
-- Orb weavers spin the big round webs across trails at face height. Large and startling, but harmless; wave a stick ahead of you on overgrown trails.
+- Orb weavers spin the big round webs across trails at face height. Large and startling, but harmless. Wave a stick ahead of you on overgrown trails.
 - Wolf spiders are big, fast, hairy ground hunters that carry their young on their backs. They look alarming and are essentially harmless.
-- Jumping spiders are small, fuzzy, and curious; grass spiders build funnel sheets down in the grass. Neither is a danger to you.
-- Daddy longlegs, the harvestmen, are not spiders at all and are not venomous.
+- Jumping spiders are small, fuzzy, and curious. Grass spiders build funnel sheets down in the grass. Neither is a danger to you.
+- Daddy longlegs, the harvestmen, are not spiders at all and have no venom.
 
-== SEASON ==
-- Spiders are most active and most often seen from late summer into fall, when they are largest and webs are everywhere.
-- Cool weather drives them into sheltered spots, which is exactly when they end up in stored boots, gloves, and bedding. Shake gear out year round, especially after cold nights.
-
-== IF BITTEN ==
-- Wash the bite, apply a cold compress, and note the time. Watch for spreading redness, severe cramping, or a worsening sore, and evacuate for the widow and recluse patterns above. See the first aid bites and stings article.
+== SEASON AND PREVENTION ==
+- Spiders are most active and most seen from late summer into fall, when they are largest and webs are everywhere.
+- Cool weather drives them into sheltered spots, which is exactly when they end up in stored boots, gloves, and bedding.
+- Prevention is simple and worth more than any treatment:
+  - Shake out boots, clothing, and sleeping gear every time, especially after cold nights.
+  - Take care reaching into woodpiles, rock walls, packs, and dark corners. Look before you reach, or use a stick.
+  - Keep tents and bags zipped. Store clothing off the ground.
+- See the first aid bites and stings article for general wound care.

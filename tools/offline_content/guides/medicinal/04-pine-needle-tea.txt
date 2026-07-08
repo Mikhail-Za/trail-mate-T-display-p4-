@@ -1,29 +1,77 @@
 Pine Needle Tea (Pinus species): vitamin C
 
 == WHAT IT DOES ==
-- A weak tea from pine needles supplies vitamin C. It was used on long winter trips against scurvy.
-- It is mild and supportive, not a drug. Keep expectations low.
+- Pine needle tea supplies vitamin C. Its real job is to prevent and cure scurvy, the disease of vitamin C starvation on long trips with no fresh food.
+- Scurvy is one of the FEW survival illnesses you can fully cure yourself in the field. Vitamin C reverses it. You do not need a hospital or a drug for this. You need a safe plant and to drink it daily.
+- The tea is food and support, not medicine. It will not fix infection, wounds, or other illness.
 
-== DEADLY LOOKALIKE: YEW ==
-- The critical danger is YEW (Taxus), which is DEADLY. A small amount can kill an adult.
-- TRUE PINES: needles grow in BUNDLES of 2 to 5, each bundle wrapped at its base by a small papery sheath. Woody cones. A strong pine-resin smell.
-- YEW: flat, soft needles attached SINGLY in two rows, no papery sheath, no woody cone. It bears a red berry-like cup with a single seed. If the needles are single and flat, DO NOT make tea.
-- See the edible Pine entry for the full identification. Learn the yew difference cold before you use this.
+== KNOW WHEN YOU NEED IT: SCURVY ==
+Scurvy sets in after roughly 4 to 12 weeks with no vitamin C. Signs, early to late:
+- Tiredness, aching legs and joints, low mood.
+- Gums swollen, purple, bleeding. Teeth loosening.
+- Tiny red or purple spots around hair roots, easy bruising, curled body hairs.
+- Old wounds reopening, new cuts not healing, nosebleeds.
+Untreated scurvy kills. Caught in time it is fully reversible, often fast.
 
-== CONIFERS TO AVOID ==
-- Do not use yew (deadly), Norfolk Island pine (not a true pine), or any flat-needled evergreen you cannot positively tell apart from yew.
-- Ponderosa pine and some relatives are linked to abortion in livestock. Pregnant or nursing women should skip pine needle tea entirely.
-- Spruce, fir, and hemlock-tree needles are used by some for tea, but if you cannot rule out yew with total confidence, stick to bundled-needle pines only.
+== IDENTIFY A SAFE PINE FIRST ==
+Do this BEFORE you pick or brew anything. The killer lookalike is yew.
+TRUE PINE (safe):
+- Needles in BUNDLES of 2 to 5, wrapped at the base by a small papery sheath.
+- Needles long and round-ish. You can roll one between your fingers.
+- Woody cones present. Strong pine-resin smell when crushed.
+
+== DEADLY LOOKALIKE: YEW (Taxus) ==
+- Yew is DEADLY. As little as 50 g of needles (about 2 ounces, a small handful) can kill an adult. Cooking and drying do NOT remove the poison. People have died from yew-needle tea.
+- YEW needles: flat, soft, short (about 1 cm), attached SINGLY in two rows, with a PALE or whitish underside. No papery sheath. No woody cone. No pine-resin smell.
+- Yew bears a soft red berry-like cup holding one hard seed, not a woody cone.
+- Rule: single flat needles, pale underside, red berry-cups, no cone, no resin smell means DO NOT TOUCH. When in any doubt, use only bundled-needle true pines.
+
+== CONIFERS TO AVOID OR KNOW ==
+- Yew: deadly. Never use.
+- Norfolk Island pine: not a true pine. Skip it.
+- Ponderosa pine, lodgepole pine, common juniper, Monterey cypress: contain isocupressic acid, which causes abortion in livestock. Pregnant women should not use these (see CAUTION).
+- Any flat-needled evergreen you cannot positively separate from yew: skip it.
+- Spruce, fir, and hemlock-tree (Tsuga) needles are good vitamin C sources for those who can ID them confidently (see OTHER SOURCES). Hemlock TREE is a conifer and is not the unrelated poison-hemlock weed. If you cannot rule out yew, stay with bundled-needle pines only.
 
 == HOW TO MAKE IT ==
-- Chop a small handful of fresh young green needles.
-- Steep 5 to 10 minutes in hot water taken OFF the boil. Boiling drives off the vitamin C and brings out a turpentine taste. Strain.
-- Keep it weak. A strong turpentine flavor means too many needles or too long a steep.
+1. Confirm a safe pine (above). If unsure, stop.
+2. Chop a small handful of green needles, about what fits loosely in your palm.
+3. Pour hot water OFF the boil over them. Do not hard-boil. Boiling drives off vitamin C and pulls out a turpentine taste.
+4. Cover and steep 5 to 10 minutes. Strain.
+5. Aim for a mild, pleasant brew. Strong turpentine flavor means too many needles or too long a steep.
+Note: even boiled tea still helps. Cartier's crew in 1536 boiled conifer tea and it cured their scurvy anyway. If cold or lack of fuel makes steeping impossible, boiled tea is far better than none.
 
-== CAUTION ==
-- Skip it entirely in pregnancy and while nursing.
-- Do not drink large amounts. Keep it weak and occasional.
-- If you have any doubt about the tree, do not drink it.
+== HOW MUCH TO DRINK ==
+- To PREVENT scurvy: about 10 mg of vitamin C a day is enough. One or two cups of proper tea covers this.
+- To TREAT active scurvy: drink more, several cups a day, steadily, for one to two weeks, then keep a daily cup. Pine needles hold roughly 0.7 to 1.9 mg of vitamin C per gram (more than oranges by weight), so a few cups a day adds up.
+- Improvement is fast: fatigue and aches often ease within 24 to 72 hours. Bruising and bleeding gums settle over 1 to 2 weeks.
+- Keep each cup mild. Do not brew a strong turpentine tea thinking stronger is better. Large amounts of the resins can upset your gut.
+
+== IF PINE IS NOT AVAILABLE: OTHER VITAMIN C ==
+Any of these prevents or treats scurvy. Use what your ground offers.
+- Spruce and fir needle tips: same steep method. Fir and spruce test HIGHER for vitamin C than pine in some studies. ID confidently against yew first.
+- Rose hips (the fruit left after wild rose flowers): one of the richest wild sources by far. Break them open, steep off the boil, strain out the irritating seed hairs.
+- Fresh green leaves and shoots: dandelion, chickweed, sorrel, young greens, wild onion or garlic tops, watercress.
+- Fresh berries: many are decent sources.
+- FRESH raw or barely cooked meat, especially ORGAN meat (liver, kidney) and fish: in deep winter with no plants, these carry vitamin C and kept northern peoples scurvy-free. Hard cooking destroys it, so eat fresh and barely warmed.
+Rule for all: heat and long storage destroy vitamin C. Fresh and gently warmed beats boiled and dried.
+
+== IF YOU DRANK YEW BY MISTAKE ==
+Be honest about what you drank: flat single needles, pale underside, red berry-cups, no cone, no pine smell. If that is what you brewed, treat it as a life threat.
+Hard truth: there is NO field antidote and NO reliable cure, in the field or in a hospital. A true toxic dose often kills even with full intensive care. No folk remedy fixes this. Do the real things that can help and do not waste time on a fake cure.
+What you can do:
+- STOP. Drink no more. Pour it out so no one else drinks it.
+- Do NOT force vomiting. It risks choking and can further slow a heart the poison is already attacking. If the person vomits on their own, let them and keep the airway clear.
+- If you carry activated charcoal, take it as soon as possible, best within the first hour. It may bind poison still in the gut. It is not a cure and does nothing for poison already absorbed, but it is the one field step with any evidence behind it.
+- Rest completely. No walking, no exertion, no panic. Exertion and adrenaline strain the heart, which is exactly what the toxin blocks. Keep the person warm, calm, and lying down.
+- Keep someone with them watching breathing and pulse. Nausea, vomiting, belly pain, and dizziness can start within a few hours, then the pulse may go slow or erratic.
+- Evacuate to advanced medical care if it is anywhere within safe reach. It is the only real chance in a serious dose, and even that is not assured. If no care can be reached, the steps above and staying calm are all that exist. Correct identification beforehand is the only reliable protection.
+
+== CAUTION: PREGNANCY AND NURSING ==
+- The known risk is abortion. Ponderosa, lodgepole, juniper, and cypress carry isocupressic acid, which makes cattle abort in late pregnancy. Human data is thin, so treat it as a precaution.
+- If pregnant or nursing: avoid pine, juniper, and cypress needle teas. Get vitamin C from rose hips, fresh greens, spruce or fir tips, or fresh meat and organs instead.
+- Scurvy is also dangerous in pregnancy. If the ONLY vitamin C you can find is pine and you are developing scurvy, you face a hard trade with no clean answer. Favor non-pine sources whenever you can find them.
 
 == SEASON ==
-- Evergreen and available year-round. Young spring needles are the mildest and best.
+- Evergreen and available year-round, including deep winter when little else is.
+- Vitamin C is present in every season. Young spring tips are mildest and pleasant, but some studies show mature and cold-weather needles hold MORE vitamin C. If you are treating scurvy, do not limit yourself to young tips. Use what you have and drink enough.

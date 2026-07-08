@@ -1,56 +1,159 @@
 DEADLY AND TOXIC BERRIES
 
-Wild berries are a common cause of poisoning, especially in
-children. Color is not a safe guide. Do not eat any wild berry
-unless you are certain of its ID. When in doubt, do not eat it.
+Most wild-berry poisonings cause vomiting and
+diarrhea. The real killer from those is dehydration,
+and you CAN fight that in the field. A few berries
+(yew seed, moonseed, baneberry) attack the heart or
+nerves and can kill with no field cure. Know which
+one you face. Color is not a safe guide. When in
+doubt, do not eat it.
+
+== IF SOMEONE ATE A TOXIC BERRY: FIRST STEPS ==
+- Clear the mouth. Have them spit out any plant.
+  Rinse the mouth with clean water.
+- Do NOT force vomiting. It removes little toxin and
+  vomit can choke a drowsy person. The old "make them
+  throw up" advice is wrong and dropped by doctors.
+- Save a sample: one berry, a leaf, a bit of stem,
+  and any vomit. Note the time eaten and how many.
+- Sit them down, keep them calm and warm, and watch
+  closely. Symptoms can take up to 6 hours to start.
+
+== CONTROL SYMPTOMS YOURSELF ==
+Vomiting and diarrhea (the common case):
+- Let mild vomiting happen; do not fight it. The
+  threat is fluid loss, not the vomiting itself.
+- Replace fluids in small, frequent sips. Gulping
+  restarts vomiting.
+- Field rehydration drink: 1 quart (about 1 liter)
+  clean water, 6 level teaspoons sugar, half a level
+  teaspoon salt. Mix well and sip all day. Too much
+  salt is harmful, so measure it. Use packaged oral
+  rehydration salts instead if you carry them.
+
+Mouth or throat burning (Virginia creeper and others):
+- Rinse the mouth. Sip cool water, or milk if you
+  have it. Cold, smooth food soothes it.
+- Watch for swelling that blocks the throat. Trouble
+  breathing or swallowing is the real danger.
+
+Activated charcoal (only if you actually carry it):
+- Only real pharmacy activated charcoal binds toxins.
+  Do NOT use campfire charcoal. It does not work and
+  may add harm. This is not a folk substitute.
+- Adult dose about 50 grams (range 25 to 100 g) stirred
+  into water. Works best within 1 hour of eating.
+- Give ONLY if the person is fully awake, can swallow,
+  and is not vomiting hard. NEVER give it to anyone
+  drowsy, seizing, or unable to protect their airway.
+  They can inhale it into the lungs.
+
+== IF THEY GET WORSE AND YOU CANNOT REACH CARE ==
+Drowsy or passing out:
+- Roll them onto their side (recovery position) so the
+  airway stays open and vomit drains out.
+- Give NOTHING by mouth: no water, food, or charcoal.
+- Keep them warm. Check breathing often.
+
+Seizures:
+- Move hard or sharp objects away. Cushion the head.
+- Do NOT hold them down or put anything in the mouth.
+- Time it. When it stops, roll them onto their side.
+
+Heart and nerve toxins (yew seed, moonseed, baneberry):
+- Hard truth: taxine (yew) and dauricine (moonseed)
+  poison the heart rhythm and nerves. There is NO
+  field antidote and no folk cure. Even hospitals can
+  only support with pacing and machines.
+- What you CAN do: total rest. Exertion strains a
+  failing heart. Do not let them walk or work. Keep
+  them lying down, calm, and warm. Small sips of water
+  only if fully awake. Stay with them.
+- If the heart stops and you are trained, start CPR.
+  In the backcountry with no defibrillator the odds
+  are very low, but CPR is the only option left.
+- Be honest with them and yourself about the odds.
+
+== EVACUATE IF YOU CAN SAFELY REACH HELP ==
+- This is ONE option among the steps above, not the
+  first and only answer. Do the field care first; it
+  stands on its own.
+- If help is reachable without creating new danger,
+  send word or move the patient. Bring the plant
+  sample and your notes on time, amount, and symptoms.
+- The same dose hits children and small adults hardest.
+  Prioritize them.
 
 == POKEWEED ==
-- Tall plant, up to 10 feet, with smooth reddish-purple stems.
-- Dark purple berries hang in long drooping clusters (racemes).
-- Roots, stems, leaves, and raw berries are toxic; causes severe
-  vomiting and cramps. Children are drawn to the shiny berries.
-- Do not eat. The young cooked greens have a food tradition but
-  require repeated careful boiling; not a field food.
+- Tall, up to 10 feet, smooth reddish-purple stems.
+- Dark purple berries hang in long drooping clusters.
+- Roots, stems, and leaves are the most toxic; raw
+  berries less so but still cause severe vomiting,
+  cramps, and diarrhea. Onset up to 6 hours.
+- Usually survivable with rest and fluids. Do not eat.
+  Young greens are eaten only after several changes of
+  boiling water; not a field food.
 
 == NIGHTSHADES ==
-- Bittersweet nightshade: vine with purple star-shaped flowers with
-  yellow centers; berries turn from green to bright red, in
-  clusters. Toxic.
-- Black nightshade: small white star flowers; small round black
-  berries. Some forms are eaten cooked when fully ripe, but green
-  berries and leaves are toxic and look-alikes are risky. Treat all
-  wild nightshade berries as unsafe.
+- Bittersweet: vine, purple star-shaped flowers with
+  yellow centers; berries turn green to bright red in
+  clusters.
+- Black nightshade: small white star flowers; small
+  round black berries.
+- Toxin is solanine: burning mouth, vomiting, cramps,
+  diarrhea. Usually GI and survivable; large amounts
+  can bring drowsiness and confusion.
+- Ripe black-nightshade berries are eaten cooked in
+  some places, but green berries and leaves are toxic
+  and look-alikes are risky. Treat all wild ones as
+  unsafe.
 
-== BANEBERRY ==
-- White baneberry ("doll's-eyes"): shiny white berries, each with a
-  dark spot, on thick red stalks. Red baneberry has red berries.
-- The whole plant, especially berries, is highly toxic and can
-  affect the heart. A few berries can seriously harm a child.
+== BANEBERRY (DOLL'S-EYES) ==
+- White baneberry: shiny white berries, each with a
+  dark spot, on thick red stalks. Red baneberry has
+  red berries.
+- Causes burning mouth and throat, severe cramps,
+  vomiting, and bloody diarrhea, and may affect the
+  heart. Treat as serious, above all in children.
+- A few berries can badly sicken a child. Do not eat.
 
-== MOONSEED vs WILD GRAPE ==
-- Moonseed is a toxic vine that mimics wild grape; it can kill.
-- The reliable difference is the SEED: moonseed has a single flat,
-  crescent or moon-shaped seed; true grapes have one to a few
+== MOONSEED (GRAPE LOOK-ALIKE) ==
+- Toxic vine that mimics wild grape and has killed
+  foragers, including children.
+- Check the SEED: moonseed has ONE flat crescent
+  (moon-shaped) seed; true grapes have one to a few
   round, pear-shaped seeds.
-- Moonseed leaves lack the grape's tendrils and have smooth (not
-  toothed) edges. Do not rely on leaf shape alone.
-- Never taste to decide. Split a berry and check the seed shape; if
-  crescent, or if you are unsure, do not eat it.
+- Moonseed lacks grape tendrils and has smooth (not
+  toothed) leaf edges. Do not judge by leaf alone.
+- Toxin dauricine can cause seizures and dangerous
+  heart rhythms, with no field cure. Never taste to
+  decide. Split a berry and check the seed. Crescent,
+  or unsure, do not eat.
 
 == VIRGINIA CREEPER ==
-- A common climbing vine with FIVE leaflets per stem (unlike poison
-  ivy's three) and dark blue-black berries on red stalks.
-- The berries are toxic to people and cause mouth and stomach
-  irritation. Do not eat them.
+- Climbing vine with FIVE leaflets per stem (poison
+  ivy has three) and dark blue-black berries on red
+  stalks.
+- Berries carry oxalate crystals: burning mouth and
+  throat, drooling, vomiting, and stomach pain. Large
+  amounts can harm the kidneys. Do not eat them.
 
 == HOLLY AND YEW ==
-- Holly: spiny evergreen leaves and bright red berries; berries
-  cause vomiting and are toxic if several are eaten.
-- Yew: evergreen with flat needles and a red berry-like aril. The
-  soft red flesh is not the main danger; the hard SEED inside, plus
-  the needles and bark, are highly poisonous and can stop the
-  heart. Never eat any part of a yew, and keep children away.
+- Holly: spiny evergreen leaves and bright red berries.
+  Several berries cause vomiting and diarrhea; the main
+  risk is dehydration. Rarely dangerous to adults, but
+  keep the berries away from children.
+- Yew: evergreen with flat needles and a red berry-like
+  aril. The soft red flesh is the least harmful part.
+  The hard SEED, plus the needles and bark, carry
+  taxine and can stop the heart. Onset 30 to 60 minutes.
+- Hard truth on yew: a real dose has no field antidote,
+  and standard heart drugs fail even in hospitals.
+  Field care is rest, calm, and supportive only. Never
+  eat any part of a yew, and keep children away.
 
 == RULE ==
-- No wild berry goes in the mouth without certain ID. Teach
-  children never to eat wild berries.
+- No wild berry enters the mouth without certain ID.
+- Swallowing the seed is what makes yew and moonseed
+  deadly. Spit seeds out and rinse if any got in.
+- Teach children never to eat wild berries.

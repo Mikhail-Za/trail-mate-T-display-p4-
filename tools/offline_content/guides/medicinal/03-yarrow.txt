@@ -1,36 +1,101 @@
 Yarrow (Achillea millefolium): minor bleeding and wounds
 
-== WHAT IT DOES ==
-- Yarrow is an old battlefield wound herb, known as soldier's woundwort and the nosebleed plant.
-- Crushed fresh leaves, pressed on the skin, can help slow minor bleeding and soothe small wounds.
-- Topical first aid only. Direct pressure is what stops bleeding; yarrow is a helper, not a replacement.
+== WHAT THIS COVERS ==
+- Stopping bleeding and caring for a wound when you may have no way to reach help.
+- The steps below are what actually work. Do them first.
+- Yarrow is a minor helper for small wounds, not a bleeding cure. It comes last, and only if you can identify it.
+- Read the DEADLY LOOKALIKE section before you ever pick yarrow.
 
-== DEADLY LOOKALIKE: READ THIS FIRST ==
-- Yarrow's feathery leaves resemble the carrot and parsley family, which includes POISON HEMLOCK and WATER HEMLOCK, among the deadliest plants in North America. A mistake here can kill.
-- Because of that risk: if you cannot separate yarrow from the hemlocks with total confidence, DO NOT pick it. Use direct pressure and a plantain poultice instead.
+== STOP BLEEDING FIRST (DO THIS) ==
+Pressure stops bleeding. No plant does.
+- Press hard, directly on the wound, with your palm. Use any cloth: shirt, bandana, gauze.
+- Hold firm, unbroken pressure for a full 10 to 15 minutes. Do NOT lift up to peek. Peeking restarts the clot.
+- If blood soaks through, do NOT remove the cloth. Add more on top and keep pressing.
+- If you can, raise the wound above the level of the heart while you press.
+- Once bleeding slows, wrap it firmly (not so tight the limb goes cold or numb) to hold pressure in place. This frees your hands.
+
+== IF BLEEDING IS SEVERE (SPURTING, POOLING, WILL NOT SLOW) ==
+This is life-threatening. Move fast.
+- PACK THE WOUND: stuff clean cloth or gauze firmly deep into the wound, right down onto the bleeding spot. Keep stuffing until it is full and tight. Then press hard on top for 3 minutes, then wrap firmly. Packing plus pressure controls most severe limb, groin, and shoulder bleeds.
+- TOURNIQUET (limb bleeding that packing and pressure will NOT stop): tie a wide band (belt, strap, folded cloth at least 1 to 2 inches wide, never thin cord or wire) a few inches above the wound, on bare skin, not over a joint. Twist a stick through it to tighten until the bleeding STOPS. Secure the stick. Note the time.
+  - It will hurt a lot. That is expected. A stopped bleed beats a saved limb.
+  - Do NOT loosen it to "let blood back in." Loosening a tourniquet that stopped a real bleed can kill.
+  - Honest limit: a tourniquet left on for many hours can cost the limb, and with no rescue there is no clean fix for that. Where the wound can be packed instead, prefer packing. Use a tourniquet only when nothing else stops the flow. Life first.
+- Evacuate toward help ONLY if you can do it safely and the bleeding is already controlled. Controlling the bleed always comes before moving.
+
+== CLEAN THE WOUND ==
+Do this once the bleeding is controlled. In the field, infection is the danger that can kill slowly.
+- Wash your hands or make them as clean as you can first.
+- Flush the wound hard with the cleanest water you have. Boiled-and-cooled or treated water is best; clean drinking water is fine. Use a lot, at least a half liter to a full liter.
+- Make pressure: squeeze from a bottle, or poke a small hole in a filled bag and squeeze. Pressure washes out dirt and germs that soaking cannot.
+- Pick out visible dirt, gravel, splinters.
+- Do NOT scrub raw tissue or pour fuel, bleach, or strong antiseptic into a deep wound. Dilute (weak, straw-colored) iodine water is acceptable for a dirty wound if you have it.
+
+== CLOSE IT? USUALLY NOT IN THE FIELD ==
+- Do NOT seal a dirty wound, a puncture, or an animal or human bite tight. Trapping germs inside causes deep infection.
+- Small clean cuts: pull the edges near each other with tape strips or improvised closures, leaving small gaps so fluid can drain.
+- Dirty, deep, or gaping wounds: leave them open. Pack loosely with clean moist cloth, cover, and let them drain.
+
+== DRESS AND PROTECT ==
+- Cover with the cleanest cloth available. A clean field is good enough; sterile is not required.
+- Change the dressing daily, or sooner if soaked or dirty. Re-flush with clean water at each change.
+- Keep the wound out of mud and water. Keep the person warm and hydrated; that helps clotting and healing.
+
+== WATCH FOR INFECTION (THE REAL KILLER WITH NO RESCUE) ==
+Check the wound at least once a day. Warning signs:
+- Spreading redness, heat, swelling, worsening pain after day one.
+- Pus, a foul smell, or red streaks running away from the wound.
+- Fever, chills, feeling very unwell.
+What you can do on your own:
+- Reopen the dressing, and reopen the wound if pus is trapped, so it can drain. Draining trapped pus is the single most useful thing you can do without medicine.
+- Flush again with clean water. Soak in or apply clean warm (not scalding) water several times a day to help it drain.
+- Repack loosely so it stays open and keeps draining. Keep it clean.
+- If you carry antibiotics and know how to use them, this is when they matter.
+- Honest limit: without antibiotics, draining and cleaning are your ceiling. A deep infection or blood poisoning (spreading redness, high fever, confusion) can become deadly and has no reliable field cure. Get to help if you possibly can.
+
+== NOSEBLEED ==
+- Sit up and lean FORWARD (not back). Leaning back sends blood down the throat and makes you vomit.
+- Pinch the SOFT part of the nose (below the hard bridge) firmly, both nostrils, and hold 10 to 15 minutes without letting go.
+- Breathe through your mouth. Do not check early.
+- Still bleeding? Repeat one more full 10 to 15 minutes. A small plug of clean cloth in the nostril, left in while you pinch, can help.
+- Most nosebleeds stop this way. Bleeding that soaks through and will not stop after two solid rounds, or that pours down the throat, is serious; reach help if you can.
+
+== WHERE YARROW HELPS (AND WHERE IT DOES NOT) ==
+- Yarrow is an old wound herb, called soldier's woundwort and the nosebleed plant. Traditional use, plus early animal studies of a leaf-and-flower extract, suggest it can modestly slow oozing from small wounds and calm inflammation.
+- Real use: after pressure and cleaning, crush clean fresh leaves to a pulp and press them onto a minor wound, scrape, or abrasion as an extra layer under the dressing.
+- What it will NOT do: it is not sterile, it does not replace pressure, and it will NOT stop serious bleeding. Never rely on it for a bad bleed. Pressure, packing, and a tourniquet are what save lives.
+- Only use it if you are 100 percent sure of the plant. If not, skip it. Pressure and a clean cloth work without it.
+
+== DEADLY LOOKALIKE: READ BEFORE PICKING ==
+- Yarrow's feathery leaves can be confused with the carrot and parsley family, which includes POISON HEMLOCK and WATER HEMLOCK. These are among the deadliest plants in North America. A mistake can kill.
+- If you cannot separate yarrow from the hemlocks with total confidence, DO NOT pick it. Direct pressure and a clean cloth are all you truly need.
+- Never taste a plant to test it. A trace of hemlock can be fatal.
+- After handling any unknown plant, do not touch your mouth or eyes, and wash your hands well before eating or drinking. The real danger is hemlock getting from hand to mouth, not soaking through intact skin.
 
 == HOW TO TELL YARROW APART ==
-- Smell: crushed yarrow has a strong, pleasant, sweet and spicy herbal scent. Poison hemlock smells foul, musty, and mouse-like. Trust a bad smell and stop.
-- Leaves: yarrow leaves are soft and very finely divided, feathery like a fern or a feather, set directly along the stem. The name millefolium means thousand-leaf.
-- Flowers: yarrow bears FLAT-TOPPED clusters of many tiny white (sometimes pink) flowers, each a small daisy. The hemlocks carry lacy, dome or umbrella-shaped clusters (umbels).
-- Stem: yarrow stems are tough, green, and often slightly hairy or woolly. Poison hemlock stems are smooth, hairless, and blotched with purple. Purple blotches mean walk away.
-- Size: yarrow is usually 1 to 3 feet tall. Poison hemlock towers to 6 to 8 feet.
+- Flowers: yarrow has FLAT-TOPPED clusters of many tiny flowers, each a small white (sometimes pink) daisy. The hemlocks carry lacy, dome or umbrella-shaped clusters (umbels). Yarrow is not a true umbel.
+- Stem: yarrow stems are tough, green, and often slightly hairy or woolly. Poison hemlock stems are smooth, hairless, and blotched with purple. PURPLE BLOTCHES mean walk away.
+- Size: yarrow is usually 1 to 3 feet tall. The hemlocks tower to 6 to 8 feet or more.
+- Habitat: yarrow likes dry ground. Water hemlock grows in wet ground: marshes, ditches, streambanks.
+- Smell: crushed yarrow has a strong, clean, sweet-and-spicy herbal scent. Poison hemlock smells foul, musty, mouse-like; a bad smell means stop. WARNING: water hemlock root can smell pleasant, like carrot or parsnip. Do NOT trust a nice smell as an all-clear.
+- Water hemlock extra tell: its leaf veins end in the NOTCHES between the teeth, not at the tips. Its root is chambered and oozes a yellowish oily liquid when cut. If you see that, it is deadly. Do not touch the root.
 
 == IDENTIFY YARROW ==
-- Feathery, fern-like leaves in a basal cluster and up the stem.
-- A single, mostly unbranched stem topped by a flat cluster of tiny white daisies.
+- Feathery, fern-like leaves, very finely divided, set right along the stem. The name millefolium means thousand-leaf.
+- Usually one mostly unbranched stem topped by a flat cluster of tiny white daisies.
 - A strong, clean herbal aroma when crushed.
 - Dry fields, roadsides, meadows, and trail edges across nearly all of North America.
 
-== HOW TO USE ==
-- Clean the wound and control bleeding with direct pressure first.
-- Crush clean fresh leaves into a pulp and press them onto the minor wound or the outside of a bleeding nostril. Hold.
-
 == CAUTION ==
-- Topical only. Do not take it internally from this guide.
-- Yarrow is in the aster and daisy family. People allergic to ragweed, chamomile, or daisies may react. Patch-test first.
-- Avoid in pregnancy.
+- Topical only. Do not eat it or take it internally from this guide.
+- Yarrow is in the aster and daisy family. People allergic to ragweed, chamomile, or daisies may react. Rub a little on the inner forearm first and wait; if it itches or reddens, do not use it. It can also make some skin sun-sensitive.
+- Pregnancy: never take yarrow internally. A small topical dab on a minor wound is low risk, but skip it if unsure.
 - If there is ANY doubt about the identity, do not use it. No wound benefit is worth a hemlock mistake.
+
+== THE HARD TRUTH ==
+- Direct pressure, wound packing, and a tourniquet are what stop bleeding. A clean wound that drains is what beats infection. No foraged herb replaces these.
+- Yarrow is a small comfort measure, nothing more. Do not let it delay real action.
+- Severe bleeding you cannot control, or a deep infection with no medicine, may need surgical care you cannot provide. Do the steps above to buy the best odds and time, and reach help if it is ever reachable.
 
 == SEASON ==
 - Leaves are usable spring through fall; flowers come in summer. Use fresh leaves.

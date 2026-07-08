@@ -1,42 +1,157 @@
 Burns and Blisters
 
-Get professional care for: any burn larger than the casualty's palm, any full thickness burn, burns to the face, hands, feet, genitals, or all the way around a limb, and any electrical or chemical burn. A burn near the airway (singed nose hairs, soot around the mouth, hoarse voice, coughing) can swell the throat shut. That is an emergency: evacuate immediately.
+Most burns you can manage yourself with water, clean cover, and
+fluids. Do that first. Going for help is one option among the steps
+below, not the whole plan. The hard exceptions are named honestly at
+the end.
 
-== RECOGNIZING BURN SEVERITY ==
-- Superficial (first degree): red, dry, painful. Like sunburn. Heals on its own.
-- Partial thickness (second degree): blisters, wet shiny surface, very painful. Small ones can be managed in the field; large ones need care.
-- Full thickness (third degree): white, leathery, or charred. May be painless in the center because nerves are destroyed. Always needs professional care.
+== DO THIS FIRST: STOP AND COOL ==
+- Stop the burning. Put out flames, get off the heat source.
+- Chemical burn: brush off any dry powder, then flush with lots of
+  water for many minutes. Acid and alkali keep eating until removed.
+- Electrical burn: make sure the current is off before you touch the
+  person. Damage runs deep and is easy to underestimate.
+- Take off rings, watches, and tight clothing near the burn before
+  swelling starts.
+- Do not peel off cloth stuck to the skin. Cool over it, leave it.
+- Cool the burn with cool, clean running water for 20 minutes. This
+  still helps up to 3 hours after the burn and can keep the burn from
+  getting deeper. Poured or trickled water counts if none is running.
+- Never put ice or snow directly on a burn. Extreme cold kills more
+  tissue and deepens the injury. You can use snow to chill your water,
+  just not against the skin.
+- Big burn: cool the burn but keep the rest of the person warm and
+  dry. Watch for shivering. Stop cooling if the whole body chills.
 
-== FIRST AID: COOL WATER ==
-Stop the burning first. Put out flames, move away from the heat source, and remove rings, watches, and clothing near the burn before swelling starts. Do not peel off cloth stuck to the skin; cool over it and leave it.
+== HOW BAD IS IT ==
+- Superficial (first degree): red, dry, painful, like sunburn. Heals
+  on its own in a few days.
+- Partial thickness (second degree): blisters, wet shiny surface, very
+  painful. Heals over weeks with clean care.
+- Full thickness (third degree): white, leathery, brown, or charred.
+  May not hurt in the center because the nerves are gone. If large, it
+  will not close over on its own.
+- Size it with the palm. The casualty's palm plus fingers is about 1
+  percent of their body. Use it to judge how much skin is burned.
 
-- Cool the burn with cool, clean running water for 20 minutes. This is worth doing up to 3 hours after the burn.
-- Never use ice or snow directly on a burn. Extreme cold kills more tissue and deepens the injury.
-- With large burns, cooling can chill the whole person. Cool the burn, keep the rest of the casualty warm and dry, and watch for shivering.
+== COVER AND PROTECT ==
+- After cooling, cover loosely. Best options: a non-stick dressing,
+  clean plastic cling wrap, or the cleanest cloth you have.
+- Cling wrap is ideal on burns because it does not stick. Lay it on,
+  do not wrap it tight around a limb (swelling needs room).
+- Do not pop burn blisters. Intact skin is a sterile dressing.
+- Do not apply butter, grease, oil, or toothpaste. They trap heat and
+  feed infection.
+- Plain aloe or moisturizer is fine on superficial, unbroken burns
+  only. Not on open blisters or deep burns.
 
-== COVERING BURNS ==
-- After cooling, cover loosely with a non-stick dressing, clean plastic wrap, or the cleanest cloth available.
-- Do not pop burn blisters. They are a sterile natural dressing.
-- Do not apply butter, grease, or toothpaste. Aloe or plain moisturizer is fine on superficial burns only.
-- Burns leak fluid. Give the casualty plenty of water, and pain medicine such as ibuprofen if available and safe for them.
+== NO WAY OUT: KEEP A BURN CASUALTY ALIVE ==
+For a large burn with no evacuation, this is the core of survival.
 
-== BLISTER PREVENTION: ACT AT THE HOT SPOT ==
-A blister announces itself as a hot spot: a point of rubbing warmth or sting. Stop walking the moment you feel one. Ten minutes now saves a trip-ending wound later.
+Fluids (this is what kills first in a big burn):
+- Burns leak huge amounts of body fluid. Anyone burned over more than
+  about their whole arm must drink steadily or slide into shock.
+- Make a rehydration drink: 1 liter clean or treated water, 6 level
+  teaspoons sugar, one half level teaspoon salt. Stir until dissolved.
+  Measure carefully. Too much salt does harm. Sports-drink powder plus
+  a pinch of salt also works.
+- How much: for a large burn aim for about 1 liter per hour, taken as
+  small sips every few minutes. Small sips beat big gulps, less
+  vomiting.
+- Drinking can carry someone through burns up to roughly a third to
+  40 percent of the body. Past about half the body, fluids by mouth
+  cannot keep up, but keep giving them anyway. It is still the best
+  chance you have.
+- Gauge it by urine. Peeing a pale color at regular intervals means
+  you are keeping up. Dark or no urine means push more fluid.
 
+Wound care over the days that follow:
+- Change the dressing about once a day. Rinse the burn gently with
+  clean or treated water. Pat the skin around it dry.
+- Honey is your best improvised burn dressing. Plain honey spread on
+  the burn under the cover has real evidence for fighting infection
+  and speeding healing in burns. Use it when you have no antibiotic
+  cream. Reapply at each change.
+- If you carry antibiotic ointment or silver burn cream, use that.
+  If not, clean plus honey plus a clean cover is the plan.
+- Keep the burned part raised above heart level when you can to limit
+  swelling.
+
+Pain:
+- Ibuprofen and acetaminophen, if you carry them and they are safe for
+  the person. They can be alternated for a stronger effect together.
+- Elevation and a snug, not tight, dressing also cut pain.
+
+== THE HARD CASES: THE TRUTH ==
+Some burns have no field fix. Do not chase a fake cure. Do the real
+thing below and move toward help if any help exists.
+
+- Burn all the way around a limb or finger, full thickness: as it
+  swells, the stiff dead skin can choke off blood like a tourniquet.
+  Watch the hand or foot past it. Cold, white, numb, or no pulse means
+  it is losing circulation. The only true fix is a surgical release
+  (escharotomy), which is not a safe backcountry procedure. Raise the
+  limb, take off anything constricting, and get to care. This is a
+  reason to go now if you can.
+- Airway or inhalation burn (fire in a closed space, singed nose
+  hairs, soot in the mouth, hoarse voice, coughing black material):
+  the throat can swell shut over minutes to hours. There is no field
+  cure for a closing airway. Keep the person sitting upright, calm,
+  and still. Cool humid air helps a little. Do not let them lie flat.
+  This one kills fastest. If evacuation exists, use it immediately.
+- Plain truth: deep burns over large areas, and the two cases above,
+  need a hospital to survive well. Good field care buys time and
+  comfort. It does not replace surgery, IV fluids, and skin grafting.
+
+== EVACUATE IF YOU CAN SAFELY REACH HELP ==
+Do the cooling, covering, and fluids first. They stand on their own.
+Move toward care, when it is reachable, for:
+- A burn bigger than the casualty's palm, or any full-thickness burn.
+- Burns to the face, hands, feet, genitals, or all the way around a
+  limb.
+- Any electrical or chemical burn (deeper than it looks).
+- Any airway signs above.
+- Infection you cannot get on top of.
+
+== BLISTERS: STOP THEM EARLY ==
+A hot spot (rubbing warmth or a sting) is a blister forming. Stop the
+moment you feel one. Ten minutes now saves a trip-ending wound.
 - Cover the hot spot with tape or moleskin before a blister forms.
-- Smooth sock wrinkles, shake out grit, dry your feet, and re-lace the boot.
+- Smooth sock wrinkles, shake out grit, dry your feet, re-lace.
 - Damp feet blister fast. Change or dry socks at breaks.
 
-== DRAIN OR PROTECT ==
-An intact blister roof is the best dressing there is. Protect it when you can.
-
-- Small blister, not on a weight-bearing spot: pad it and leave it alone.
-- Large, painful blister that you must walk on: draining it is reasonable. Clean the skin, heat a needle in flame until it glows, let it cool, puncture at the blister's edge, and press the fluid out. Leave the roof in place.
+== BLISTERS: DRAIN OR PROTECT ==
+An intact blister roof is the best dressing there is. Protect it when
+you can.
+- Small blister, not on a weight-bearing spot: pad around it and leave
+  it alone.
+- Large, tense, or painful blister you must walk on, or one blocking a
+  joint you need to bend to keep moving: draining it is reasonable.
+  - Clean the skin. Heat a needle in a flame until it glows, let it
+    cool.
+  - Puncture at the base, the lowest edge, so gravity drains it.
+  - Roll the fluid out like a toothpaste tube. Leave the roof in place.
 - Never cut away or peel off the roof.
-- Never drain blood-filled blisters, or blisters from burns or frostbite. Cover and protect those.
+- Never drain blood-filled blisters, or blisters from burns or
+  frostbite. Cover and protect those.
 
-== MOLESKIN AND TAPE TECHNIQUE ==
-- Cut a doughnut of moleskin with the hole slightly larger than the blister. Stick it around, not on, the blister. Stack a second doughnut if it still takes pressure.
-- Cover the hole with tape so the dressing does not stick to the roof.
-- Round the corners of every tape piece so it does not peel. Apply to clean, dry skin.
-- Check daily. Spreading redness, pus, red streaks, or fever mean infection: clean it, dress it, and get professional care.
+== MOLESKIN AND TAPE ==
+- Cut a doughnut of moleskin, hole slightly larger than the blister.
+  Stick it around, not on, the blister. Stack a second doughnut if it
+  still takes pressure.
+- Cover the hole with tape, or a dab of ointment on the roof, so the
+  dressing does not stick to it.
+- Round the corners of every tape piece so it does not peel. Apply to
+  clean, dry skin.
+
+== IF A WOUND OR BURN GETS INFECTED ==
+Deep in the backcountry, catching it early is on you.
+- Signs: spreading redness, warmth, swelling, pus, red streaks running
+  up the limb, fever, or pain that keeps getting worse.
+- Do: soak off the dressing, wash out with clean or treated water,
+  apply honey or antibiotic cream, re-cover, keep it raised. Repeat
+  once or twice a day.
+- Take oral antibiotics if you carry them and know the dose.
+- Red streaks, fever, or fast spreading despite care point to a blood
+  infection. There is no reliable field cure for that. It is a strong
+  reason to evacuate if you possibly can.

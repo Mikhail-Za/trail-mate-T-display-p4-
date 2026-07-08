@@ -1,45 +1,91 @@
 Cold Injuries
 
-Cold kills through two doors: hypothermia, the whole body cooling down, and frostbite, tissue freezing. Both are easier to prevent than to treat, and both are made far worse by wet clothing and wind.
+Cold kills through two doors: hypothermia, the whole body cooling down, and frostbite, tissue freezing. Here is the news you act on first: mild and often moderate hypothermia can be reversed in the field with what you carry, and much frostbite you can manage yourself. Both are far easier to stop early than to fix late, and both are made much worse by wet clothing and wind. What follows is how to treat them yourself when help is far off or not coming.
 
-== WET = DEAD ==
+== FIRST MOVES: DRY, WIND, FUEL ==
 
-Water strips heat from the body about 25 times faster than air, and wet clothing keeps doing it for hours. In cold country, staying dry is not comfort, it is survival. Manage sweat as seriously as rain: slow down, vent layers, and strip a layer before a climb. If you get soaked in the cold, treat it as an emergency: get to shelter, get dry, get insulated now, not later.
+The cheapest heat you will ever get. Do these before anything else.
 
-Wind multiplies the loss. Wind chill describes how fast exposed skin loses heat; a 20 degrees F day with a 30 mph wind strips heat like a far colder calm day. Block the wind first. It is the cheapest heat you can buy.
+- Get dry. Water pulls heat from the body many times faster than air (roughly 25x), and wet clothing keeps bleeding heat for hours. Manage sweat like rain: slow down, vent layers, strip a layer before a climb. Soaked in the cold is an emergency: shelter, dry, insulate now.
+- Block the wind. Wind strips heat fast: 20 degrees F with a 30 mph wind bleeds heat like a far colder still day. Get behind rock, trees, a wall, a tarp, anything.
+- Get off the ground. Cold ground steals more heat than the air. Pile pack, pads, branches, or spare clothing underneath.
+- Fuel and hydrate. Food and water are furnace fuel. A cold, dehydrated body cannot make heat.
 
-== HYPOTHERMIA: STAGES ==
+== HYPOTHERMIA: READ THE STAGES ==
 
-- Mild: intense shivering, cold hands and feet, and the "umbles": mumbles, stumbles, fumbles, grumbles. The person can still walk and talk, but judgment is already slipping.
-- Moderate: violent shivering that later slows or stops, confusion, slurred speech, clumsiness, apathy. Shivering that stops while the person is still cold is a danger sign, not improvement.
-- Severe: no shivering, barely conscious or unconscious, rigid, pulse weak or hard to find. This is immediately life threatening.
+- Mild: hard shivering, cold hands and feet, and the umbles: mumbles, stumbles, fumbles, grumbles. Still walks and talks, but judgment is already slipping.
+- Moderate: violent shivering that later slows or stops, confusion, slurred speech, clumsiness, apathy. Shivering that quits while the person is still cold is a danger sign, not improvement.
+- Severe: no shivering, barely conscious or out, rigid, pulse weak or hard to find. Immediately life threatening.
 
-== HYPOTHERMIA: FIELD TREATMENT ==
+== HYPOTHERMIA: REWARM IN THE FIELD ==
 
-- Stop. Get the person sheltered, out of the wind, and off the ground.
-- Replace wet clothing with dry. If nothing dry exists, wring out what they have and add every dry layer available over it.
-- Wrap the whole person, head and neck included, in sleeping bags, spare clothing, and an emergency blanket, with thick insulation underneath. Think burrito, not blanket on top.
-- If they are alert and can swallow, give warm, sweet drinks and easy calories. Sugar plus water fuels shivering, which is the body rewarming itself. No alcohol.
-- Do not rub or massage the skin, and do not put a severely hypothermic person against intense direct heat. Rough handling and sudden surface heat can trigger dangerous heart rhythms.
-- Handle a moderately or severely hypothermic person gently, keep them flat, and treat evacuation as urgent. If they appear lifeless, still insulate them and call for rescue; very cold people have survived long resuscitations.
+For mild and moderate cases this is not first aid before the real treatment. This IS the treatment, and it usually works.
 
-== FROSTBITE: DOS AND DON'TS ==
+- Stop and shelter. Out of the wind, off the ground, under cover.
+- Strip wet, add dry. If nothing dry exists, wring out what they wear and pile every dry layer over it.
+- Build the burrito (hypothermia wrap). Wrap the whole person, head and neck included, face out. Insulation all the way around AND thick underneath. Add a windproof, waterproof outer layer (see Vapor Barrier). Think cocoon, not a blanket laid on top.
+- Add heat to the core, not the limbs. Put hot water bottles, warm (not hot) rocks, or chemical heat packs on the chest, the armpits, and the upper back. Never straight on bare skin: wrap each one in cloth, and check the skin every 20 to 30 minutes, because numb skin burns without warning. Warming the arms and legs first can worsen afterdrop, cold blood flushing back to the heart, so keep heat on the trunk.
+- Skin to skin works. A warm person zipped into the wrap, chest and belly against the patient's trunk, is a reliable heater when you have nothing else.
+- Feed the shiver, if they are truly alert. Shivering is the body rewarming itself, and it runs on sugar. Give warm, sweet drinks and easy calories to an alert person who can swallow and hold their own head up. NO alcohol. If they are confused, drowsy, or cannot swallow safely, give NOTHING by mouth: choking risk.
 
-Frostbite usually hits fingers, toes, ears, nose, and cheeks. Early signs: numb, waxy, pale, or grayish skin that feels wooden.
+== HYPOTHERMIA: WHEN HELP IS FAR OR NOT COMING ==
 
-Do:
+Evacuate if you can safely reach help. If you cannot, you manage this yourself, and for mild and moderate cases you have a real chance.
 
-- Get out of the wind and rewarm early. Superficial cold injury, frostnip, reverses if warmed quickly.
-- Warm parts skin to skin: hands in your armpits, a partner's palm on your cheek, cold feet against a companion's belly under their clothing.
-- Loosen boots and tight clothing, remove rings, and protect the part from freezing again.
+- Be patient. Rewarming is slow, and that is fine: aim for gradual. Keep the wrap sealed, keep heat on the trunk, keep refueling an alert patient, recheck heat packs and skin.
+- Do not let a rewarmed person spring up and move. After they warm, keep them lying or sitting still for at least 30 minutes. Sudden exertion or standing can drop the core again and stop the heart (circumrescue collapse).
+- Alone and going cold. Shelter, wrap, block wind and ground NOW, while you can still use your hands. Generate heat with steady easy movement, but never to the point of sweating. Hot sweet drinks if you can make them. Do the survival tasks before your coordination goes.
+- Multiday. Keep them dry above all, keep the shelter insulated and windproof, ration exertion so no one sweats out their clothing, keep water and calories going in. Reassess morning and night. A person who is rewarmed, alert, dry, and eating is winning.
 
-Do not:
+Severe hypothermia (unconscious, rigid, no shivering) with no way out is the hardest case, and the truth matters:
 
-- Do not rub or massage frozen tissue, and never rub snow on it. Ice crystals shred the cells.
-- Do not thaw a frozen part if it might refreeze. Refreezing does far more damage than staying frozen while you travel to care.
-- Do not thaw with fires, stoves, or hot rocks. Numb tissue burns without warning.
-- Do not walk on thawed feet unless there is no other way to reach safety.
+- Handle like glass. Rough movement can trigger a fatal rhythm in a very cold heart. Keep them flat.
+- Wrap and add trunk heat exactly as above. Protect the airway (on their side if there is any vomiting risk).
+- Check for breathing and a pulse for a FULL 60 seconds: a cold heart beats slow and faint. If there is ANY breathing or pulse, do NOT do CPR. Compressions on a beating cold heart can kill it. Just insulate, warm the trunk, and wait.
+- If after a full minute there is truly no breathing and no pulse, start CPR if you can. A very cold body is protected, and people have come back after long resuscitation, so a cold, still person is not clearly dead. But be honest: hours of effective CPR alone in the wild is rarely possible, and without a hospital, severe hypothermic arrest is seldom reversed. Your real power is keeping anyone from ever reaching this stage.
 
-== VAPOR BARRIER IMPROVISATION ==
+== FROSTBITE: RECOGNIZE AND PROTECT ==
 
-A plastic layer can block evaporative and wind heat loss in an emergency. Plastic bags over dry socks, worn under a second sock or the boot, a trash bag worn as a vest under your shell, or an emergency blanket wrap all trap heat. Expect dampness inside; over a short emergency that trade is worth it. Check the skin regularly, and keep any plastic or foil layer away from open flame.
+Frostbite hits fingers, toes, ears, nose, and cheeks first. Early signs: numb, waxy, pale or grayish skin that feels wooden.
+
+- Get out of the wind and rewarm early. Frostnip (skin still soft, just numb and pale) reverses completely if warmed fast, with no lasting harm.
+- Rewarm gently against your own body: fingers into your armpits or crotch, a bare palm over an ear or cheek, cold feet on a companion's belly under their clothing.
+- Loosen boots and tight straps, take off rings before swelling starts, and shield the part from freezing again.
+
+== FROSTBITE: THE THAW DECISION ==
+
+Deciding whether to thaw a frozen part is the most important call you make.
+
+- Thaw ONLY if you can keep it thawed and warm afterward and it will not refreeze. A part that refreezes is far more damaged than one that stayed frozen while you traveled.
+- If refreeze is likely, or you must still walk on a frozen foot to reach safety, KEEP IT FROZEN for now. Frozen tissue can survive hours. Refreezing destroys it.
+- Never thaw with a fire, stove, or hot rocks. Numb tissue chars before you feel it.
+
+== FROSTBITE: FIELD REWARMING ==
+
+Once you have committed to thaw (warm shelter, no refreeze ahead):
+
+- Warm water bath. Heat water to 37 to 39 C (98 to 102 F): comfortably warm to an uninjured hand or elbow, like a warm bath, never hot. Submerge the part. Keep adding warm water to hold the temperature, because the frozen limb cools it fast.
+- Give it about 30 minutes, until the tissue is soft and pliable and turns red or purple. This hurts, a lot. Pain means living tissue: a good sign.
+- Take ibuprofen if you have it: 400 mg twice a day, up to 600 mg four times a day (2400 mg a day maximum), with food and water. It is not just for pain, it limits the tissue damage.
+- Do not rub or massage, ever, and never rub snow on it. Ice crystals shred the cells.
+
+== FROSTBITE: AFTER THAWING AND OVER DAYS ==
+
+- Dry by blotting, not rubbing. Separate fingers and toes with dry gauze or cloth so raw surfaces do not stick. Wrap loosely and pad well.
+- Leave blisters alone. Do not pop them: intact skin is your best guard against infection. If one tears open on its own, keep it clean and covered. Never deliberately open dark, blood-filled blisters.
+- Keep the part elevated to limit swelling. Do NOT walk on thawed feet or use them for anything unless walking out is the only way to survive.
+- Apply aloe vera under the dressing if you carry it, it helps the skin.
+- Watch for infection over the following days: spreading redness, pus, bad smell, fever. Keep it clean and dry, and use any antibiotics you carry. Infection, not the freezing itself, is what most often turns bad later.
+
+== VAPOR BARRIER AND IMPROVISED HEAT ==
+
+- Vapor and wind barrier. A plastic layer blocks evaporation and wind. Plastic bags over dry socks under a second sock or the boot, a trash bag as a vest under your shell, or an emergency blanket wrap all trap heat. Expect dampness inside, over a short emergency that trade is worth it. Keep plastic and foil away from flame.
+- Improvised heat sources. Fill any bottle with hot water and wrap it in a sock. Warm fist-size rocks near (not in) a fire, test that you can hold them bare-handed, then wrap them. A companion's body is the most reliable heater you have. Place all heat on the trunk, wrapped, and recheck the skin every 20 to 30 minutes.
+
+== HARD TRUTHS ==
+
+Straight talk, because a wrong "cure" gets people killed.
+
+- No field trick reverses severe hypothermic cardiac arrest without a hospital. Prevent it, catch it early, and rewarm before it ever gets there.
+- No remedy regrows frozen-dead tissue. Frostbite depth is impossible to judge early, and black, hard tissue often looks worse than it truly is. Do NOT cut or amputate in the field. Given weeks, the body itself separates dead from living (frozen in winter, judged in spring). Keep it clean, protect it, and wait.
+- The proven tools are boring and they work: dry, windbreak, insulation, heat on the core, calories, patience. There is no substitute, and you already carry most of it.

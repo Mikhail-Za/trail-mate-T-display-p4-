@@ -1,37 +1,105 @@
 Venomous Snakes of North America
 
 == WARNING FIRST ==
-- No single field mark reliably separates venomous from harmless snakes at a safe distance. When in doubt, leave the snake alone; identification is never worth getting closer.
+- No single field mark reliably separates venomous from harmless snakes at a safe distance. When in doubt, leave the snake alone. Identification is never worth getting closer.
 - Most bites happen when people try to handle, kill, or photograph a snake. A snake given room almost always retreats.
-- Treat every bite as potentially venomous until proven otherwise. See the first aid guide, snakebite section, for treatment; short version: keep the victim calm and still, remove rings and tight items, splint loosely at heart level, and evacuate to medical care. No cutting, sucking, tourniquets, or ice.
+- Treat every bite as venomous until proven otherwise. About 1 in 4 pit viper strikes are "dry" (no venom), but you cannot know that early, so act as if venom went in.
+- Dead snakes and severed heads bite by reflex for an hour or more. Do not handle them.
+
+== IF BITTEN: FIRST MINUTES ==
+Do these now, in order. They use what you carry and cost nothing.
+- Back out of strike range (about half the snake's body length). Sit down somewhere safe before you might feel faint.
+- Get calm and still. A slow heart and a still limb spread venom slower. Panic and exertion spread it faster. This is the single biggest thing you control.
+- Take off rings, watch, bracelets, and any tight clothing or boot on the bitten limb NOW, before swelling starts. Once it swells you cannot get them off and they can strangle the limb.
+- Splint the limb in a position of comfort, roughly at heart level. Raising it a little eases swelling and pain and does not speed venom spread. Keep joints usable. Do NOT wrap a pit viper bite tight (see next section).
+- Mark the leading edge of swelling and redness with a pen. Write the time beside it. Re-mark every 15 to 30 minutes. That moving line shows how fast it is progressing.
+- If you have water, gently rinse the bite and cover it with a clean dry cloth.
+- Note the time of the bite. Recall what the snake looked like from memory. Do not chase it.
+
+== THE TWO FIRST AIDS ARE DIFFERENT ==
+North America has two venom types, managed in opposite ways. Getting this wrong can cost a limb or a life.
+
+PIT VIPERS (rattlesnake, copperhead, cottonmouth): venom attacks tissue and blood.
+- Do NOT use a pressure bandage, tight wrap, or tourniquet. Squeezing traps the tissue-destroying venom in one place and can turn a survivable bite into a lost limb.
+- Splint loosely, position of comfort, roughly heart level. Let the limb swell.
+- Expect pain, swelling that climbs the limb over 24 to 48 hours, bruising, and blisters.
+
+CORAL SNAKE (red, yellow, black rings): venom attacks nerves. Little pain or swelling.
+- DO apply a pressure immobilization wrap. This is the opposite rule, because this venom does not rot tissue and the real danger is paralysis.
+- Wrap a wide elastic bandage or torn cloth over the whole bitten limb, snug like an ankle-sprain wrap, NOT a tourniquet. You should still feel a pulse and slide a finger under the wrap. Then splint the limb and keep it dead still.
+- This can delay paralysis for hours. It buys time. It is not a cure.
+
+== IF YOU CANNOT REACH CARE ==
+Evacuating to a hospital with antivenom is the best option IF you can safely reach help. If you cannot, or help cannot reach you, this is how you manage and survive on your own. Most pit viper bites are survivable without antivenom. Your job is to keep it that way. Pick the option that fits your situation.
+
+Option 1, stay put and stay still (best if rescue may come):
+- Lie down. Keep the limb splinted at heart level. Rest completely. Movement is the enemy.
+- Drink water steadily. Venom pulls fluid out of your blood, which can drop your blood pressure and stress your kidneys. Sip often and keep urinating.
+- For pain, use acetaminophen (Tylenol) if you have it. Do NOT take aspirin, ibuprofen, or naproxen. They thin the blood and this venom already causes bleeding. No alcohol.
+- Stay warm. Keep marking the swelling line and the time. Keep your head calm.
+
+Option 2, self-evacuate slowly (if no one is coming for you):
+- Dying alone in place is worse than a slow walk out. If you must move, move slow and rest often.
+- Keep the bitten limb as still as you can between moves. For a leg bite, cut a stick for a crutch and keep weight off it.
+- Every burst of effort pushes venom around, so trade speed for control: walk a little, stop, rest, drink, re-splint, repeat.
+
+Option 3, hold out for days and manage what comes:
+- Swelling climbs, peaks around 2 to 3 days, then recedes over 1 to 3 weeks. Keeping the limb at heart level and still IS the treatment. There is no drug you can improvise to speed this.
+- Blisters and blood blebs: leave them intact, keep them clean, do not pop them. Open skin invites infection.
+- Bleeding: oozing gums, nosebleeds, blood in urine, or bruising can show up for days because the blood will not clot. There is no field fix but time. Avoid new cuts and knocks, skip NSAIDs, move gently.
+- Infection comes LATER (days out), not in the first hour: spreading redness, pus, red streaks, and fever days after the bite is infection, not venom. If you carry antibiotics, this is when to use them, not at the moment of the bite. Keep the wound clean and covered.
+- A limb that goes rock-hard, cold, pale, numb, and pulseless is a rare emergency (compartment syndrome) that needs surgery you cannot do in the field. Keep it at heart level, keep still, and do NOT cut into it. Cutting causes bleeding and infection and does not relieve it.
+
+== WHEN THE BITE ATTACKS BREATHING ==
+Coral snakes, and the Mojave rattlesnake in the Southwest, carry nerve venom. Watch for drooping eyelids, double or blurred vision, slurred speech, trouble swallowing, drooling, and spreading weakness. With a coral bite these can start late, 12 hours or more after a bite that looked minor.
+- If weakness sets in, lay the person down safe, keep the pressure wrap on for a coral bite, and stay with them.
+- The killer is the breathing muscles giving out. If breathing slows or stops, rescue breaths (mouth to mouth, or a pocket mask if you carry one) can keep the person alive while the venom wears off. This needs a second rescuer, is exhausting, and can go on for hours. It is their only chance without a ventilator.
+- Straight truth: nerve-venom paralysis without antivenom and a ventilator can be fatal, and no herb, cut, or trick reverses it. Rescue breathing is the one real thing that buys time.
+
+== IF THE BODY REACTS TO THE VENOM ==
+- A few people have a true allergic (anaphylactic) reaction to venom: hives all over, swelling lips or throat, wheezing, tightness. This is separate from the bite itself.
+- If you carry an epinephrine auto-injector (EpiPen) and see those signs, use it. That is the real treatment. Nothing improvised replaces it.
+
+== NEVER DO THESE ==
+All of these are proven useless or harmful. They maim and kill people every year.
+- No tourniquet or tight band on a pit viper bite.
+- No cutting the wound open.
+- No sucking by mouth, and no suction pump or extractor (the Sawyer type). They pull out no meaningful venom and damage tissue.
+- No ice and no cold-water soak. Cold stacks frostbite injury on top of venom injury.
+- No electric shock, no gunpowder, no gasoline, no folk poultice.
+- No alcohol, and no aspirin, ibuprofen, or naproxen.
+- Do not handle the snake, alive or dead, to identify it. Photograph from a safe distance only if it costs you nothing.
+
+== THE HONEST TRUTH ABOUT ANTIVENOM ==
+- Antivenom is the only thing that actually neutralizes venom. It cannot be made or improvised in the field. Nothing you carry replaces it.
+- The odds still favor you. Thousands are bitten in the US each year and only a handful die, and about 1 in 4 pit viper bites inject no venom at all.
+- Without antivenom, most pit viper bites are still survivable, but your risk of death and of lasting limb damage climbs, and the worst bites (large rattlesnakes, Mojave, coral) can kill. Rest, stillness, fluids, and time are the medicine you have. Use them hard.
 
 == PIT VIPER ID BASICS ==
 - North America's pit vipers: rattlesnakes, copperheads, cottonmouths. They cause nearly all US venomous bites.
 - Triangular head: an unreliable clue by itself. Many harmless snakes flatten their heads when threatened, and some vipers look slender-headed.
 - Better clues, though they require being too close to use safely: heat-sensing pit between eye and nostril, vertical elliptical (cat-like) pupils, single row of scales under the tail.
-- Rattles are diagnostic for rattlesnakes, but rattles break off, young snakes have only a button, and many species rattle their tails in dry leaves as a bluff. Silence proves nothing.
-- Dead snakes and severed heads can still bite by reflex for an hour or more. Do not handle them.
+- Rattles are diagnostic for rattlesnakes, but rattles break off, young snakes have only a button, and many species buzz their tails in dry leaves as a bluff. Silence proves nothing.
 
 == THE BIG THREE ==
 - Rattlesnakes: found across most of the continental US. Favor rocky slopes, sunny ledges, brushy edges, and prairie dog towns. Most active in warm months, at dusk in hot weather. Usually rattle when disturbed but not always.
-- Copperhead: eastern and central US woodlands. Copper-tan with hourglass crossbands, superbly camouflaged in leaf litter. Freezes instead of fleeing, so most bites come from stepping on or near one. Venom is rarely life-threatening but always needs care.
-- Cottonmouth (water moccasin): Southeast, along swamps, sloughs, and slow water. Heavy dark body; gapes a white "cotton" mouth as a warning and may stand its ground. Harmless watersnakes are misidentified as cottonmouths constantly; give all of them space.
+- Copperhead: eastern and central US woodlands. Copper-tan with hourglass crossbands, superbly camouflaged in leaf litter. Freezes instead of fleeing, so most bites come from stepping on or near one. Rarely life-threatening, but the local bite still needs real care.
+- Cottonmouth (water moccasin): Southeast, along swamps, sloughs, and slow water. Heavy dark body, gapes a white "cotton" mouth as a warning, and may stand its ground. Harmless watersnakes get called cottonmouths constantly, so give all of them space.
 
 == CORAL SNAKE VS KINGSNAKE ==
-- US coral snakes: red, yellow, and black rings, potent venom, small mouths, reclusive. Scarlet kingsnakes and milk snakes mimic them.
+- US coral snakes: red, yellow, and black rings, potent nerve venom, small mouths, reclusive. Scarlet kingsnakes and milk snakes mimic them.
 - The rhyme "red touch yellow, kill a fellow; red touch black, friend of Jack" is a rough aid for native species in the Southeast US only.
-- Arizona and Southwest limits: the rhyme gets shakier there. The harmless Sonoran shovel-nosed snake can show red touching yellow, and aberrant coral snake patterns occur. South of the US border the rhyme fails outright.
+- Arizona and the Southwest: the rhyme gets shakier. The harmless Sonoran shovel-nosed snake can show red touching yellow, and off-pattern coral snakes occur. South of the US border the rhyme fails outright.
 - Practical rule: never pick up any red, yellow, and black banded snake anywhere. Then the rhyme's failures cannot hurt you.
 
 == PREVENTION ==
-- Watch where you put hands and feet; that sentence prevents most bites. Never reach into rock crevices, brush piles, or holes you cannot see into.
+- Watch where you put hands and feet. That one habit prevents most bites. Never reach into rock crevices, brush piles, or holes you cannot see into.
 - Step ON logs and rocks, look over the far side, then step down. Do not stride blindly over them.
-- Stay on open trail where possible. In snake country wear boots and long pants; gaiters add protection.
-- Use a headlamp at night in warm months; many pit vipers hunt after dark.
-- If you hear a rattle, freeze, locate the snake by sound and sight, then move away slowly. A snake can strike roughly half its body length.
-- For bite treatment details, see the first aid guide, bites and stings section.
+- Stay on open trail where possible. In snake country wear boots and long pants. Gaiters add protection.
+- Use a headlamp at night in warm months. Many pit vipers hunt after dark.
+- If you hear a rattle, freeze, find the snake by sound and sight, then back away slowly. A snake can strike roughly half its body length.
 
 == SEASON ==
-- Snakes are most active in the warm months. In spring and fall they bask in the open by day; in summer heat they shift to dawn, dusk, and after dark.
-- Cool spring and fall mornings leave them sluggish but still able to bite; do not assume a slow snake is harmless.
+- Snakes are most active in the warm months. In spring and fall they bask in the open by day. In summer heat they shift to dawn, dusk, and after dark.
+- Cool spring and fall mornings leave them sluggish but still able to bite. Do not assume a slow snake is harmless.
 - In cold-winter regions they den up and are rarely seen, but in the warm South a snake can be out on any mild day of the year.

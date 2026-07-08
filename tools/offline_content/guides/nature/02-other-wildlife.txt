@@ -1,5 +1,11 @@
 Other Dangerous Wildlife
 
+== FIRST PRINCIPLE ==
+- Almost every attack here is survivable and most are preventable. Your body and your head are the tools you always have.
+- Prevention is the strongest medicine: read the animal, give space, do not run from the ones you must not run from.
+- If you are hurt, the order is fixed: stop bleeding, clean the wound, prevent infection, then work toward help if you can reach it.
+- Evacuation to a doctor is one option, not the whole plan. Most of what follows you do yourself, right where you stand.
+
 == MOOSE ==
 - Moose injure more people in North America each year than bears do. Never treat one as tame.
 - Highest risk: cows with calves in spring, bulls in the fall rut, and any moose harassed by dogs or deep snow.
@@ -21,13 +27,7 @@ Other Dangerous Wildlife
 - Haze bold coyotes: yell, wave arms, throw objects near them, advance a step. Do not run.
 - Keep dogs leashed; a loose dog can lure coyotes or wolves back to you.
 - Wolves: stand tall, back away slowly, make noise. Never run. Fight back if one makes contact.
-- Report any canid that follows people persistently or shows no fear; that is abnormal.
-
-== RACCOONS, SKUNKS, AND RABIES ==
-- Raccoons, skunks, foxes, and bats are the main rabies carriers in North America. Rabies is essentially 100 percent fatal once symptoms start, and fully preventable with prompt shots.
-- Suspect rabies in any of these animals that is active in daytime, staggering, unafraid, or aggressive without cause.
-- Never feed, corner, or handle them, including "orphaned" babies. Never touch a bat with bare hands.
-- Any bite or scratch from a wild mammal, or waking up with a bat in your shelter: wash the wound hard with soap and water for 15 minutes and get medical care promptly for post-exposure treatment.
+- Treat any canid that follows people persistently or shows no fear as an abnormal, serious threat.
 
 == READING AGGRESSION IN GENERAL ==
 - Common warning signs across species: ears flattened back, raised hackles, hard direct stare, bared teeth, huffing or growling, ground pawing or hoof stomping, and short bluff charges.
@@ -35,6 +35,56 @@ Other Dangerous Wildlife
 - Predatory behavior looks different: silent, low, circling, cutting off your line of travel, following. That animal is testing you; get big, get loud, group up, and prepare to fight back.
 - Never position yourself between any animal and its young, its food, or its escape route.
 - An animal that keeps approaching after you back off is the exception, not the rule. Treat it as a serious threat.
+
+== IF YOU ARE BITTEN OR CLAWED: STOP THE BLEEDING FIRST ==
+- Bleeding kills faster than infection or rabies. Control it before you think about anything else.
+- Press hard, directly on the wound, with the cleanest cloth you have. Use two hands and your body weight. Hold a full 10 to 15 minutes without lifting to look. Most bleeding stops with steady pressure.
+- If blood soaks through, do NOT peel the pad off. Add more cloth on top and keep pressing.
+- Arm or leg bleeding you cannot stop with pressure: apply a tourniquet 2 to 3 inches above the wound, never over a joint. A belt, pack strap, or folded triangular bandage with a stick twisted in as a windlass works. Tighten until the bleeding STOPS and you cannot feel a pulse below it. Write down the time. Do not loosen it. A tourniquet can safely stay on for 2 or more hours.
+- Neck, armpit, or groin bleeding (a cougar aims for the throat): a tourniquet will not fit there. Pack the wound instead: push clean cloth or gauze deep into the hole and press hard from the outside for at least 10 minutes.
+- Hard truth: a torn major artery in the neck or trunk may not be controllable by hand alone. Do everything above without hesitation; it is the real chance you have. Some wounds cannot be won in the field, and doing this well is still the right fight.
+
+== CLEAN THE WOUND: THIS IS WHERE YOU SAVE YOURSELF ==
+- Bites and claw wounds are filthy. The cleaning you do now is what prevents the infection that can kill days later.
+- Once bleeding is controlled, flush the wound hard. Use the cleanest water you have; water that was boiled and cooled or disinfected is best, but any clean water beats leaving dirt in.
+- Flush with pressure, not a gentle trickle: squeeze from a water bottle, a plastic bag with a pinhole, or a syringe if you carry one. Push out every bit of dirt, hair, and saliva you can see.
+- Then wash in and around the wound with soap for a full 15 minutes. Soap physically strips away germs and virus.
+- If you carry povidone-iodine or alcohol, apply it after washing. Both help kill bacteria and rabies virus.
+- Do NOT close an animal bite or puncture. No stitches, no butterfly strips, no superglue, no tight tape. Sealing a dirty bite traps infection inside. Leave it open so it can drain.
+- Cover loosely with a clean dressing that still lets fluid weep out. Re-clean and re-dress at least once a day, more if it soaks through.
+
+== IF A MOOSE STOMPS YOU: BLUNT INJURY ==
+- Moose hurt people by kicking and stomping, so expect broken bones, crushed ribs, and chest, belly, or head injuries rather than bites.
+- Once you are safe, do a slow head-to-toe check. Press gently everywhere and note pain, deformity, or swelling.
+- Broken limb: pad it, splint it to anything rigid, and immobilize the joints above and below the break. Keep fingers or toes exposed and check they stay warm and pink. Loosen the splint if they turn cold, pale, or numb.
+- Broken ribs or chest pain: do NOT strap or bind the chest tight. Keep breathing deeply despite the pain and cough now and then; shallow breathing leads to pneumonia. Sitting propped up is easier than lying flat.
+- Sucking chest wound (air bubbling from a hole in the chest): cover it with something airtight (plastic, foil, tape wrapper) sealed on three sides only, so trapped air can escape as the person breathes.
+- Head impact: watch over the next hours for a worsening emergency: growing confusion, one pupil larger than the other, repeated vomiting, a severe and worsening headache, or clear fluid draining from the nose or ears. These signal serious brain injury.
+- Belly injury: a rigid, swelling, or increasingly painful abdomen, or a person going pale, cold, clammy, and weak, points to internal bleeding.
+- Hard truth: internal bleeding and severe brain injury cannot be fixed in the field. Keep the person still, warm, and lying down; give sips of water only if fully alert with no belly injury; and move toward help. For these injuries, rest, warmth, and time are the only tools you have.
+
+== RABIES: WASH NOW, KNOW THE HARD TRUTH ==
+- Main carriers in North America: bats, raccoons, skunks, and foxes, plus any mammal acting wrong. Suspect rabies in an animal out in daylight, staggering, unafraid, or attacking for no reason.
+- A bite, a scratch, or the animal's saliva on broken skin or your eyes, nose, or mouth can transmit it. Waking with a bat in your shelter counts as a possible exposure even if you find no bite; bat teeth are tiny and the mark can be invisible.
+- DO THIS IMMEDIATELY. It is the single most effective thing you can do with your own hands:
+  - Wash and flush the wound with soap and poured or running water for a FULL 15 minutes.
+  - This physically removes and inactivates virus at the wound and measurably lowers your chance of getting rabies.
+  - Apply iodine or alcohol afterward if you have it. Leave the wound open.
+- Honest truth, no false hope: there is NO field cure for rabies. Once symptoms begin it is essentially always fatal, and no herb, heat, poultice, or improvised trick changes that. Only a tiny handful of people, on the order of three dozen documented cases worldwide, have ever survived symptomatic rabies. Do not waste effort or hope on folk remedies.
+- What actually prevents death is the vaccine series (post-exposure shots). Started before symptoms appear, it works nearly every time.
+- Here is your real advantage: rabies almost always takes weeks to months to develop, often a month or more, rarely less than a week or two. That window means a multi-day walk out to ANY clinic, town, or ranger station is still worth making. Washing now buys you time; reaching vaccine within days is the goal, not a same-hour sprint.
+- So: wash hard now, note the date of the exposure, and make getting to rabies vaccine your priority the moment you can travel. If you truly can never reach it, thorough washing has still meaningfully lowered your risk, though it is not a guarantee. Never handle wildlife, and never touch a bat with bare hands, so you are never in this position.
+
+== INFECTION: THE DANGER THAT ARRIVES IN DAYS ==
+- Every mammal bite is a dirty wound, and Pasteurella and other mouth bacteria set in fast. After the first day or two, infection, not the animal, is often the real threat.
+- Best prevention is what you already did: hard flushing, a full soap wash, leaving the wound open, and re-cleaning it daily.
+- Watch the wound over 1 to 3 days for spreading redness, heat, swelling, throbbing pain, pus, a foul smell, or red streaks running up the limb. Fever, chills, or feeling sick all over mean the infection has gone body-wide.
+- Field measures if infection starts:
+  - Soak the area in clean warm water several times a day, or hold warm wet cloths on it, to draw it out and help it drain.
+  - Keep it open and draining. If a tense, closed pocket of pus forms, opening it to let it drain relieves the pressure (expect more bleeding and pain when you do).
+  - Elevate and rest the limb, and keep drinking water.
+- If you carry antibiotics, a bite infection is exactly what they are for; amoxicillin-clavulanate is the standard choice for animal bites. Only you can weigh your own supply and allergies.
+- Hard truth: without antibiotics, a spreading wound infection can progress to blood poisoning (sepsis), which is life-threatening and has no reliable field cure. Red streaks climbing a limb or a rising fever make reaching medical care urgent if you can possibly manage it.
 
 == SEASON ==
 - Moose are most dangerous around cows with calves in spring and early summer, and bulls during the fall rut; deep winter snow also shortens their temper.

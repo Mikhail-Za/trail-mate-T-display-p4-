@@ -1,50 +1,170 @@
 POISON HEMLOCK: DO NOT EAT
 
-Poison hemlock (Conium maculatum) is a deadly member of the carrot
-family found across North America. All parts are toxic. It is often
-confused with edible wild plants, and eating it can be fatal.
+Poison hemlock (Conium maculatum) is a deadly member of the
+carrot family found across North America. All parts are toxic.
+It is often confused with edible wild plants, and eating even a
+small amount can be fatal. There is no antidote. Out here, the
+plant kills in one specific way (it stops breathing), and that
+single fact is what your whole response is built around.
 
-== IDENTIFICATION ==
-- Tall, often 4 to 8 feet or more in its second year.
+== IDENTIFICATION (YOUR REAL DEFENSE) ==
+Not eating it is the only sure protection. Learn it cold:
+- Tall, often 4 to 8 feet or more in its second year. First
+  year it is a low rosette of lacy leaves.
 - Stem is smooth, hollow, hairless, and marked with distinct
   purple or reddish-purple blotches and streaks.
 - Leaves are fern-like, finely divided, and lacy, resembling
   parsley or carrot tops.
-- Flowers are small and white in loose, umbrella-shaped clusters
-  (compound umbels).
+- Flowers are small and white in loose, umbrella-shaped
+  clusters (compound umbels).
 - Crushed leaves and stems give off an unpleasant musty smell,
-  sometimes described as mousy. Do not crush it to test; a whiff
-  is not worth handling a deadly plant.
-- Grows in disturbed ground, roadsides, ditches, fields, and along
-  streams.
+  sometimes called mousy. Do not crush it to test. A whiff is
+  not worth handling a deadly plant.
+- Grows in disturbed ground, roadsides, ditches, fields, and
+  along streams.
+Rule of survival: never eat any wild white-umbel plant. The
+deadly ones and the harmless ones overlap too much to sort by
+eye, and the price of a mistake is death.
 
-== HOW IT KILLS ==
-- The toxin coniine paralyzes the nervous system.
-- Symptoms include burning mouth, nausea, weakness, trembling,
-  slowed heartbeat, then progressive paralysis and death from
-  respiratory failure.
-- There is no antidote; treatment is emergency hospital support.
-  Any suspected ingestion is a life-threatening emergency.
+== WHY IT KILLS (AND WHY THAT MATTERS) ==
+- The toxins are coniine and gamma-coniceine. They jam the
+  signal between nerves and muscle.
+- Effects come in two waves. Early: burning mouth, drooling,
+  nausea and vomiting, sweating, tremor, twitching muscles,
+  restlessness, a FAST heartbeat. Later: weakness spreading
+  through the body, drooping eyelids, a SLOW heartbeat, then
+  paralysis. Death comes when the breathing muscles stop.
+- Onset is usually 30 minutes to 2 hours, sometimes as fast as
+  15 minutes, occasionally delayed up to 4 hours.
+- The key fact: the poison is temporary. If you can keep the
+  person BREATHING through the paralysis, the body clears the
+  toxin over hours to a few days and full recovery is possible.
+  In a hospital this is done with a ventilator. In the field,
+  your lungs and hands are the only ventilator there is.
+
+== FIRST MINUTES AFTER SWALLOWING ==
+Do these now, in order:
+- Stop all intake. Spit out anything in the mouth. Rinse the
+  mouth with water and spit it out. Do not swallow more.
+- Do NOT force vomiting. No finger down the throat, no salt
+  water, no ipecac. Weakness and seizures come on fast, and a
+  person who vomits while weak breathes it into the lungs and
+  drowns. This is a top killer, and it is preventable.
+- Do NOT pour food or water into them to "dilute" it. That is a
+  myth and it raises the choking risk. Small sips only if they
+  are fully alert and not nauseated, and stop at once if they
+  get drowsy or weak.
+- Sit or lie them down and keep them calm and still. Exertion
+  and panic speed the poison through the body.
+- If you happen to carry activated charcoal and the person is
+  wide awake and able to swallow safely, give it early (adult
+  dose about 50 grams). Be honest: it only helps in the first
+  hour, the evidence is weak, and almost no one carries it. It
+  is a bonus, not the plan.
+- Note the time they ate it and watch them without a break. The
+  whole game is catching the breathing failure the second it
+  starts.
+
+== IF BREATHING FAILS: RESCUE BREATHING ==
+This is the one action that actually saves a hemlock victim in
+the field. It is the field version of the hospital ventilator.
+- Watch for: breaths slowing, going shallow, lips or fingertips
+  turning gray or blue, or the chest barely moving.
+- If breathing stops or nearly stops, start rescue breaths:
+  tilt the head back, lift the chin to open the airway, pinch
+  the nose, seal your mouth over theirs, give one breath about
+  every 5 seconds (roughly 10 to 12 a minute). Watch the chest
+  rise with each breath.
+- If a barrier mask or a bag-valve-mask is in the kit, use it.
+  Same rate.
+- If the heart also stops (no pulse, no response), do full CPR:
+  30 chest compressions to 2 breaths.
+- Do not stop. You may have to keep this up for many hours as
+  the toxin wears off. Trade off with others every few minutes
+  so no one collapses. This is exhausting, and it is the price
+  of keeping them alive.
+- People have made full recoveries from severe hemlock
+  poisoning purely on supported breathing. It works because the
+  poison passes. Your job is to outlast it.
+
+== KEEPING THEM ALIVE WHILE IT PASSES ==
+Between breaths and over the long hours, manage the rest:
+- Airway first. If they are breathing on their own but drowsy,
+  weak, or vomiting, roll them onto their side (recovery
+  position) so vomit and drool drain out, not down the windpipe.
+  Sweep the mouth clear with a finger.
+- Seizures: do not pin them down and do not put anything in the
+  mouth. Clear hard or sharp objects away, cushion the head,
+  and let it run. When it stops, put them on their side and
+  check that they are breathing.
+- Keep them warm and flat, protected from cold ground and wind.
+  Shock and cold make everything worse.
+- Muscle breakdown can injure the kidneys in a survivor. Once
+  they are fully alert and keeping fluids down, give steady
+  small sips of water over the coming hours to keep them
+  hydrated. Never force fluids into someone who is not fully
+  awake.
+- Expect a long haul. Mild cases ease in 1 to 2 hours. Severe
+  ones can take 24 to 72 hours, sometimes days, before strength
+  returns. Keep watching for a breathing relapse the whole time.
+
+== EVACUATION IS ONE OPTION, NOT THE PLAN ==
+- A ventilator and IV fluids are the definitive treatment, so
+  if you can safely reach help, reaching it is worth doing.
+  Treat evacuation as one of your options, not the whole answer.
+- But breathing support starts NOW, with you, not when you
+  arrive somewhere. Do not stand around waiting for a rescue
+  that may be hours or days away, or may never come, while the
+  person suffocates. Support the breathing first. Move toward
+  help only if it does not mean abandoning that support.
+- If you are ALONE and realize you ate it: your only window is
+  the early phase, before weakness sets in. Move toward people
+  or help immediately, while you still can walk and talk. Be
+  honest with yourself: once paralysis takes hold and you are
+  alone, there is no move left that saves you. No one can
+  rescue-breathe themselves. This is exactly why the rule up top
+  (never eat a wild white umbel) is the part that keeps you
+  alive.
+
+== THE HONEST LIMITS ==
+- There is no antidote and no herb, charcoal, food, or trick
+  that neutralizes the poison. Anyone who tells you otherwise is
+  guessing with your life.
+- Supported breathing is real and it works, but doing it by
+  hand for hours is brutally hard and may fail, especially with
+  one rescuer or none. The outcome is far better with several
+  people trading off.
+- Prevention beats all of it. This plant has no safe use in the
+  field. Do not eat it, do not test it, do not risk it.
 
 == POISON HEMLOCK vs WATER HEMLOCK ==
-- Both are deadly and both have white umbel flowers. Learn to avoid
-  both rather than to tell edible from deadly.
-- Poison hemlock: purple BLOTCHES on a tall smooth stem, fern-like
-  lacy leaves, musty smell, often very tall.
-- Water hemlock: purple STREAKING, shorter and stouter, coarser
-  toothed leaflets, chambered root. See the water hemlock file.
-- Because these and their harmless look-alikes overlap, the safe
-  rule is to avoid every wild white-umbel plant entirely.
-
-== SOCRATES NOTE ==
-- Poison hemlock is the plant traditionally said to have killed the
-  philosopher Socrates in ancient Greece. Remember: hemlock has
-  ended lives for thousands of years. Give it the same respect.
+- Both are deadly and both have white umbel flowers. Learn to
+  avoid both rather than to tell edible from deadly.
+- Poison hemlock: purple BLOTCHES on a tall smooth stem,
+  fern-like lacy leaves, musty smell, often very tall.
+- Water hemlock: purple STREAKING or mottling, shorter and
+  stouter, coarser toothed leaflets that are less lacy, and a
+  chambered root with cross-partitions. Its poison (cicutoxin)
+  causes violent SEIZURES fast, which is managed differently.
+  See the water hemlock file.
+- Because these and their harmless look-alikes overlap, the
+  safe rule is to avoid every wild white-umbel plant entirely.
 
 == HANDLING WARNING ==
-- Do not handle poison hemlock with cuts or broken skin; toxins can
-  be absorbed through wounds.
-- Wear gloves if you must clear it, wash afterward, and never burn
-  it, since smoke can carry irritants. Keep children and pets away.
-- Never let the hollow stems be used as toy whistles or straws;
-  this has poisoned children.
+- Do not handle poison hemlock with cuts or broken skin. The
+  toxins can enter through wounds and through the eyes, nose,
+  and mouth. Touching intact skin rarely causes a rash, but do
+  not gamble.
+- Wear gloves if you must clear it, wash hands afterward before
+  eating or touching your face, and never burn it, since smoke
+  and crushing fumes can carry the toxin. Keep children and
+  pets away.
+- Never let the hollow stems be used as toy whistles or straws.
+  This has poisoned and killed children.
+
+== SOCRATES NOTE ==
+- Poison hemlock is the plant traditionally said to have killed
+  the philosopher Socrates in ancient Greece: he died of
+  creeping paralysis as his breathing failed, the same way it
+  kills today. It has ended lives for thousands of years. Give
+  it that respect.

@@ -1,27 +1,107 @@
 Cattail Poultice (Typha species): first-aid uses
 
-== WHAT IT DOES ==
-- The same cattail from the edible section also has field first-aid uses. Topical.
-- The clear, sticky gel between the young inner leaves near the base is soothing and mildly antiseptic. Folk use puts it on small cuts, scrapes, stings, and minor burns.
-- A mashed root (rhizome) poultice can be pressed on a minor wound or sting.
-- The dry brown seed-head fluff makes soft, absorbent padding over a dressing. It is not sterile, so a clean cloth is better if you have one.
+== WHAT THIS IS FOR ==
+- Scope: MINOR cuts, scrapes, stings, and minor burns. Topical only.
+- Cattail is backup dressing MATERIAL when your kit is empty. It is not a
+  disinfectant and not a substitute for cleaning the wound.
+- The real medicine for a small wound is: stop bleeding, flush it clean,
+  keep it covered. Cattail just gives you materials to do that.
 
-== IDENTIFY: SEE THE EDIBLE ENTRY ==
-- Full identification is in the edible Cattail entry. Confirm it there before use.
-- Quick check: tall, strap-like leaves rooted in water or muck, and the brown, sausage-shaped seed head.
+== DO THIS FIRST: CLEAN WOUND CARE ==
+Works with or without cattail. This is the part that actually prevents
+infection.
+- Stop bleeding: firm DIRECT pressure with the cleanest cloth you have,
+  hold 10 to 15 minutes without peeking. Raise the part above the heart.
+- Clean your hands and the skin around the wound as best you can.
+- Flush the wound HARD with lots of clean water: drinking-safe, or boiled
+  then cooled, or disinfected. Plain clean water works; you do not need to
+  add anything to it.
+- Get pressure without a kit: poke a pinhole in a bottle cap or in a
+  plastic bag, fill with clean water, and squeeze a firm stream (aim for a
+  strong squirt, not a trickle). Flush until grit and debris are gone.
+- Do NOT scrub dirt in, and do NOT pack plant material down into a deep or
+  dirty wound.
+- Leave dirty, deep, crush, or animal-bite wounds OPEN. Do not seal them
+  shut. Closing them traps bacteria and causes an abscess. Just cover.
+- Cover with the cleanest cloth or dressing you have.
 
-== LOOKALIKE ==
-- IRIS is TOXIC and grows in the same wet ground. Its leaves rise in a FLAT FAN and it never makes a brown sausage head. A flat fan of leaves means walk away. See the edible entry.
+== CATTAIL AS DRESSING MATERIAL (empty-kit option) ==
+- Seed-head fluff (brown down): soft, absorbent PADDING. Use it as the
+  OUTER pad on top of a cleaner inner dressing. It is NOT sterile, despite
+  what some sources claim. Never pack it directly into an open wound.
+- Gel between the young inner leaves: a clear, sticky mucilage. It soothes
+  and forms a film over scrapes, stings, and minor burns. Tradition calls
+  it mildly antiseptic, but that is not proven. Treat it as comfort and a
+  barrier, NOT a disinfectant. Clean the wound first, every time.
+- Mashed rhizome (root) poultice: folk option for a minor sting or scrape
+  on intact or barely-broken skin. Same rule: clean first, minor only.
+- Split or dried leaves can be improvised as a wrap to hold a dressing on.
 
-== HOW TO USE ==
-- Clean the skin first.
-- Scoop the sticky gel from between the young leaves, or mash a cleaned rhizome, and apply it to the minor wound. Cover.
-- Use the fluff only as padding over a clean dressing, not packed down into a wound.
+== BETTER OPTIONS IF YOU CARRY THEM ==
+- Honey: real evidence as an antibacterial dressing, strongest for minor
+  wounds and shallow (partial-thickness) burns. Spread a thin layer of
+  plain honey over a CLEANED minor wound or small burn, then cover. Do not
+  give or apply honey to infants under 1 year (botulism risk). Honey beats
+  cattail gel if you have it.
+- Any real antiseptic in your kit (povidone-iodine, chlorhexidine) or just
+  soap and water cleans far better than any plant.
+- Sugar packed on a shallow wound is an old field trick with some basis,
+  but honey is cleaner and better if you have a choice.
 
-== CAUTION ==
-- Topical first aid only.
-- Cattails soak up pollutants from their water. Do not harvest from roadside ditches, farm runoff, or any suspect water, even for skin use.
-- Control bleeding and clean the wound first (see the first-aid section).
+== MINOR BURNS ==
+- Cool it with clean, cool (not ice-cold) water for at least 20 minutes,
+  poured or running. This is the single most useful thing you can do, and
+  it still helps even if started a bit late.
+- Do NOT use ice, butter, oil, or toothpaste. They trap heat or cause harm.
+- Do NOT pop blisters. If one tears open on its own, rinse gently and cover.
+- Cover loosely with clean cloth. Cattail gel can soothe; honey is better.
+
+== IF YOU CANNOT REACH HELP: MANAGING OVER DAYS ==
+- Re-clean and re-flush the wound daily with clean water. Put on the
+  cleanest dressing you can find or improvise.
+- Keep it covered and reasonably moist, not caked in dirt. Elevate the part
+  when you rest.
+- Warm, clean, moist compresses a few times a day help the body wall off a
+  small local infection and bring a pus pocket to a head.
+- Draining is right; sewing infection shut is wrong. If a small, shallow
+  abscess forms and comes to a soft point, you can open just the skin over
+  the softest spot with a flame-sterilized blade, let it drain, flush it,
+  and keep it OPEN to keep draining. Do not dig deep, and leave abscesses
+  on the face alone if you possibly can.
+
+== KNOW WHEN IT IS TURNING DANGEROUS (honest limits) ==
+- Warning signs, checked daily: spreading redness, growing pain or swelling,
+  pus, bad smell, a RED STREAK running up the limb, fever, chills, feeling
+  sick all over.
+- A red streak plus fever means the infection is entering the body. This can
+  progress to sepsis and kill.
+- Hard truth: a spreading or deep infection needs antibiotics. No plant, no
+  honey, no poultice reliably cures it. Cattail will not. Do not wait on a
+  folk remedy while it spreads.
+- Best you can do off-grid: keep it draining and flushed, warm compresses,
+  rest, elevate, drink water, and start moving toward help.
+- Evacuate if you can safely reach help. Deep punctures and dirty wounds
+  also carry tetanus risk, which has no field cure. That is another reason
+  to reach care when it is reachable, not the only thing you can do now.
+
+== IDENTIFY: CONFIRM BEFORE YOU USE ==
+- Full identification is in the edible Cattail entry. Confirm there first.
+- Quick check: tall, strap-like leaves rooted in water or muck, and a brown,
+  sausage-shaped seed head.
+
+== TOXIC LOOKALIKE: IRIS ==
+- IRIS grows in the same wet ground and is TOXIC. Its leaves rise in a FLAT
+  FAN, and it NEVER makes a brown sausage head.
+- Iris root and sap hold irritant compounds (irisin, iridin) that cause skin
+  irritation on contact and vomiting or cramps if any reaches the mouth.
+  Never mash an iris root onto broken skin.
+- Rule: a flat fan of leaves with no brown seed head means walk away.
+
+== HARVEST SAFELY ==
+- Cattails soak up pollutants and heavy metals from their water; they are
+  literally used to clean dirty water. Do not harvest from roadside ditches,
+  farm or industrial runoff, or any suspect water, even for skin use.
 
 == SEASON ==
-- Gel and green growth come spring into summer. Seed-head fluff is ready late summer through winter.
+- Gel and green growth come spring into summer.
+- Seed-head fluff is ready late summer through winter.

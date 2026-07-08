@@ -1,24 +1,84 @@
 Bears and Large Animals (See Nature Section)
 
-== THIS IS A POINTER ==
-- The large animals that can seriously hurt you have full articles in the Nature section. This is a short reminder so the Animals section is complete. For the detail, read those articles before you travel.
+== IF YOU ARE HURT, START HERE ==
+- After a mauling, the fast killers are bleeding and a blocked airway, not the animal. Work this order.
+- 1. Get to safety. Do not treat wounds while the animal can still reach you.
+- 2. Stop major bleeding NOW. Big blood loss kills in minutes. See next section.
+- 3. Check breathing. Clear the mouth, keep the airway open. Face and neck wounds swell fast.
+- 4. Keep the person warm, flat, and still. Cold blood does not clot.
+- 5. Then clean and dress wounds, watch for infection, and decide about moving.
+- Evacuate if you can safely reach help. If you cannot, everything below is yours to do alone, and it works.
 
-== BEARS ==
-- Black bears live across most of the continent; grizzly, or brown, bears live mainly in Alaska, western Canada, and the northern Rockies. Tell them apart by the grizzly's shoulder hump, dished face, and long claws, never by color.
-- Prevention is food storage and noise. Response differs by species and situation: stand tall and fight a black bear that makes contact; play dead for a surprised or defensive grizzly, and fight back only if the attack is predatory.
-- The full method, including bear spray and camp setup, is in the Nature section bear article.
+== STOP SERIOUS BLEEDING ==
+- Press hard, directly on the wound, with the cleanest cloth you have. Do not lift to peek. Hold 10 full minutes by the clock.
+- Arm or leg spurting or pumping blood and pressure is not enough: put a tourniquet 2 to 3 inches above the wound, never over a joint.
+- Improvise one from a belt, strap, or pack strap with a stick to twist it tight. Tighten until bleeding STOPS. It will hurt. That is correct.
+- Write down the time you put it on. Do NOT loosen it to let blood back in. Leave it.
+- A tourniquet is safe for about 2 hours. Longer risks the limb, but a lost limb beats a lost life. If it is the only thing stopping the bleed, leave it on.
+- Neck, shoulder, armpit, groin, or a deep hole you cannot press flat: PACK it. Stuff clean cloth or gauze deep into the wound, right onto the bleeding point, cram in all that fits, then press hard on top for at least 3 minutes. Wrap it snug.
+- Hemostatic gauze (QuikClot, Celox) if you carry it: pack it the same way, then press.
+
+== CLEAN THE WOUND, DO NOT SEW IT SHUT ==
+- Once bleeding is controlled, flush the wound. Use lots of clean drinkable water. More is better. Half a liter or more for a dirty wound.
+- Push the water in with force: a squeeze bottle, a bag with a pinhole, or a bottle cap poked with a hole makes a stream that lifts out dirt, hair, and saliva.
+- Plain water is fine. A little soap helps. Weak (tea-colored) povidone-iodine is good if you have it. Do NOT pour full-strength iodine or peroxide into deep tissue; it kills the cells you need to heal.
+- LEAVE BITE AND CLAW WOUNDS OPEN. Do not stitch, tape, or glue them shut. Sealing dirt and animal saliva inside causes deep infection. Cover with a clean, slightly moist dressing instead.
+- Only a very large gaping wound may be loosely drawn together to slow bleeding, and still leave gaps so it can drain.
+- Change the dressing every day, or sooner if soaked or filthy. Flush again each change.
+
+== INFECTION: WATCH AND ACT ==
+- Animal mouths are filthy. Expect infection risk on any bite. Check the wound daily.
+- Warning signs: growing pain, spreading redness, heat, swelling, pus, red streaks up the limb, fever, feeling sick.
+- If you carry antibiotics, this is what they are for. Amoxicillin-clavulanate (Augmentin) is first choice for animal bites. Doxycycline is the backup if allergic to penicillin. Take the full labeled course.
+- No antibiotics: keep flushing daily, keep the wound open so it drains, keep it covered and as clean as you can. Warm, clean compresses help it drain. Raise the injured part. Draining pus is good; help it out.
+- Red streaks plus fever means the infection is moving into the body. That is your strongest reason to evacuate. If you cannot, antibiotics and drainage are your only tools. Use them hard and early.
+
+== SHOCK AND STAYING ALIVE AFTER ==
+- Lay the person flat. Raise the legs about 12 inches ONLY if there is no leg, hip, or spine injury.
+- Insulate them from the ground and cover them up. A cold body cannot clot blood. Staying warm is real treatment, not just comfort.
+- Sips of water if they are fully awake and have no belly wound. Give nothing by mouth to someone drowsy, confused, or with a gut wound.
+- Recheck bleeding, breathing, and warmth every few minutes. Talk to them and reassure them; fear deepens shock.
+
+== RABIES: THE HARD TRUTH ==
+- Any bite, scratch, or saliva in a wound from a mammal can carry rabies. Wolves, coyotes, foxes, and bears are the higher-risk biters here.
+- Do this NOW, before anything else on the wound: scrub and flush it with soap and running water for a FULL 15 minutes. This alone strongly lowers your odds. Follow with iodine if you have it. Washing is the single most useful thing you can do in the field.
+- Be honest with yourself: there is NO field cure for rabies. The shots (vaccine plus immune globulin) only work if started before symptoms begin, and once symptoms start rabies is nearly always fatal. Washing buys better odds, not safety.
+- This is a real reason to get out to care if you possibly can, even days later, to receive the shots. A healthy-acting bear or moose defending itself or its young is lower risk than a strange animal that attacked for no reason or seemed sick. Either way: wash hard, then reach the shots if you can.
+
+== WHAT THE FIELD CANNOT FIX ==
+- Say these out loud so you do not burn time chasing a cure that does not exist.
+- Bleeding a tourniquet and packing cannot stop (deep chest or belly): keep pressure, keep them warm and flat. Surgery is the only fix and you cannot do it. Comfort and warmth are the honest goal.
+- Gut torn open, organs showing: do NOT push them back in or pour water on them. Cover with a clean, moist cloth, keep warm, nothing by mouth.
+- Sucking chest wound (air bubbling from a chest hole): cover with something airtight like plastic, tape 3 sides so air can escape but not re-enter, sit them up if it helps breathing.
+- Broken bone: splint it, padding the joint above and below, keep the limb still. You can stabilize it but not truly set it.
+- None of these has a folk cure. Your job is to slow the problem, prevent infection, keep them warm, and buy time.
+
+== BEARS: AVOID, THEN RESPOND ==
+- Black bears live across most of the continent. Grizzly (brown) bears live mainly in Alaska, western Canada, and the northern Rockies.
+- Tell them apart by the grizzly's shoulder hump, dished face, and long claws, never by color.
+- Prevent it: store food and scented items away from camp, hung or in a canister; cook away from your tent; make noise as you move so you never surprise one.
+- Carry bear spray where you can grab it. Aim slightly down when the bear is within about 30 to 60 feet and spray a cloud as it closes.
+- Black bear that makes contact: DO NOT play dead. Fight back, hit the face and nose, and escape to a car or hard shelter if you can.
+- Surprised or defensive grizzly (guarding cubs or a carcass): PLAY DEAD. Lie on your stomach, hands laced behind your neck, legs spread, pack left on. Hold still. Fight back only if it keeps biting after you are down.
+- ANY bear that stalks you, or attacks you in your tent at night, is hunting you. FIGHT BACK with everything, no matter the species.
 
 == MOOSE ==
-- Moose injure more people than bears do. They look calm and are not. Give them 50 yards or more.
-- Warning signs: ears back, hackles up, head low, lip licking. If a moose charges, run and get a tree or boulder between you. This is the one big animal you should run from.
-- Full detail is in the Nature section other wildlife article.
+- Moose injure more people than bears do. They look calm and are not. Give them 50 yards or more. Worst in the fall rut (bulls) and in spring and summer (cows with calves).
+- Warning signs: ears back, hackles up, head low, lip licking, whites of the eyes showing.
+- If a moose charges, RUN and put a tree, boulder, or vehicle between you. This is the one big animal you SHOULD run from; it will not chase far.
+- Knocked down: curl into a ball, protect your head with your arms, and hold still until it moves well away, then get up.
 
 == COUGAR (MOUNTAIN LION) ==
-- Rarely seen, rarely attacks. If you meet one: do not run, do not crouch, look big, hold eye contact, back away slowly, and fight back hard if attacked.
-- Pick up small children at once, without bending low. Detail is in the Nature section other wildlife article.
+- Rarely seen, rarely attacks. Do not run. Do not crouch or bend over; that makes you look like prey and exposes your neck.
+- Look big, wave your arms or a jacket overhead, hold eye contact, and back away slowly.
+- Pick small children up at once, without bending low or turning your back.
+- If it attacks: stay on your feet, protect your head and neck, and fight back hard at the face with rocks, sticks, or bare hands.
 
 == WOLVES AND COYOTES ==
-- Attacks on adults are very rare and usually involve animals fed by people. Stand tall, make noise, back away, never run, and fight back if one makes contact.
+- Attacks on adults are very rare and usually involve animals that people have fed. Stand tall, make noise, back away, never run, and fight back if one makes contact.
+- Their bites are a real rabies risk. Treat any broken skin using the rabies section above.
 
 == THE ONE RULE FOR ALL OF THEM ==
-- Distance, food storage, and never running from a predator cover almost every situation. Do not approach or feed any large animal, and never get between one and its young.
+- Distance, food storage, and never running from a predator (moose are the exception) cover almost every encounter.
+- Do not approach or feed any large animal, and never get between one and its young.
+- Fuller encounter detail is in the Nature section articles. The field treatment above is the part that keeps you alive when prevention fails.

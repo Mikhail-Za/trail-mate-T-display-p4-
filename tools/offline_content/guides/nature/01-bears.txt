@@ -26,19 +26,74 @@ Bear Encounters and Safety
 - Bluff charges are common: ears up, bounding, veering off. Hold your ground and keep talking.
 - Defensive attack (you surprised it, or it has cubs or a carcass): PLAY DEAD. Lie face down, hands laced over your neck, elbows and legs spread wide so it cannot flip you. Stay still until the bear is long gone.
 - Predatory attack (rare: bear stalks you, keeps coming, or attacks at night in your tent): FIGHT BACK with everything you have. Playing dead is wrong for a predatory bear.
+- If a defensive grizzly does not stop mauling and keeps biting after you play dead, the attack has turned predatory: stop playing dead and fight back, targeting the eyes and nose.
 
 == BEAR SPRAY ==
-- More effective than firearms in studies. Carry it on your hip or chest strap, not in your pack.
+- More effective than firearms in studies (stopped aggressive bears about 90 percent of the time; guns much less, and a charging grizzly can take several hits to stop).
+- Carry it on your hip or chest strap, not in your pack. You will not have time to dig it out.
 - Effective range is roughly 15 to 30 feet. Know your canister's rating.
 - Remove the safety clip, aim slightly downward, and sweep side to side to put a cloud between you and the charging bear.
 - Spray in 1 to 2 second bursts starting when the bear is about 30 to 60 feet out. Mind the wind; a headwind blows it back on you.
 - After spraying, leave the area immediately. Do not linger.
+- If sprayed on yourself: flush eyes and skin with lots of water, do not rub, breathe cool air. Effects fade in 15 to 45 minutes.
 
-== CUBS ==
-- A cub anywhere near you means the mother is close and this is the most dangerous bear situation there is.
-- Do not photograph, approach, or try to locate the mother. Back away the direction you came and leave the area NOW.
+== IF CONTACT HAPPENS: PROTECT THE BODY ==
+- Keep your pack ON. It shields your back, spine, and neck like armor.
+- Protect the killing zones: tuck your chin, lace hands over the back of your neck, keep elbows in to guard the face and throat, knees up to protect the belly.
+- Bears aim for the head, face, and neck. Curling face-down protects the airway and the big neck vessels.
+- Fight-back target list: eyes, nose, and the sensitive muzzle. Use rocks, sticks, trekking poles, a knife, fists.
+- The instant the bear disengages, do not move or make noise until it is well gone, then start first aid fast. You are now the medic. Bleeding and airway kill in minutes; help may be hours or days away or may never come.
+
+== AFTER THE ATTACK: STOP THE BLEEDING FIRST ==
+Work this order (memorize as MARCH): Massive bleeding, Airway, Respiration, Circulation, Heat. Massive bleeding is what kills fastest, so it comes first.
+- Find the worst bleeding. Bright red spurting or fast-pooling blood is arterial and is the emergency.
+- DIRECT PRESSURE: shove a wad of cloth (shirt, gauze) hard onto the wound with the heel of your hand. Press with your full body weight. Hold a full 10 minutes by the clock without peeking. Most bleeding stops here.
+- PACK DEEP WOUNDS: for a deep gash or a hole in an arm, leg, groin, armpit, or neck, stuff clean cloth or gauze all the way down to where the blood comes from, cramming in more until the wound is full, then press hard over it for 10 minutes. Then tie a snug wrap over the packing to hold pressure.
+- TOURNIQUET (arm or leg only, life-threat bleeding you cannot stop by pressure or packing):
+  - Place it 2 to 3 inches above the wound, on bare skin, NOT over a joint. Never on neck or torso.
+  - Improvise with a strap or folded cloth 2 to 3 inches wide (a wide band, never thin cord or wire) plus a strong stick as a windlass. Twist the stick until the bright bleeding STOPS, then tie the stick in place.
+  - It will hurt badly. That is expected. Pain is not a reason to loosen it.
+  - Write the TIME you applied it on the skin or tape.
+- Once bleeding is controlled, do not keep peeking or loosening. Old advice to loosen a tourniquet every few minutes is WRONG and causes fatal blood loss.
+
+== TOURNIQUET IF NO HELP IS COMING ==
+- If you got the bleeding controlled a different way (good packing plus a tight pressure wrap), and the tourniquet has been on LESS than about 2 hours, you may slowly loosen it while watching the wound. If bleeding restarts, retighten at once and leave it.
+- If a tourniquet has been on MANY hours and no help is near, leave it ON. Suddenly releasing an old tourniquet can flood the body with toxins and kill you. A lost limb beats a lost life. This is a real and brutal tradeoff, not a mistake on your part.
+
+== AIRWAY, BREATHING, SHOCK ==
+- Face and jaw wounds bleed into the airway. Clear the mouth of blood, broken teeth, and dirt with a finger.
+- If the person is unconscious but breathing, roll them onto their side so blood and vomit drain out and do not choke them.
+- Sucking chest wound (a claw or bite hole in the chest that hisses or bubbles): cover it with anything airtight (plastic, a wrapper) taped on 3 sides so air escapes but does not get sucked in.
+- SHOCK from blood loss: keep them lying flat, insulate from the ground, and cover them to stay warm. Cold blood does not clot; warmth is treatment, not comfort. If awake and there is no belly wound, sip water.
+
+== CLEAN THE WOUNDS: INFECTION AND RABIES ==
+Do this after bleeding is controlled. A bear's mouth and claws are filthy; nearly every bear wound gets infected without care. Cleaning is the single most useful thing you can do alone.
+- WASH IT LONG AND HARD. Flush the wound with the cleanest water you have (disinfected or boiled-then-cooled if possible), with soap if you have it, for a full 15 minutes. This also cuts rabies risk sharply.
+- IRRIGATE WITH PRESSURE. Squeeze water from a bottle, a bag with a pinhole, or a bladder hose right into the wound to blast out dirt, saliva, hair, and dead tissue. Pick out visible debris.
+- LEAVE BITE WOUNDS OPEN. Do NOT stitch, tape shut, or glue a bear bite or puncture closed. Sealing traps bacteria and causes deep abscesses. Cover with a clean, damp dressing and let it drain.
+- For a large gaping wound you may loosely draw the edges together to slow bleeding, but never seal it tight.
+- Change the dressing when it soaks through or gets dirty, and re-flush the wound each time.
+- Antibiotics, if you carry them and are not allergic: amoxicillin-clavulanate (Augmentin) 875/125 mg by mouth twice daily is first choice for animal bites. Doxycycline 100 mg twice daily is the backup if penicillin-allergic. Starting within a few hours of the bite cuts infection risk the most.
+
+== INFECTION: WATCH AND MANAGE ==
+- Watch for: spreading redness, growing swelling, heat, throbbing pain that worsens after day one, pus, red streaks running up a limb, or fever and chills. Bear wounds can go bad within a day.
+- If pus collects under the skin (a hot, tense, painful lump), open the wound edge to let it drain, then flush again. Trapped pus poisons the body; drainage is the fix.
+- Keep re-irrigating dirty wounds daily. Without antibiotics, aggressive washing and open drainage are your only real tools, so use them hard.
+- Elevate an injured limb to cut swelling. Rest it.
+
+== HARD TRUTHS: WHAT THE FIELD CANNOT FIX ==
+Honest limits. Do not trust folk cures for these; a false cure gets you killed.
+- RABIES: bears rarely carry it, but it happens, and any attack that was unprovoked or by a sick-acting bear is a real exposure. There is NO field substitute for the rabies vaccine and immune globulin. Untreated rabies, once symptoms start, is essentially always fatal. Washing the wound long and hard lowers the odds but does not replace the shots. If you can reach vaccine even days later and before any symptoms, it can still save you: treat this as a reason to get out.
+- TETANUS: no field substitute for the vaccine. Thorough cleaning lowers risk. Leaving bite wounds open helps.
+- UNCONTROLLABLE BLEEDING (deep chest or belly wounds, or arterial bleeding a tourniquet and packing cannot stop): there is no field fix. The steps above buy time only. Keep pressure on and keep the person warm and flat.
+- BROKEN BONES, crushed limbs, and wounds needing surgery: splint fractures, pad and immobilize, control pain, but definitive repair needs a hospital.
+- EVACUATE IF YOU CAN SAFELY REACH HELP. This is ONE option among the actions above, not the first and only answer. Do the bleeding control, airway, and wound cleaning FIRST; they keep the person alive whether or not help ever arrives. If a safe route to people or a signal exists, take it after the person is stabilized, and carry water and the wound-cleaning plan with you.
 
 == SEASON ==
 - Bears are most active spring through fall. They come out of the den lean and hungry in spring, and in late summer and fall they feed almost around the clock (hyperphagia) to fatten for winter.
 - Spring and early summer are peak cub season; a sow with new cubs is the most dangerous bear there is, so give extra room then.
 - In most regions bears den and go largely inactive in deep winter, but a warm spell or an unsecured food source can pull one out any month; never assume the danger is over.
+
+== CUBS ==
+- A cub anywhere near you means the mother is close and this is the most dangerous bear situation there is.
+- Do not photograph, approach, or try to locate the mother. Back away the direction you came and leave the area NOW.

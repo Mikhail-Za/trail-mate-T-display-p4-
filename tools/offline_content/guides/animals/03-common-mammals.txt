@@ -3,40 +3,92 @@ Common Mammals of North America
 == HOW TO USE THIS ==
 - These are the mammals you are most likely to see. Most are harmless at a distance and want nothing to do with you.
 - The genuinely dangerous large mammals (bears, moose, cougars, wolves) have their own articles in the Nature section. This article covers the common, mostly harmless ones.
+- The real hazards from these animals are not the animal itself but what it can leave in you: a bite that carries rabies, a scratch that gets infected, quills, skunk spray, and diseases from handling small game. This article tells you what to DO about each, on your own, when help is far away or not coming.
 
 == DEER AND ELK ==
 - Deer: tan to gray-brown, white belly, about 3 feet at the shoulder. White-tailed deer flag a white tail up when fleeing. Mule deer have very large ears and bound stiff-legged on all fours.
 - Elk: much larger, up to 5 feet at the shoulder, dark neck, pale rump; bulls bugle in fall.
 - Behavior: alert and skittish. They freeze, then bolt. Harmless in general, but a rutting bull or a cornered deer can injure. Keep your distance in fall and around young in spring.
+- If one does hit you: antlers gore, front hooves strike hard. That is serious blunt and puncture trauma. Control bleeding with hard direct pressure, splint anything you think is broken, lie the person down and keep them warm against shock. See the first aid articles.
 
 == COYOTE AND FOX ==
 - Coyote: like a lean gray-brown medium dog, pointed nose, bushy black-tipped tail carried low when running. Yips and howls at night.
 - Red fox: smaller, rusty red, black legs, white tail tip. Gray fox is grizzled gray and can climb trees.
 - Behavior: shy and curious. Attacks on people are very rare, and a bold one has usually been fed. Do not run; yell, wave your arms, and look big.
+- Any bite from either counts as a possible rabies exposure. Treat it now. See IF A MAMMAL BITES OR SCRATCHES YOU below.
 
 == RABBITS AND HARES ==
 - Cottontail rabbit: small, gray-brown, white cotton-ball tail; freezes, then zigzags away.
 - Jackrabbit, which is a hare: bigger, huge ears, long legs, favors open country.
-- Behavior: harmless. A common survival small game; see the trapping article.
+- Behavior: harmless, and a common survival small game; see the trapping article.
+- Rabbit fever (tularemia) is the real danger. It lives in rabbits and hares and gets into you through cuts while skinning, or from undercooked meat. It is one of the most common ways survival hunters get sick.
+- Do not take an animal that was easy to catch, moving slowly, sluggish, or found already dead. The sick ones are the dangerous ones. Pass them up.
+- Skinning and gutting: put a barrier on your hands if you can (gloves, a plastic bag, even a spare sock). Avoid nicking yourself. Wash hands and blade hard afterward.
+- Cook all wild meat well done: no pink, juices run clear, steaming hot all the way through. Heat kills the bacteria; this is your main protection.
+- Signs days later: fever, chills, body aches, and often a sore or ulcer with a swollen tender lump (lymph node) near where you handled the meat. Tularemia responds to doxycycline or ciprofloxacin if you carry them; take a full course the way you were taught. Otherwise rest, push fluids, and make reaching care a goal over the coming days.
 
 == SQUIRRELS AND CHIPMUNKS ==
 - Tree squirrels (gray, fox, red) and ground squirrels are everywhere. Chipmunks are smaller with striped faces and backs.
 - Behavior: harmless but bold around camps and will raid food. Do not hand-feed them; they bite and carry fleas.
+- Plague is the reason those fleas matter. In the dry western US, fleas on ground squirrels, prairie dogs, chipmunks, and rock squirrels can carry it. It is rare but real, and it still kills.
+- Red flag: a sudden die-off. Many dead prairie dogs or squirrels, or a colony that went silent, means plague may be active. Leave that area. Do not camp on rodent burrows or colonies.
+- Do not handle sick or dead rodents. Keep your food sealed so you are not pulling rodents and their fleas into camp. Brush fleas off and keep clothing tucked.
+- Signs 1 to 7 days after a flea bite: sudden high fever and a very painful, swollen lymph node in the groin, armpit, or neck. Plague responds to the same antibiotics (doxycycline or ciprofloxacin) started early, and moves fast if not. This is a real reason to evacuate if you can.
 
 == RACCOON, SKUNK, AND OPOSSUM ==
 - Raccoon: black mask, ringed tail, hand-like front paws. Skunk: black with white stripes, warns by raising its tail and stamping before it sprays. Opossum: pale gray, naked rat-like tail, plays dead when cornered.
-- Behavior: mostly nighttime camp raiders. Skunks warn first, so back away and give one room. These species, along with foxes and bats, are the main rabies carriers; see the warning below.
+- Behavior: mostly nighttime camp raiders. Skunks warn first, so back away and give one room. Raccoons, skunks, and foxes, along with bats, are the main rabies carriers; see RABIES below.
+- Raccoon droppings can carry a roundworm that is dangerous to people. Do not disturb raccoon latrines (piles of scat), do not camp on them, and wash hands hard if you touch soil near one.
+- Sprayed by a skunk: see SKUNK SPRAY below. It is miserable, not dangerous.
+
+== SKUNK SPRAY ==
+- In the eyes: intense burning, watering, and it can briefly blur your vision or feel like blindness. This is temporary. Flush the eyes at once with the cleanest water or saline you have and keep flushing for several minutes. Vision usually clears within 15 to 60 minutes.
+- On skin and gear the spray is an oil, so plain water barely touches it. If you have the makings, mix: 1 quart of 3 percent hydrogen peroxide, one quarter cup of baking soda, and 1 to 2 teaspoons of dish soap. Work it in, wait about 5 minutes, then rinse well.
+- Mix that solution fresh and use it right away. Never seal it in a closed bottle or container; it builds gas pressure and can burst.
+- No peroxide kit? Dish soap alone, worked in and rinsed several times, still cuts the oil better than water. Airing clothing out over days helps.
+- Tomato juice is a myth. It masks the smell at best and wastes water and effort. Skip it.
 
 == PORCUPINE, BEAVER, AND MUSKRAT ==
 - Porcupine: slow, rounded, covered in quills. It cannot throw them but slaps with a quilled tail. Keep dogs well away.
 - Beaver: large, dark, flat scaly tail, slaps the water and dives; look for dammed ponds and gnawed stumps. Muskrat is smaller with a thin tail.
 - Behavior: harmless if left alone. Beaver ponds are reliable water and a magnet for other wildlife.
 
-== RABIES WARNING ==
-- Raccoons, skunks, foxes, and bats are the main rabies carriers in North America.
-- Suspect rabies in any of these active in daytime that is staggering, unafraid, or aggressive for no reason. Never handle, corner, or feed one, including babies. Never touch a bat with bare hands.
-- Any bite or scratch from a wild mammal, or waking with a bat in your shelter, needs the wound washed hard and prompt medical care. See the first aid bites and stings article.
+== QUILLS: HOW TO PULL THEM ==
+- Quills have backward-facing barbs. They work deeper with time and with every muscle movement, so remove them as soon as you safely can. Waiting makes it worse.
+- Do NOT cut or trim the quills first. The idea that you must snip them to "let the air out" is a myth. Cutting only makes them brittle and harder to grip, and broken pieces migrate deeper.
+- Grip each quill close to the skin with pliers, a multitool, hemostats, or your fingers. Pull straight out in one steady firm motion, in line with the quill. Do not yank sideways or twist hard.
+- Check the mouth, lips, tongue, and around the eyes, especially on a dog. Get every quill out. A broken tip left behind can travel and form an abscess.
+- Clean each puncture with your cleanest water and watch for infection over the next days (see the bite section below for what infection looks like).
+- Beyond field help: dozens of quills, or quills deep in the eye, deep in the throat, or blocking breathing. Do what you can, keep the airway open, and evacuate if you can reach help.
+
+== IF A MAMMAL BITES OR SCRATCHES YOU ==
+This is the most important section. What you do in the first minutes matters more than anything, and most of it you can do alone.
+
+1. Get clear and safe first. Stop the contact. Do not chase or corner the animal.
+2. Stop serious bleeding. Press hard directly on the wound with a cloth. For spurting, life-threatening bleeding from an arm or leg that pressure will not stop, a tourniquet high and tight on the limb can save the life; see the bleeding first aid article. Bleeding kills faster than infection, so handle it first.
+3. Wash the wound HARD, and long. This is the single most protective thing you can do against both rabies and ordinary infection.
+   - Flood it with the cleanest water you have for a full 15 minutes by the clock. Use soap if you have any.
+   - Make the water move with force: squeeze it from a bottle or hydration bladder through a small hole, or push it with a syringe if you carry one. Pressure flushes out saliva, dirt, and virus better than a gentle rinse.
+   - Open the wound gently and get water down inside it, not just over the top. Scrub the raw surfaces.
+4. If you have a virus-killing prep, use it after washing: povidone-iodine, or the chlorine or iodine drops you purify water with, diluted. These kill rabies virus on contact.
+5. Do NOT close the wound. Do not stitch it, tape it shut, or glue it. Animal bites are dirty and closing them traps infection. Leave it open to drain, and cover it with a clean dressing.
+6. If you carry antibiotics, a bite is a high-infection wound and starting them early is standard. Amoxicillin-clavulanate is the usual first choice; for a penicillin allergy the field alternative is a drug like moxifloxacin or doxycycline. Be honest with yourself about what you actually have; most people carry none.
+7. Watch for infection over the next hours and days: spreading redness, heat, swelling, throbbing pain, pus, red streaks running up the limb, or fever. Warm soaks and keeping it clean and open help it drain.
+8. Evacuate if you can safely reach help, above all to start rabies shots (see RABIES). This is one option among the steps above, not the only one, and it comes after you have already washed the wound.
+
+== RABIES: THE HARD TRUTH ==
+Read this straight. Credibility matters more here than comfort.
+
+- Rabies has NO field cure and no folk remedy. Once symptoms begin, it is virtually 100 percent fatal, every time, with the best hospitals on earth. Anyone who tells you a plant, a poultice, or a technique cures rabies is wrong and will get you killed. Do not chase a cure that does not exist.
+- What DOES work, and what you can control:
+   1. Washing the wound hard and long, right away (see the step above). This physically removes and kills virus at the wound and measurably lowers your chance of ever getting sick. Do this every time, for every bite or scratch.
+   2. The rabies shot series (post-exposure vaccine, called PEP) is over 99 percent effective and it prevents the disease. You cannot make it in the field, but here is the fact that helps a stranded person: it has no strict deadline. It works given days, and usually even weeks, after the bite, as long as symptoms have not started yet. The virus is typically slow, incubating around 2 to 3 months.
+- So the plan is not panic. It is: wash now, then make reaching medical care a firm goal over the following days. Walking out over two or three days and getting shots then can still save your life. It is not a same-hour emergency the way bleeding is.
+- Treat as a rabies exposure and get shots if you can: any bite or scratch from a raccoon, skunk, fox, coyote, or bat; any bite from a mammal acting sick, tame, staggering, unafraid, or active in daylight; and any bat contact at all.
+- Bats are special. A bat bite can be a mark you cannot even see. If you wake with a bat in your shelter, or a bat lands on bare skin, count it as an exposure even with no visible bite, and plan to get shots.
+- If you truly cannot reach care and symptoms later appear (tingling or pain at the bite, then fear of water, confusion, agitation), understand there is no saving the person at that point. Keep them calm, in the dark and quiet, out of the sun, sheltered and comfortable, and stay with them. That is palliative care, and it is the honest truth, not a treatment. This is why the wound washing above is not optional.
 
 == SEASON ==
 - Fall rut makes bucks and bull elk unpredictable. Spring means mothers with young; never step between them.
 - Many mammals move most at dawn and dusk, which is also when you are most likely to meet one on the trail.
+- Any mammal out and active in the heat of midday, especially one acting bold or clumsy, is a rabies suspect until proven otherwise. Give it a wide berth.

@@ -1,47 +1,134 @@
 Bleeding and Wounds
 
-Severe bleeding can kill in minutes. Act immediately; do not spend time looking for perfect supplies. If you have gloves, put them on, but do not delay for them. Any deep wound, puncture, or animal bite needs professional care even if you control it in the field.
+Severe bleeding can kill in minutes. Act now with what you have; do not delay hunting for perfect supplies. If gloves are within reach, use them, but do not wait for them. You can manage almost every bleeding wound yourself in the field. Evacuation to a hospital is one option among several, not the first step and not always possible. This guide leads with what you do with your own hands.
+
+Order of action:
+- Stop the bleeding (pressure, packing, or tourniquet).
+- Clean the wound once bleeding is controlled.
+- Decide to close now, leave open, or close later.
+- Watch for infection and manage it if it starts.
 
 == DIRECT PRESSURE ==
-This stops most bleeding.
+This stops most bleeding, including many wounds that look severe.
 
-- Expose the wound. Cut or pull clothing away so you can see the bleeding point.
-- Press hard directly on the bleeding point with gauze or the cleanest cloth you have. Use the heel of your hand and lean your body weight into it.
-- Hold continuous pressure for at least 10 minutes by the clock before you look. Peeking early tears the forming clot loose.
+- Expose the wound. Cut or pull clothing away so you see the exact bleeding point.
+- Press hard directly on the bleeding point with gauze or the cleanest cloth you have. Use the heel of your hand and lean your body weight in.
+- Hold continuous pressure at least 10 minutes by the clock before you look. Peeking early tears the forming clot loose and restarts the count.
 - If blood soaks through, add more cloth on top. Do not remove the first layer.
-- Once controlled, wrap a snug bandage over the dressing to hold pressure. Check that fingers or toes beyond it stay pink and warm; loosen slightly if they go numb or blue.
+- Once controlled, wrap a snug bandage over the dressing to hold the pressure. Check that fingers or toes past it stay pink and warm. Loosen slightly if they go numb, cold, or blue.
+- Raise the wound above the heart if you can. It does not replace pressure, but it helps.
 
 == WOUND PACKING ==
-For deep wounds in the groin, armpit, or neck-shoulder junction, or when surface pressure fails:
+For deep wounds where you cannot press on the vessel directly: groin, armpit, the neck-shoulder junction, or any deep wound where surface pressure fails.
 
-- Pack gauze (hemostatic gauze if you have it) deep into the wound, directly against the bleeding vessel, filling the whole cavity.
-- Then press hard on top: 10 minutes with plain gauze, 3 minutes with hemostatic gauze.
-- Do not pack wounds of the chest or abdomen. Cover those and press.
+- Pack gauze deep into the wound, directly onto the bleeding vessel, filling the whole cavity tight. Use hemostatic gauze if you carry it; plain gauze or clean torn cloth works if you do not.
+- Then press hard on top: hold 3 minutes with hemostatic gauze, at least 10 minutes with plain gauze or cloth.
+- Wrap firmly over the packing to keep the pressure on.
+- Do not pack wounds of the chest or abdomen. Cover those, press over them, and do not stuff material inside.
 
 == TOURNIQUET: LIFE OVER LIMB ==
-Use a tourniquet when a limb is spurting or pooling blood fast, when direct pressure fails, or when you cannot keep pressure on (you must move, or you are alone). Modern evidence: a proper tourniquet is safe on a limb for hours. Fear of losing the limb should never stop you from saving the life.
+Use a tourniquet when a limb is spurting or pooling blood fast, when direct pressure and packing fail, or when you cannot hold pressure (you must move, you are alone, or there are other injuries). A properly applied tourniquet is safe on a limb for about 2 hours with little risk, and is survivable well beyond that. Fear of losing the limb must never stop you from saving the life.
 
-- Apply 2 to 3 inches above the wound, not over a joint.
-- Tighten until the bleeding stops and the pulse beyond it is gone. It will hurt badly. That is normal and expected.
-- Write the time on the tourniquet or the casualty's skin.
-- Do not loosen or remove it in the field. That is a hospital decision.
+- Apply 2 to 3 inches above the wound, not over a joint. If you cannot tell where the bleeding is, go high and tight on the limb.
+- Tighten until bleeding stops and the pulse past it is gone. It will hurt badly. That is normal and means it is working.
+- Write the time it went on, on the tourniquet or the skin. This number decides everything later.
+- A second tourniquet placed just above the first can help if one does not fully stop the flow.
 
-Improvised tourniquet cautions: use a band at least 1.5 inches wide (folded bandana, cravat) with a rigid windlass (stout stick) twisted tight and tied in place. Never use cord, wire, or shoelaces; narrow bands cut flesh and fail to stop deep bleeding.
+Improvised tourniquet:
+- Use a band at least 1.5 inches wide: a folded bandana, cravat, or torn strip.
+- Add a rigid windlass (a stout stick) to twist it tight, then tie the stick in place so it cannot unwind.
+- Never use cord, wire, paracord, or shoelaces. Narrow bands cut into flesh, cause harm, and fail to stop deep bleeding.
+
+== TOURNIQUET: WHEN NO HELP IS COMING ==
+A hospital would remove or convert a tourniquet within hours. If you have no way to reach care, that job may fall to you. A tourniquet left on for many hours can slowly kill the limb, so a careful one-time conversion to a dressing can save it. This is not the same as the old, dangerous habit of loosening every few minutes. Never do that.
+
+Convert (release once, onto a dressing) ONLY if ALL of these are true:
+- It has been on LESS than 2 hours.
+- The person is not in shock (alert, skin not gray, pulse strong).
+- The limb is not amputated or crushed beyond use.
+- You can watch the wound closely afterward.
+
+How to convert:
+1. Get your best dressing ready first: hemostatic or packed gauze plus a pressure wrap.
+2. Leave a loosened tourniquet in place just above, ready to retighten in one second.
+3. Pack the wound hard and apply firm pressure OR wrap the pressure dressing tight.
+4. Slowly release the tourniquet over about a minute. Watch the wound.
+5. If it stays dry, leave the tourniquet loose but on the limb, and keep watching.
+6. If bright blood wells up or spurts, retighten the tourniquet immediately and leave it. Do not try to convert again.
+
+Hard truth on the long-on tourniquet:
+- If a tourniquet has been tight MORE than 6 hours, do NOT release it in the field. Toxins build in the dead tissue, and a sudden release can flood the body and stop the heart. Leave it on. You may lose the limb. Releasing it may cost the life. Keep it on and reach care however you can.
 
 == CLEANING WOUNDS IN THE FIELD ==
-After bleeding is fully controlled:
+Do this only after bleeding is fully controlled. Clean wounds are the single biggest thing you control to prevent the infection that kills days later.
 
-- Irrigate with the cleanest water available, ideally water safe to drink. Volume and pressure matter: use a liter or more, squirted from a squeeze bottle, syringe, or a pinhole in a bag.
-- Pick out visible dirt and debris.
-- Do not pour alcohol, hydrogen peroxide, or iodine solution into the wound; they damage tissue. Use antiseptics only on intact skin around it.
+- Irrigate with the cleanest water you have, ideally water safe to drink. Boiled-then-cooled water is excellent.
+- Volume and pressure both matter. Use a liter or more, squirted hard from a squeeze bottle, syringe, hydration bladder, or a pinhole punched in a bag. A forceful stream flushes bacteria out.
+- Pick or wipe out visible dirt, gravel, and debris. Trim away obviously dead, hanging tissue only if you can do it cleanly.
+- For an animal or human bite, or a heavily soiled wound, irrigate longer and harder: 15 minutes of vigorous washing measurably lowers infection risk.
+- Do not pour alcohol, hydrogen peroxide, or full-strength iodine into the wound. They kill healing tissue and slow recovery. Use antiseptics only on intact skin around the edges.
+- If plain water is all you have, plain water is enough. Clean, not sterile, is the field standard.
 
-== CLOSE OR LEAVE OPEN ==
-- In the field, leave wounds open. Closing a dirty wound traps bacteria and breeds infection.
+== CLOSE, LEAVE OPEN, OR CLOSE LATE ==
+You have three real choices, not just "leave it for a professional."
+
+Close now (with tape strips, butterfly strips, or improvised strips):
+- Only for wounds that are clean, well irrigated, less than about 12 hours old, and on skin with good blood supply.
+- Pull the edges together and hold with strips spaced apart. Never seal it edge to edge like a zipper.
+- Do not close bites, punctures, or anything still dirty. Sealing bacteria in causes the worst infections.
+
+Leave open:
+- Dirty wounds, bites, punctures, ragged or gaping wounds, and anything over about 12 hours old.
 - Cover with a clean non-stick layer and a bandage. Change it daily or when soaked.
-- Only small, clean, well-irrigated cuts may be pulled together with tape strips.
-- Gaping wounds, punctures, bites, and anything dirty must stay open and be closed by a professional.
+- For a deep cavity, pack it loosely with clean moist gauze so it heals from the bottom up, not sealed over the top.
 
-== INFECTION SIGNS TIMELINE ==
+Close late (delayed closure, your best move when stranded):
+- Leave a dirty wound open and cared for 3 to 5 days.
+- If it looks clean and healthy then (no pus, no spreading redness, no bad smell), you may pull the edges together with strips at that point.
+- If it looks infected, keep it open and treat the infection.
+
+== IF INFECTION STARTS AND YOU CANNOT REACH CARE ==
+Reading the wound:
 - First 24 hours: some redness and soreness at the edges is normal.
-- 24 to 72 hours: increasing redness, warmth, swelling, throbbing pain, or pus means infection is starting.
-- Red streaks running from the wound toward the body, fever, or chills mean spreading infection. This needs antibiotics. Evacuate now, not tomorrow.
+- 24 to 72 hours: growing redness, warmth, swelling, throbbing, or pus means infection is starting.
+- Red streaks running from the wound toward the body, fever, chills, or feeling very ill mean the infection is spreading into the bloodstream. This is dangerous.
+
+What you do, with no clinic in reach:
+- Open it up. If you closed the wound, remove the strips and let it gape so pus can drain. Trapped pus feeds the infection.
+- Drain any pocket. If a tender swollen pocket of pus has formed, opening it to drain relieves it. Press gently from the edges toward the opening.
+- Soak and compress. Warm (not scalding) water soaks or warm wet cloths on the area, 15 to 20 minutes several times a day, pull infection toward the surface and ease pain.
+- Wet-to-dry dressings. Soak a clean cloth in boiled, cooled water, wring it out, lay it on the wound, cover with a dry layer. Peeling it off later lifts away dead tissue and debris.
+- Pack with honey or sugar. Both are proven wound antibacterials in low-resource settings. Fill or coat the wound with honey (medical or raw) or plain granulated sugar, then cover. They pull water out of bacteria and help clear the wound. Re-apply daily; rinse and re-pack when it liquefies.
+- Rest and elevate the limb, and keep it as still as you can. Movement and gravity spread infection.
+- Push fluids. Keep drinking clean water to help your body fight and to fight the fever.
+
+If you carry oral antibiotics, use them:
+- Contaminated wounds and bites: amoxicillin-clavulanate 875 mg every 12 hours is the first choice.
+- Skin infection, no bite: cephalexin 500 mg every 6 hours.
+- Penicillin allergy or concern for resistant bugs: doxycycline 100 mg every 12 hours, or trimethoprim-sulfamethoxazole one double-strength tab every 12 hours.
+- Water or soil contaminated wounds: ciprofloxacin 500 mg every 12 hours can be added.
+- Take only what you have and are not allergic to. Continue for 7 days, and for at least 3 days after it clearly improves.
+
+The honest limit:
+- Warm soaks, drainage, honey or sugar, and rest can turn back many local infections and buy real time.
+- Once infection is truly in the bloodstream (spreading red streaks, high fever, confusion, racing heart), there is no reliable field cure without antibiotics. These measures may slow it and improve your odds, but they cannot be counted on to save you. Reaching antibiotics becomes the priority if any path exists.
+
+== ANIMAL AND HUMAN BITES ==
+Bites drive bacteria deep and carry real infection risk. Manage them yourself first.
+
+- Wash hard and long. Vigorous soap-and-water washing and irrigation for a full 15 minutes is the most important thing you can do. It markedly lowers both bacterial and rabies risk.
+- Leave bites open. Do not close them. Cover, and watch closely for infection.
+- Start amoxicillin-clavulanate if you carry it (see doses above); bites need it more than most wounds.
+
+Honest truths, no false hope:
+- Rabies: if the animal may be rabid (bat, fox, raccoon, skunk, stray dog, or any wild carnivore, or any bat contact at all), there is NO field substitute for the rabies shot series and immune globulin. Washing for 15 minutes lowers the odds but is not a cure. Rabies, once symptoms begin, is almost always fatal. Wash immediately and hard, and get the shot series started as soon as you can reach any care, even days later; it can still work before symptoms appear.
+- Tetanus: deep, dirty, and puncture wounds carry tetanus risk. There is no field treatment. Cleaning the wound and leaving it open is your only field defense; the vaccine is the real prevention.
+
+== EVACUATION IS ONE OPTION, NOT THE ONLY ONE ==
+Everything above is what you do on your own. Evacuate as well if, and only if, you can safely reach help without making things worse. Move toward care if:
+- You needed a tourniquet or packing for a major bleed.
+- Infection is spreading (red streaks, fever, feeling very ill) and you have no antibiotics.
+- A bite may carry rabies.
+- A wound will not stop draining, keeps worsening, or you cannot manage it.
+
+If you cannot evacuate, keep doing the field care above. It is real medicine, and it is often enough.

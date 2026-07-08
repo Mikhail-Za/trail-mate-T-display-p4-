@@ -1,36 +1,86 @@
 If Bitten, Stung, or Charged: Quick Actions
 
-== THIS IS THE QUICK CARD ==
-- Fast reminders only. The full treatment for every item here is in the Water and First Aid section, bites and stings article. Read that one at home so these prompts are enough in the moment.
+== FIRST, EVERY TIME ==
+- Stop. Get everyone back to a safe distance before you treat. Panic and crowding make second victims.
+- Sit the victim down. Keep them calm and still. Fear and exertion speed venom and deepen shock.
+- The field steps below are the treatment, not a stopgap. Do them now, whether or not help is coming.
+- Evacuate only if you can reach help safely. If you cannot, these steps are what you have, and they work.
 
 == SNAKEBITE ==
-- Back everyone away from the snake. Do not chase it; the treatment is the same without an identification.
-- Keep the victim calm and still. Remove rings, watches, and tight clothing before swelling starts.
-- Keep the bitten limb near heart level and loosely splinted. Mark the swelling edge and write down the time.
-- Evacuate to a hospital now. No cutting, no suction, no tourniquet, no ice, no alcohol.
+Most US venomous snakes are pit vipers: rattlesnake, copperhead, cottonmouth. For those:
+- Move back. Do not chase or try to catch the snake. A photo from a safe distance may help later. Handling it just earns a second bite.
+- Strip off rings, watch, bracelets, and tight clothing NOW, before swelling starts. Swelling can be huge.
+- Keep the victim still. Splint the limb loosely in a straight, comfortable position. Do not wrap it tight.
+- Keep the bitten limb at about heart level. Not raised above the heart, not hanging down.
+- Mark the leading edge of swelling with a pen and write the time. Re-mark every 15 to 30 minutes to track how fast it spreads.
+- Pain: acetaminophen (Tylenol) only. Do NOT use ibuprofen, aspirin, or other NSAIDs. This venom thins the blood and those drugs worsen bleeding.
+- Sip water. Watch for shock (pale, cold, faint). Lay flat and keep warm.
+- NEVER cut, suck, use a suction kit, tourniquet, ice, alcohol, or electric shock. All are proven to harm and remove almost no venom.
+- Do NOT tie a pressure bandage on a pit viper bite. It traps the tissue-killing venom in the limb and makes damage worse.
+
+If you cannot reach care (pit viper):
+- Antivenom is the only thing that neutralizes venom. There is no field substitute for it. That is the honest truth.
+- But most US pit viper bites are survivable even with long delay. Deaths are rare, and up to 1 in 4 bites inject little or no venom.
+- Your job is to buy time and limit damage: stay still, keep the limb at heart level, control pain, treat shock, keep watching the limb.
+- As swelling grows, loosen the splint and every dressing so they never become a tourniquet. Check that fingers or toes stay warm and pink.
+- Keep the wound clean and covered. Expect blisters and bruising. Do not open or drain them.
+
+Coral snake (thin body, black nose, red and yellow bands touching): different rules.
+- Its venom attacks nerves, not tissue. Watch for delayed droopy eyelids, slurred speech, trouble swallowing or breathing, sometimes hours later.
+- For a CONFIRMED coral snake bite only: wrap the whole limb firmly with an elastic or cloth bandage (snug, not cutting off blood flow) and splint it. This slows the nerve venom.
+- Do NOT use this wrap on a pit viper bite. If you are not sure which snake it was, treat it as a pit viper.
 
 == SPIDER BITE ==
-- Wash it, apply a cold compress, note the time.
-- Black widow (cramping belly and muscle pain with sweating) or brown recluse (a spreading dark sore over days): evacuate for care. Most other bites just need cleaning and watching for infection.
+- Wash it. Apply a cold compress 15 to 20 minutes at a time. Elevate. Note the time.
+- Pain and itch: acetaminophen or ibuprofen, plus an antihistamine (diphenhydramine) if you have one.
+- Black widow (severe belly and muscle cramps, sweating, spiking blood pressure): the danger is pain, not usually death. Manage the pain, keep warm, ride it out. Symptoms ease over hours to a couple of days. A healthy adult almost always recovers without antivenom.
+- Brown recluse (a bite that turns into a spreading dark, sunken sore over days): keep it clean and covered and treat it like any wound. Do NOT cut out the dead tissue. Most heal with basic care over weeks.
+- Hard truth: watch for dark or bloody urine, fever, or spreading illness. That is rare, has no field fix, and needs a hospital. Push fluids and evacuate if you can.
 
 == BEE, WASP, AND ANAPHYLAXIS ==
-- Scrape a bee stinger out sideways at once; do not pinch it. Cold compress for normal local swelling.
-- Watch for anaphylaxis: spreading hives, swelling lips or throat, wheezing, dizziness, vomiting. This kills in minutes.
-- If it appears, give epinephrine into the outer thigh immediately, repeat in 5 to 15 minutes if no better, and evacuate even if they recover.
+- Get the stinger out FAST, any way you can. Scrape or pinch, it does not matter. Speed beats method. Every second leaks more venom.
+- Normal sting: cold compress, antihistamine, pain reliever. Watch it.
+- ANAPHYLAXIS is the killer. Signs, often within minutes: spreading hives, swelling lips, tongue, or throat, wheezing or a tight throat, dizziness, vomiting, a feeling of doom.
+- If it appears and you have epinephrine: inject the outer thigh at once (adult dose 0.3 mg auto-injector, or 0.3 mL of 1 mg/mL). Repeat every 5 to 15 minutes if not improving.
+- Lay them flat and raise the legs. If breathing is hard, let them sit up, but do NOT let them stand or walk, even if they feel better. Standing up can stop the heart. If vomiting or drowsy, roll them onto their side.
+- Adjuncts, only after epinephrine or if you have none: antihistamine (diphenhydramine 25 to 50 mg) and an inhaler (albuterol) for wheeze.
+- Watch for hours even after they recover. It can rebound (biphasic reaction).
+
+If you have no epinephrine:
+- Hard truth: there is no reliable field substitute for epinephrine in true anaphylaxis. Severe throat swelling or shock can be fatal, and antihistamines are too weak and too slow to stop it.
+- Do everything you can anyway: lay them flat with legs up, keep the airway open (tilt the head back if unconscious and breathing), give antihistamines and an inhaler if you have them, keep them calm and still.
+- Mild reactions (hives only, no throat or breathing trouble) often settle with antihistamines alone. Watch closely in case it escalates.
 
 == TICK ==
-- Remove it with fine tweezers gripped at the skin, pulling straight out, with no twisting or burning. Wash the site and note the date.
-- Watch 30 days for an expanding rash or flu-like illness, and seek care if either appears.
+- Grip it with fine-tipped tweezers right at the skin and pull straight out, slow and steady. No twisting, no burning, no squeezing the body, no petroleum jelly.
+- Wash the site. Save the tick or a photo. Write down the date.
+- Watch about 30 days for an expanding rash (often a ring or bullseye) or a flu-like illness: fever, aches, deep fatigue.
+- If you carry doxycycline and are not allergic:
+  - Prevent: a single 200 mg dose within 72 hours can lower Lyme risk after a bite from a swollen, engorged tick attached over a day.
+  - Treat: for a suspected tickborne illness (the rash, or the fever and aches), 100 mg twice a day is the standard field treatment. Start it, then evacuate if you can.
+- Hard truth: without antibiotics there is no field cure for a tickborne infection. Rest, fluids, and fever control are all you have. Get the drug as soon as you can reach it.
 
-== ANIMAL BITE OR SCRATCH ==
-- Wash hard with soap and water for many minutes. Do not close the wound. Dress it and get medical care.
-- Rabies: any bite or scratch from a bat, raccoon, skunk, fox, coyote, or unknown dog or cat, or waking with a bat in your shelter, needs prompt medical attention. Rabies is fatal once symptoms start, and the shots work only if started early.
+== ANIMAL BITE OR SCRATCH (RABIES) ==
+- Wash HARD, right now, for at least 15 full minutes with soap and plenty of water. Scrub deep into the wound. This is the single best thing you can do. It physically removes and kills virus.
+- Then flush with povidone-iodine, or pour on alcohol, if you have it. Both kill rabies virus.
+- Do NOT close the wound. Bite wounds must drain. Irrigate with clean, drinkable water under pressure (a bag or bottle with a pinhole), cover it loosely, watch for infection.
+- Rabies risk: any bite or scratch from a bat, raccoon, skunk, fox, coyote, or an unknown dog or cat. Also waking with a bat in your shelter.
+- Hard truth: once rabies symptoms appear it is nearly always fatal, and the shots (vaccine plus immune globulin) are the ONLY thing that works. There is no field cure, no herb, no substitute.
+- But you do have real defenses. The long, hard wash above genuinely lowers the odds the virus takes hold, and the shots still work if you reach them within days. So wash now, then make reaching medical care your priority the moment it is safe.
+
+== WOUND CARE FOR ANY BITE OR MAULING ==
+- Stop bleeding first: firm, direct pressure with the cleanest cloth you have. Hold it steady, do not keep lifting to peek. Use a tourniquet only for life-threatening limb bleeding you cannot control any other way.
+- Irrigate: lots of clean, drinkable water under pressure to flush out dirt, saliva, and debris.
+- Leave bite wounds open to drain. Cover with a clean dressing. Closing them seals in infection.
+- Watch for infection: spreading redness, heat, swelling, pus, a red streak running up the limb, or fever. Warm compresses and more irrigation help.
+- If you carry antibiotics (such as amoxicillin-clavulanate), a spreading wound infection far from care is a reason to start them.
+- Hard truth: a deep infection, a red streak climbing the limb, or major tissue damage needs surgery and IV drugs that do not exist in the field. Manage it as best you can and move toward help.
 
 == LARGE ANIMAL CHARGE ==
-- Bear: stand tall and fight back against a black bear; play dead for a surprised or defensive grizzly, and fight only a predatory one. See the Nature bear article.
-- Moose: run and put a tree or rock between you; if knocked down, curl up and protect your head until it leaves.
-- Cougar or wolf: do not run, look big, back away, fight back if attacked. Pick up small children.
-- The common thread: a predator you face and fight; a moose you flee. Never run from a bear or a cougar.
-
-== THE FIRST STEP IS ALWAYS THE SAME ==
-- Stop, get everyone to a safe distance, then treat. Panic and crowding create second victims. Then work through the first aid article.
+- Black bear: stand tall, be loud, do NOT play dead. Fight back, aim for the face and muzzle. Try to reach a car or building.
+- Grizzly or brown bear (surprised, or defending cubs): play dead. Lie face down, hands laced behind the neck, legs spread, pack left on. Stay down until it leaves. If the attack does not stop, or it turns predatory, fight back and hit the face.
+- Any bear that attacks your tent or stalks you is hunting you. Do NOT play dead. Fight with everything.
+- Moose: run, and put a tree, rock, or vehicle between you. If knocked down, curl up, protect your head and neck, and stay still until it moves off.
+- Cougar or wolf: do NOT run. Look big, make noise, back away slowly, hold eye contact, fight back if attacked. Pick up small children.
+- The rule: a predator (cougar, wolf, predatory bear) you face and fight. A moose you flee. Never run from a bear or a cougar. Running triggers the chase.
+- After any mauling, work the wound care section above: bleeding first, then wash, then watch for infection and shock.

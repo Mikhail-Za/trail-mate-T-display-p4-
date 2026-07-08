@@ -1,50 +1,239 @@
 Fractures and Sprains
 
-You often cannot tell a bad sprain from a fracture in the field. When in doubt, treat it as a fracture. Never force a limb to move to "test" it. An open fracture (bone through skin), a limb that is cold, blue, or numb below the injury, or a suspected pelvis, thigh, or spine injury is an emergency: keep the casualty still and get help.
+You may be days from help, or unable to move at all. Assume no one is
+coming and that this is on you. Your job is not to "set" the bone the way
+a hospital would. It is to keep blood flowing past the injury, stop it
+getting worse, control bleeding and pain, keep out infection and cold,
+and keep the limb as usable as you can. Every step below stands on its
+own. Evacuate later only if you can safely reach help.
+
+You often cannot tell a bad sprain from a fracture in the field. When in
+doubt, treat it as a fracture. Never force a limb to move just to test it.
+
+== FIRST MOVES, ANY BONE OR JOINT INJURY ==
+Do these in order:
+- Stop major bleeding first. Direct pressure; a tourniquet high and tight
+  only for spurting, unstoppable limb bleeding.
+- Check below the injury: skin color, warmth, feeling, ability to wiggle.
+  This is CSM (circulation, sensation, movement). Note it as a baseline.
+- Strip rings, watch, tight clothing off the limb before it swells.
+- Support the limb in the position it is comfortable in.
+- Get the casualty off cold ground and keep them warm and dry.
+- Give pain medicine early (see SHOCK, COLD, PAIN).
 
 == WHEN TO SUSPECT A FRACTURE ==
 - A crack or pop was heard or felt, with rapid swelling.
 - The limb looks deformed, bent where it should be straight, or shortened.
-- Pain is pinpoint on the bone itself, or there is a grating feel with movement.
-- The casualty cannot bear weight for four steps, or cannot use the limb at all.
+- Pain is pinpoint on the bone itself, or grating is felt with movement.
+- The casualty cannot take four steps on it, or cannot use it at all.
 
-All suspected fractures need an X-ray and professional care, even if they start to feel better.
+A break you cannot X-ray still gets managed the same way in the field:
+align if needed, splint, protect, watch the circulation.
 
-== SPRAINS: RICE ==
-- Rest: stop using the joint. Get off it.
-- Ice: cool it with snow or cold water wrapped in cloth, about 20 minutes at a time. Never put ice or snow directly on skin.
-- Compression: wrap snugly with an elastic bandage, from below the joint upward. Toes or fingers must stay pink and warm.
-- Elevation: raise it above heart level whenever resting.
+== CIRCULATION FIRST: REALIGN A DYING OR BADLY BENT LIMB ==
+If the hand or foot below is cold, blue, numb, or pulseless, OR the limb
+is badly angled and you cannot reach help soon, bring it back toward
+normal shape. A straighter limb bleeds less, hurts less, and splints
+better. This is standard wilderness practice when care is far off.
 
-Most mild sprains can bear careful weight the next day. If it cannot, treat it as a fracture.
+How:
+- Grip below the break and pull slow and steady straight along the length
+  of the limb (in-line traction) while someone steadies above the break.
+- Ease it back toward straight and to normal length. Rough is fine. You
+  are not aiming for perfect.
+- Keep gentle tension while you apply the splint, then hold it there.
+- STOP if you hit firm resistance or pain spikes hard. Splint it where it
+  is. Do not crank on it.
+- Do not haul on a joint itself to "straighten" it. A popped-out joint is
+  a dislocation, handled below.
+- Recheck CSM. Return of warmth, color, and feeling means you succeeded.
 
-== SPLINTING PRINCIPLES ==
-Before and after splinting, check circulation, sensation, and movement below the injury: skin color, warmth, feeling, wiggle.
+Honest note: you cannot truly set or heal a bone out here. Aligned and
+splinted is the goal. Some deformity or a bad long-term result is
+acceptable next to losing the limb or bleeding out.
 
-- Splint the limb in the position found. Do not straighten a deformed limb unless it is pulseless and help is many hours away.
-- Immobilize the joint above and the joint below the injury. For a forearm, that means wrist and elbow.
-- Pad everything: bony bumps, hollows, the whole contact surface. A splint that hurts will not be tolerated.
-- Tie the splint on above and below the injury, never directly over it.
-- Recheck circulation right after splinting and every 15 to 30 minutes. If the hand or foot goes pale, cold, or numb, loosen the ties.
+== SPLINTING: RIGID, PADDED, AND WATCHED ==
+Check CSM below the injury before and after you splint.
+
+- Splint in the position found, or in the aligned position if you pulled
+  it straight. Support the natural curve.
+- Immobilize the joint above and the joint below the break. For a
+  forearm that means wrist and elbow.
+- Pad everything: bony bumps, hollows, the whole contact surface. A
+  splint that hurts will not be kept on.
+- Make it stiff enough that the break cannot move.
+- Tie above and below the injury, never directly over it.
+- Recheck CSM right after splinting and every 15 to 30 minutes. If the
+  hand or foot goes pale, cold, or numb, loosen the ties at once.
 
 == IMPROVISED SPLINTS ==
-- A foam sleeping pad rolled into a U-channel around the limb is the best all-around backcountry splint.
-- Sticks, tent poles, or trekking poles padded heavily with spare clothing work for legs and forearms.
-- Buddy-tape an injured finger or toe to its neighbor with padding between them.
-- For arm, shoulder, or collarbone: sling the arm with a triangle bandage, then bind it gently against the chest (sling and swathe).
+- A foam sleeping pad rolled into a U-channel around the limb is the best
+  all-around backcountry splint.
+- Sticks, tent poles, or trekking poles padded heavily with spare
+  clothing work for legs and forearms.
+- Buddy-tape an injured finger or toe to its neighbor, padding between.
+- For arm, shoulder, or collarbone: sling the arm with a triangle
+  bandage, then bind it gently to the chest (sling and swathe).
 
-== ANKLE TAPING BASICS ==
+== DISLOCATIONS: PUT IT BACK, SOONER IS EASIER ==
+A joint popped out of place chokes its own blood and nerve supply. The
+longer it stays out, the more the muscles spasm and the harder it is to
+put back. Reducing it early, gently, is a real field skill.
+- Check CSM first. Get the casualty relaxed. Pain medicine helps.
+- Move slowly. Muscles must relax for the joint to slide home. You will
+  often feel or hear a soft clunk when it goes.
+- STOP if it will not go after a couple of gentle tries, or if pain or
+  resistance climbs. Splint it as it lies and protect the limb.
+- Recheck CSM after. A reduced joint usually feels dramatically better
+  and can often be used gently.
+
+Shoulder (most common), try any of these:
+- Hanging traction (Stimson): casualty lies face down with the arm
+  dangling off a ledge or pack. Hang 10 to 15 pounds from the wrist
+  (a water bag, a rock in a sack). Wait 20 to 30 minutes and let it
+  relax back in.
+- External rotation: elbow bent and held against the side, slowly rotate
+  the forearm outward like opening a gate.
+- Cunningham: casualty sits upright, chest out, arm relaxed at the side;
+  massage the shoulder and upper arm muscles until they let go.
+
+Kneecap (patella, usually slid to the outside):
+- Slowly straighten the knee while pushing the kneecap gently back toward
+  the midline. It usually pops in on its own as the leg straightens.
+
+Finger or toe:
+- Steady pull along the length of the digit with a counter-hold on the
+  hand or foot, then ease it back into line. Buddy-tape or splint after.
+
+== SPRAINS: PROTECT AND LOAD ==
+The old "RICE" advice to rest completely is outdated. Gentle early use
+heals a mild sprain faster. The current approach:
+- Protect it from a second injury.
+- Optimal loading: once the worst pain eases, put careful weight or use
+  on it as pain allows. Let pain be the limit. Do not baby it into
+  stiffness, but do not force it either.
+- Compression: wrap snugly with an elastic bandage from below the joint
+  upward. Toes or fingers must stay pink and warm.
+- Elevation: raise it above heart level when resting.
+- Cooling is optional and only for comfort and swelling the first day:
+  snow or cold water wrapped in cloth, about 20 minutes at a time. Never
+  put ice or snow directly on skin.
+
+Most mild sprains take careful weight the next day. If it cannot, or if a
+complete tear is likely (total instability), splint and treat it as a
+fracture.
+
+== ANKLE TAPING TO WALK OUT ==
 For a sprain the casualty must walk on:
+- Keep the boot on if swelling allows. A laced boot is itself a splint.
+  Once off, a swelling foot may not go back in.
+- Hold the ankle at 90 degrees. Run tape stirrups: start on the inside of
+  the lower leg, pass under the heel, pull up the outside. Lay several
+  overlapping strips.
+- Add a figure-eight around the ankle and midfoot to lock it. Snug, not
+  tight; toes stay pink.
 
-- Keep the boot on if swelling allows. A laced boot is itself a splint. Once removed, a swelling foot may not go back in.
-- Hold the ankle at 90 degrees. Run tape stirrups: start on the inside of the lower leg, pass under the heel, pull up the outside. Lay several overlapping strips.
-- Add a figure-eight around the ankle and midfoot to lock it. Snug, not tight; toes stay pink.
+== OPEN FRACTURE: BONE THROUGH SKIN ==
+The wound, not the bone, is the danger. Infection over days is what kills.
+- Stop bleeding first with pressure around, not on, the bone end.
+- Rinse the wound with clean, disinfected water to float out visible dirt.
+  Do not scrub deep and do not deliberately shove the bone back in.
+- If you pull traction and the bone slips back under the skin on its own,
+  that is fine. Cover it.
+- Cover with the cleanest moist dressing you have.
+- Splint the limb.
+- If you carry antibiotics, start them as soon as possible. Update tetanus
+  when you reach care.
 
-== WHEN THE CASUALTY MUST NOT WALK ==
-Do not let them walk with:
+Honest note: cleaning lowers the infection risk but does not remove it.
+Without antibiotics and surgical cleaning, a serious open-fracture
+infection is likely within days. This is one of the strongest reasons to
+evacuate if you possibly can. If you cannot, keep irrigating with clean
+water, keep it covered, and watch for spreading redness, pus, foul smell,
+and fever.
 
-- Suspected fracture of the thigh, hip, or pelvis, or any suspected spine injury.
-- Any leg injury where the foot below is numb, cold, or pulseless.
+== THIGH FEMUR FRACTURE: IT CAN BLEED YOU OUT ==
+The big thigh muscles around a broken femur can hide over a liter of
+blood loss. This can be fatal on its own.
+- Apply gentle in-line traction, pull the leg out to length, and keep
+  that tension held.
+- Improvise a traction splint, or bind the injured leg to the good leg
+  with a padded pole or rolled pad between them, feet and knees tied.
+- Treat aggressively for shock. Keep the casualty warm.
+
+Honest note: this bleeding may need surgery to truly stop. Traction,
+warmth, and shock care buy time. They are not a guaranteed fix.
+
+== PELVIS AND HIP ==
+Suspect a broken pelvis after a hard fall or crush, with pain when the
+hips are gently squeezed, or an inability to stand.
+- Wrap a binder around the widest part of the hips, over the hip knobs
+  (greater trochanters), NOT up on the belt-line bones. Use a folded
+  sheet, jacket, or pack strap. Snug it firm.
+- Tie the feet together and the knees together to close the pelvis in.
+- Do not rock or spring the pelvis over and over to test it.
+- Do not tie leg-to-leg traction on a broken pelvis.
+
+Honest note: pelvic bleeding can be lethal and usually needs a hospital.
+The binder can slow internal bleeding and buy time. It is a time-buyer,
+not a cure.
+
+== SPINE AND NECK ==
+Suspect a spine injury after a hard fall, a blow to head, neck, or back,
+or if there is neck or back pain, or numbness, tingling, or weakness in
+the limbs.
+- Keep the head, neck, and back in one neutral straight line.
+- Pad around the head and body to stop it rolling. Move the whole body as
+  a single unit if you must move at all.
+- If you MUST move to survive, out of water, off a cliff, out of the cold,
+  keep the spine in line and move slow and controlled.
+
+Honest note: you cannot fix a broken spine or fully rule one out in the
+field. There is no field cure. Minimize movement, prevent cold, and get
+skilled help if it exists. If it does not, careful positioning and time
+are all you have.
+
+== COMPARTMENT SYNDROME: A LIMB EMERGENCY ==
+Watch for it after a bad break or crush, even under a good splint:
+- Pain far worse than the injury seems to warrant.
+- Sharp pain when you gently stretch the toes or fingers.
+- A tight, hard, swollen limb, and creeping numbness.
+- A missing pulse is a late, unreliable sign. Do not wait for it.
+
+Act: loosen every tie, bandage, and splint. Remove all outside pressure.
+
+Honest note: true compartment syndrome needs a surgical release within
+hours to save the limb. In the field you can only take off outside
+pressure. If this is happening, evacuate as fast as you can.
+
+== SHOCK, COLD, AND PAIN ==
+Cold makes bleeding and shock worse. Fight it hard.
+- Insulate the casualty from the ground; keep them warm and dry.
+- Lay them flat, legs raised slightly, ONLY if there is no leg, pelvis,
+  or spine injury.
+- Give small sips of water if they are fully awake and have no belly
+  injury. Add food and warmth.
+
+Pain control:
+- Ibuprofen 400 to 600 mg every 6 to 8 hours WITH food (up to about 2400
+  mg in 24 hours). Skip ibuprofen if there is heavy bleeding or the
+  casualty is badly dehydrated.
+- Acetaminophen 1000 mg every 8 hours (no more than 3000 to 4000 mg in
+  24 hours).
+- The two can be given together for stronger relief.
+- The single best painkiller is a well-padded, rigid splint. Splint first.
+
+== EVACUATE OR STAY ==
+Evacuate if, and only if, you can safely reach help. That is one option
+among the actions above, not the whole answer. If no help is reachable,
+the field management above is your care.
+
+Do NOT let the casualty walk with:
+- Suspected fracture of the thigh, hip, or pelvis, or any spine injury.
+- A leg injury where the foot below is numb, cold, or pulseless.
 - Obvious deformity of the leg bones.
 
-Splint gently, insulate them from the ground, watch for shock, and send for or signal rescue. Carrying or dragging a casualty over rough ground is a last resort; a bad carry can make the injury worse.
+A laced boot is a splint, and a walkable ankle sprain can self-rescue.
+Carrying or dragging a casualty over rough ground is a last resort; a bad
+carry can make the injury worse. Splint well, insulate from the ground,
+watch for shock, and signal for rescue if you have any means to.

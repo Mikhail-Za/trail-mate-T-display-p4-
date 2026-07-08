@@ -1,51 +1,150 @@
 Bites and Stings
 
-Antivenom, rabies shots, and antibiotics only exist at a hospital. For serious bites and stings, everything you do in the field is about buying time and moving toward care.
+Most bites and stings you can manage yourself with what you carry or can improvise. A few problems (antivenom, rabies shots, epinephrine for a severe allergy) have no full field substitute. This guide tells you plainly which those are, and gives the best real actions for each so you buy time and survive.
 
-== SNAKEBITE: THE MODERN PROTOCOL ==
-In North America, most venomous bites are from pit vipers: rattlesnakes, copperheads, cottonmouths.
+Do the field steps first. They work whether or not help is coming. Evacuate if you can safely reach help, but never sit and wait on rescue before you start treating.
+
+== FIRST 60 SECONDS, ANY BITE OR STING ==
+- Get clear of the animal. Do not try to catch or kill it.
+- Check the person: awake, breathing, bleeding hard? Treat the worst thing first.
+- Spreading hives, swelling lips or tongue, tight throat, wheezing: treat as anaphylaxis NOW (see that section). This kills in minutes.
+- Bleeding that spurts or pools: press hard on it. See ANIMAL BITES for tourniquet.
+- Remove rings, watch, tight clothing near the bite before swelling starts.
+- Wash the wound. For most bites this is the single most useful thing you can do.
+
+== SNAKEBITE: PIT VIPERS ==
+In North America most venomous bites are pit vipers: rattlesnakes, copperheads, cottonmouths. Signs of venom: fast swelling, bruising, severe pain, numbness or tingling.
 
 Do NOT:
-- Cut the wound or try to suck out venom, by mouth or with a kit. It does not work and causes harm.
-- Apply a tourniquet or tight band.
+- Cut the wound or suck out venom, by mouth or kit. It does not work and causes harm.
+- Apply a tourniquet or any tight band.
+- Wrap it tight. Pit viper venom rots tissue; trapping it makes the local damage worse.
 - Apply ice.
-- Give alcohol.
-- Chase or handle the snake for identification. A photo from a safe distance is plenty; treatment is the same either way.
+- Give alcohol, aspirin, or ibuprofen (they worsen bleeding).
+- Chase or handle the snake. A photo from a distance is plenty. Treatment is the same either way.
 
 Do:
 - Move everyone away from the snake.
-- Keep the casualty calm and as still as possible. Exertion spreads venom faster.
-- Remove rings, watches, and tight clothing near the bite before swelling starts.
-- Splint or immobilize the bitten limb and keep it at about heart level.
-- Draw a line around the swelling edge and write the time. Repeat as it spreads; this tells doctors how fast it is moving.
-- Evacuate to a hospital as fast as safely possible. If walking out slowly is the only way, walk out slowly.
+- Keep the person calm and as still as possible. Exertion pumps venom around faster.
+- Gently wash the bite with clean water and soap if you have it.
+- Splint the bitten limb like a broken bone and keep it at about heart level. Not raised high, not hanging low.
+- Draw a line at the edge of the swelling and write the time. Redraw as it spreads. This shows how fast it is moving.
+- For pain, use acetaminophen (Tylenol) if you have it. Not aspirin or ibuprofen.
+- Keep drinking water. Watch breathing and alertness.
 
-Some bites inject no venom, but never assume that. Every snakebite gets evaluated.
+About a quarter to a third of pit viper bites are "dry" (no venom injected). Do not assume yours is dry, but know the odds are not all against you.
 
-== SPIDER BITES OF CONCERN ==
-- Black widow: pinprick bite, then within an hour cramping muscle pain in the abdomen, back, or limbs, with sweating. Rarely fatal to healthy adults but severe: evacuate for care.
-- Brown recluse (mainly the South and Midwest): often painless at first, then a blister and a dark, sunken sore over days. Clean it, cover it, seek care.
-- Most suspected "spider bites" are actually skin infections. Either way, watch for spreading redness and fever.
+== PIT VIPER: IF YOU CANNOT REACH ANTIVENOM ==
+Hard truth: antivenom is the only thing that neutralizes venom, and it exists only at a hospital. There is no plant, no cut, no suction, no folk cure that removes venom. Anyone who tells you otherwise is guessing with your life.
 
-== BEES, WASPS, AND ANAPHYLAXIS ==
-- Scrape a bee stinger out sideways with a fingernail or card as fast as possible. Do not pinch it; that squeezes in more venom.
-- Cold compress and an oral antihistamine handle normal local pain and swelling.
+The good news is real: in the US, deaths from pit viper bites are rare. Most people survive even with delayed or no antivenom. Copperhead bites almost never need it. The bite may cost you tissue and a hard few days, but it is usually not a death sentence.
 
-Anaphylaxis is a killer and moves in minutes. Watch for: hives spreading beyond the sting, swelling of lips, tongue, or face, tight throat, wheezing, dizziness, vomiting, collapse.
+So if you are on your own, your job is to keep the person alive and stable while their body clears the venom:
+- Rest and immobilize. Every hour of stillness slows the spread.
+- Hydrate steadily. Venom stresses the kidneys; keep fluids going.
+- Control pain with acetaminophen, splinting, and reassurance.
+- Track the swelling line and the whole limb. Expect swelling; watch that fingers or toes stay pink and can move.
+- Watch for the rare killers: bites to the face or neck (airway swelling), heavy bleeding from gums or old wounds, fainting, confusion. If the airway swells, sitting up eases breathing.
+- Loosen the splint if the limb swells too tight to keep blood flowing to the hand or foot.
+- Evacuate if you can do it slowly and safely. Carrying the person beats making them walk. If walking out is the only option, walk out slow.
 
-- Give epinephrine (auto-injector) immediately into the outer thigh; through clothing works. If in doubt, give it. Epinephrine is the treatment; nothing else substitutes.
+== CORAL SNAKE: THE ONE YOU WRAP ==
+Coral snakes live in the Southeast and Southwest US. US rule: "red touches yellow, kill a fellow" (red bands touching yellow bands). This does NOT hold for tropical species.
+
+Coral snake venom is different from pit vipers: little pain or swelling at first, so it is easy to underestimate. Hours later it can cause drooping eyelids, double vision, slurred speech, trouble swallowing, then failure to breathe.
+
+This is the one North American snake where you wrap the limb (pressure immobilization):
+- Wrap the ENTIRE limb firmly with an elastic or cloth bandage, from the fingers or toes up toward the body, as snug as a sprain wrap.
+- Keep it tight enough to dent the skin but loose enough that fingers or toes stay pink and you can slip a finger under it.
+- Splint the limb and keep the person dead still. Movement speeds the venom.
+- Do NOT wrap pit viper bites this way. Only coral snake or a clearly neurotoxic bite.
+
+Hard truth: coral snake paralysis is reversed by antivenom, not by anything in your pack. If breathing weakens and you cannot reach care, someone may have to do rescue breaths (mouth to mouth) for hours to keep them alive. That is grim but it is the real answer, and it has kept people alive until help came.
+
+== BLACK WIDOW ==
+Pinprick bite, then within an hour cramping muscle pain in the belly, back, or limbs, with sweating, and sometimes nausea.
+
+The odds are with you: about two thirds of bites stay minor, and most cases resolve on their own in 24 to 48 hours. Deaths are extremely rare. Even in a hospital the usual care is just pain and spasm control while it passes.
+
+Field management:
+- Clean the bite. Cold pack for pain.
+- Pain relief: acetaminophen or ibuprofen. Opioids if you carry them and the pain is severe.
+- For muscle cramps, a benzodiazepine (diazepam) or muscle relaxant helps if you have one.
+- Keep the person calm, warm, and hydrated. Ride it out.
+- Higher risk for the very young, the elderly, pregnant, or anyone with heart trouble: watch these people closely for high blood pressure and breathing distress.
+- Evacuate if you can reach help and symptoms are severe or in a high-risk person. Antivenom exists for bad cases but is rarely needed.
+
+== BROWN RECLUSE ==
+Mainly the South and Midwest. Often painless at first, then a blister and a dark, sunken sore over days.
+
+Honest note: there is NO proven cure, in the field or the hospital. Stun guns, cutting it out early, and folk poultices do not help and often cause harm. Good wound care is the whole treatment, and you can do it yourself:
+- Clean the wound. Cover it. Elevate the limb.
+- Keep it clean and dry, change the dressing, let it heal slowly. Big sores can take one to two months.
+- Do NOT cut out the dead tissue early. Let it declare itself.
+- Watch for spreading redness, fever, dark or reduced urine (a rare sign the venom is affecting blood). Those mean it has turned serious.
+- Evacuate if you see those systemic signs or the wound is large and worsening. Otherwise, most heal with patience and clean dressings.
+
+Most suspected "spider bites" are actually skin infections. Either way, clean it and watch for spreading redness and fever.
+
+== BEES, WASPS, HORNETS ==
+- Get a bee stinger out FAST, by any method. Scrape it or pinch it, whatever is quicker. Speed matters, not technique. The old "never pinch" rule is outdated; a stinger keeps pumping venom for up to a minute, so seconds count.
+- Cold compress and an oral antihistamine handle normal pain and swelling.
+- Multiple stings: expect more pain and swelling. Hydrate and rest. Very large numbers of stings can make a person truly sick; watch for vomiting, weakness, dark urine.
+- Then watch closely for anaphylaxis, especially in the first 30 minutes.
+
+== ANAPHYLAXIS: THE FAST KILLER ==
+This moves in minutes and kills. Watch for: hives spreading beyond the sting, swelling of lips, tongue, or face, tight throat, hoarse voice, wheezing, dizziness, vomiting, collapse.
+
+- Give epinephrine (auto-injector) IMMEDIATELY into the outer thigh. Through clothing is fine. If in doubt, give it. Epinephrine is very safe and delay kills.
 - Give a second dose after 5 to 15 minutes if not clearly improving.
-- Antihistamines come after epinephrine, never instead of it.
-- Lie the person flat with legs raised unless breathing is easier sitting.
-- Evacuate even if they recover. Symptoms can return hours later.
+- Lay the person flat with legs raised. If breathing is easier sitting up, let them sit. Do not stand them up suddenly, it can drop their blood pressure.
+- Antihistamines and an asthma inhaler (albuterol, for wheezing) come AFTER epinephrine, never instead of it.
+- An EXPIRED auto-injector still keeps most of its strength for years. If it is all you have, use it. Expired epinephrine beats none.
+- Check others in your group for an auto-injector if the person has none.
+- Evacuate even after recovery. Symptoms can return hours later. Keep them near help and watch.
+
+== ANAPHYLAXIS: IF YOU HAVE NO EPINEPHRINE ==
+Hard truth: nothing else reliably reverses severe anaphylaxis. Antihistamines are slow and weak and do NOT substitute for epinephrine. This is one of the situations where a person can die and there is no field fix. Say it plainly so you do not waste minutes on a false cure.
+
+Do everything that might buy time:
+- Sit or lay them in whatever position they breathe best.
+- Give any antihistamine you have (diphenhydramine, loratadine) by mouth or chewed. Slow and weak, but better than nothing.
+- If they wheeze and someone has a rescue inhaler (albuterol), give repeated puffs.
+- Keep the airway open. If the throat is closing and they go unresponsive, tilt the head back to open the airway.
+- If they stop breathing or lose a pulse, start CPR and continue.
+- Prevention is the real answer: anyone with a known severe allergy must carry epinephrine (two doses) into the backcountry, and companions must know where it is and how to use it.
 
 == TICKS ==
 - Remove ticks as soon as found. With fine-tipped tweezers, grip the tick right at the skin, by the head, and pull straight up with steady pressure.
 - No twisting, burning, petroleum jelly, or nail polish. Those make the tick regurgitate into you.
-- Wash the site and note the date.
-- Watch for 30 days: an expanding rash (a bullseye ring is classic, but any growing red patch counts), fever, chills, headache, or body aches. Any of these means seek care and mention the tick. Early antibiotics treat Lyme and most other tick diseases well.
+- Wash the site and note the date and where on the body.
+- Watch 30 days for: an expanding rash (a bullseye ring is classic, but any growing red patch counts), fever, chills, headache, body aches, or a spotted rash on wrists and ankles.
 
-== ANIMAL BITES ==
-- Every mammal bite is a dirty wound with high infection risk, cat and human bites worst of all. Irrigate hard with lots of clean water, do not close the wound, dress it, and get professional cleaning and antibiotics.
-- Rabies: a bite or scratch from a bat, raccoon, skunk, fox, coyote, or any unknown dog or cat needs prompt medical attention. Rabies is essentially always fatal once symptoms start, and the post-exposure shots work only if started early.
-- Any direct contact with a bat, or waking up with a bat in your tent or shelter, counts as a possible exposure. Get seen.
+== TICKS: IF YOU CARRY ANTIBIOTICS AND CANNOT REACH CARE ==
+Doxycycline is the key drug for nearly all US tick diseases, and this is real self-reliance if you packed it and have no allergy to it:
+- Prevention after a high-risk bite (a tick attached 36+ hours in a Lyme area): a single 200 mg dose of doxycycline within 72 hours of removing it sharply cuts the chance of Lyme.
+- If a rash, fever, or the illness clearly starts and no care is reachable: doxycycline 100 mg twice a day is the standard treatment for early Lyme and covers Rocky Mountain spotted fever, anaplasmosis, and ehrlichiosis too.
+- Rocky Mountain spotted fever (fever plus a spreading spotted rash) can kill within days and doxycycline is the only drug that works. If it is on the table, do not wait.
+- Caution: doxycycline can upset the stomach (take with water and food, stay upright) and increases sunburn risk. It is normally avoided in pregnancy and young children, but for suspected spotted fever it is still the right drug even for them, because the disease is deadlier than the risk.
+- Evacuate if you can. Confirmed tick illness deserves a real course of treatment and follow-up.
+
+== ANIMAL BITES: WASH FIRST ==
+Every mammal bite is a dirty wound. Cat, dog, and human bites infect easily, and hand bites are the worst.
+
+- Control heavy bleeding first: press hard with a cloth. If a limb is bleeding in a way you cannot stop, apply a tourniquet 2 to 3 inches above the wound, tighten until bleeding stops, and write the time. A limb tourniquet can stay on for a couple of hours safely. Losing a limb beats losing a life.
+- WASH IT LONG AND HARD. Flush with lots of clean water under pressure and soap for several minutes. This is your best defense against both ordinary infection and rabies, and it is entirely in your hands.
+- Do NOT stitch or tape the wound closed. Closing a dirty bite traps infection. Pack or cover it open and let it drain.
+- Dress it and keep it clean. Change the dressing daily.
+- Watch for infection: spreading redness, heat, pus, red streaks, fever. Cat and hand bites often turn bad within a day.
+- If you carry antibiotics and infection sets in or the bite is high-risk (cat, hand, deep puncture): amoxicillin-clavulanate is the standard choice if you have it and no allergy.
+- Evacuate for a deep bite, a hand bite, a bite that will not stop bleeding, or one that is getting infected.
+
+== RABIES: THE HARD TRUTH ==
+Rabies is spread by the bite or scratch of a bat, raccoon, skunk, fox, coyote, or any unknown dog or cat. In the US, bats are the leading cause. Any direct contact with a bat, or waking with a bat in your shelter, counts as a possible exposure.
+
+Hard truth: once rabies symptoms begin it is almost always fatal, and there is NO field treatment and no cure. Do not believe anyone who claims one. The shots (post-exposure prophylaxis: a series of rabies vaccine plus, for most people, rabies immune globulin) work only if started before symptoms appear, ideally within days. Those exist only at a hospital.
+
+What you CAN do in the field genuinely lowers your risk, so do it hard:
+- Wash the wound immediately and for a FULL 15 minutes with soap and running water. Soap breaks down the virus. This alone drastically cuts the chance of infection and is the most important thing you can do before shots.
+- If you have povidone iodine or alcohol, flush the wound with it after washing.
+- Then make reaching medical care a priority over most other plans. Rabies PEP is close to 100 percent effective when started in time, so this is a race worth winning. Getting the shots is not "just in case," it is the whole ballgame.

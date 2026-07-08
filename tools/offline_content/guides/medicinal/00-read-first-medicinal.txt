@@ -1,19 +1,34 @@
 READ FIRST: Medicinal and First-Aid Plants
 
 == WHAT THIS SECTION IS ==
-- These are field first-aid folk remedies, not medicine. They are comfort and stopgap measures for minor problems when nothing better is at hand.
-- Like the rest of this guide, it is a memory aid for things you already know, not a substitute for training.
-- Everything here leans topical (on the skin) on purpose. Only two entries are taken internally, willow bark and pine needle tea, and both carry heavy warnings.
+- These are field first-aid adjuncts, not medicine. They are comfort and stopgap measures for minor problems when nothing better is at hand.
+- Be honest with yourself: plants are the smallest lever you have. What actually keeps you alive when no one is coming is clean water, wound care, drainage, rehydration, warmth, and rest. Learn those first. A plant is a bonus, never the plan.
+- Like the rest of this guide, this is a memory aid for things you already know, not a substitute for training.
+- Most entries are topical (on the skin). Only two are taken internally, willow bark and pine needle tea, and both carry heavy warnings.
 
-== NOT A SUBSTITUTE FOR REAL MEDICAL CARE ==
-- A plant remedy does not fix a serious injury or illness. It buys a little comfort, not a cure.
-- For deep wounds, heavy bleeding, bad burns, infection, broken bones, chest or belly pain, trouble breathing, or anything worsening: treat the basics and evacuate to real care.
-- Control bleeding and clean the wound FIRST (see the first-aid section). A remedy comes second, if at all.
+== IF NO HELP IS COMING: WHAT ACTUALLY KEEPS YOU ALIVE ==
+- Evacuate only if you can safely reach help. If you cannot, none of the steps below waits on rescue. You are the medic. Start now.
+- BLEEDING: press hard directly on the spot, one clean pad, without peeking, for a full 10 to 15 minutes. For limb bleeding that soaks through and will not stop, tie a wide band (1 to 2 inches, not a thin cord if you can help it) a hand above the wound, twist a stick through it until bleeding stops, note the time, do not loosen it.
+- WOUNDS: irrigate hard with the cleanest water you would drink. Aim a narrow forceful stream into the wound, half a liter or more. Time to cleaning matters more than time to closing. Pick out grit. Leave dirty wounds, punctures, and animal bites OPEN. Cover with a clean moist dressing. Do not seal dirt or infection inside.
+- INFECTION (red, hot, swelling, pus, or red streaks): keep the wound open and draining. Warm soaks or compresses several times a day. Irrigate again. Raise the part above the heart. A trapped pocket of pus that has come to a soft head can be opened along the skin with a flame-sterilized blade so it drains, then packed open and soaked. Try warm soaks for a day or two first.
+- DEHYDRATION (vomiting, diarrhea, heat, blood loss): the biggest field killer you can actually fix. Drink oral rehydration solution: 1 liter clean water, plus 6 level teaspoons sugar, plus HALF a level teaspoon salt. Sip steadily all day. Do not make it saltier than that. Too much salt is dangerous.
+- PAIN AND FEVER: rest, splint and immobilize injured parts, raise them, cool a burn, warm a chill. Willow bark tea is a weak natural aspirin (see its entry and cautions before use).
+- WARMTH AND REST: stay dry, insulated, and out of the wind. Shelter and sleep are treatment, not idleness.
+- REASSESS twice a day: better, worse, or the same? The trend tells you more than any single moment.
+
+== WHERE THERE IS NO FIELD FIX: THE HARD TRUTH ==
+- Some problems no plant and no trick can cure. Do not burn time or hope on a folk "cure." A wrong cure kills. Manage it honestly, ease suffering, and buy time.
+- RABIES: any bite from a mammal acting strange or unprovoked. Scrub the wound with soap and water hard for 15 minutes, then flush it. This lowers the odds but there is NO field cure once symptoms begin. The vaccine series is the only prevention. Reaching it is worth extreme effort.
+- VENOMOUS SNAKEBITE: keep still and calm, keep the bitten part near heart level, remove rings and watches before swelling, mark the swelling edge with the time. Do NOT cut, suck, ice, or tourniquet. Antivenom is the only real treatment.
+- MAJOR INTERNAL OR ARTERIAL BLEEDING: firm pressure and a tourniquet are the ceiling of what you can do. Surgery is the fix.
+- ANAPHYLAXIS (throat or tongue swelling, wheeze, collapse after a sting or food): epinephrine is the only thing that reverses it. If you carry an auto-injector, use it. No plant is a substitute.
+- BROKEN BONES: you can gently pull a badly angled limb straight and splint it to cut pain and further damage, but proper setting and fixation is a medical job.
+- Say the truth plainly, then do the best real management above. Comfort, warmth, and dignity still matter when a cure does not exist.
 
 == THE ID RULE STILL APPLIES ==
 - Never take any plant internally unless you are 100 percent certain of its identity.
-- The foraging rules still hold here: no wild mushrooms, avoid the carrot and parsley family, and when unsure, do nothing.
-- Wrong plant on the skin can still harm you. Poison hemlock and others are dangerous even to handle.
+- The foraging rules still hold: no wild mushrooms, avoid the carrot and parsley family, and when unsure, do nothing.
+- Some plants harm on contact, not only when eaten. Giant hogweed, wild parsnip, and cow parsnip cause blistering burns that sunlight makes worse, and the rash may not show for a day. Poison ivy, oak, and sumac cause an itchy oozing rash. Poison hemlock is mainly a poison if swallowed or rubbed into the eyes or mouth, so never handle it and then touch your face. Wash skin and gear after contact with any unknown plant.
 
 == ALLERGY: TEST FIRST ==
 - Before using any plant on a wound or the skin, rub a little on the inside of the forearm and wait. Watch for redness, itch, swelling, or a rash.
@@ -21,7 +36,7 @@ READ FIRST: Medicinal and First-Aid Plants
 - If a remedy makes the skin more irritated, stop and wash it off.
 
 == PREGNANCY, NURSING, AND CHILDREN ==
-- Pregnant or nursing women should avoid internal remedies (willow bark, pine needle tea) entirely unless there is truly no choice.
+- Pregnant or nursing women should avoid internal remedies (willow bark, pine needle tea) entirely unless there is truly no choice. Needles of some pines carry compounds linked to miscarriage.
 - NEVER give willow bark, or any aspirin-family remedy, to a child or teenager with a fever or viral illness. It risks Reye's syndrome, a rare but deadly reaction. This is absolute.
 - Never give honey to a baby under 1 year old. Risk of infant botulism.
 - Children need smaller amounts and more caution across the board.
@@ -38,7 +53,8 @@ READ FIRST: Medicinal and First-Aid Plants
 - Start weak, start small, use rarely. Many plant compounds are helpful in a trace and toxic in quantity.
 - More is not better. If a remedy is not clearly helping, stop.
 
-== WHEN IN DOUBT, DO NOTHING ==
-- Doing nothing is almost always safer than a wrong remedy.
-- Rest, clean water, a clean covered wound, warmth, and evacuation carry you further than any plant.
+== BOTTOM LINE ==
+- The fundamentals carry you far further than any plant: clean water, a clean open wound, drainage, rehydration, warmth, and rest.
+- Doing nothing is safer than a wrong remedy, but working the fundamentals is safer still. Manage the problem. Do not just sit and wait to be found.
+- Evacuate if you can safely reach help. If you cannot, you are the medic: work the basics, reassess twice a day, and keep the patient warm, hydrated, and clean.
 - A plant that might help is never worth mistaking for a plant that can kill.
