@@ -1127,6 +1127,30 @@ static void load_tile_image(TileContext& ctx, MapTile& tile)
                 tile.last_used_ms = sys::millis_now();
                 return;
             }
+            // USE-AFTER-FREE FIX: get_lru_cache_slot() may have EVICTED an LRU slot whose
+            // decoded descriptor (img_dsc + pixel buffer) was just lv_free()'d. A different
+            // tile that is currently off-screen keeps its image object alive (merely hidden,
+            // see layout_loaded_tile_objects) with its lv_image source still pointing at that
+            // now-freed descriptor. Left alone, scrolling that tile back into view makes LVGL
+            // draw freed/reused memory -> the fast-pan freeze-then-crash. Invalidate any tile
+            // still pointing at this reclaimed slot now (same teardown evict_cache uses), so it
+            // re-decodes cleanly on its next visit instead of drawing a dangling pointer.
+            for (auto& other : *ctx.tiles)
+            {
+                if (&other != &tile && other.cached_img == cache_slot)
+                {
+                    if (other.img_obj != NULL)
+                    {
+                        lv_obj_del(other.img_obj);
+                        other.img_obj = NULL;
+                        other.contour_obj = NULL;
+                        other.contour_checked = false;
+                        other.contour_loaded = false;
+                    }
+                    other.cached_img = NULL;
+                    other.has_png_file = false;
+                }
+            }
         }
 
         // If tile has a placeholder label, delete it (but always recalculate position)
