@@ -610,6 +610,87 @@ void append_photo_credits(FieldGuideAppState* st, const std::string& stem, int p
     lv_label_set_text(cred, full.c_str());
 }
 
+// Show a species caption for the ONE photo on screen, read from the same
+// A:/guides/photos/CREDITS.tsv the attribution uses (the <species> field, index 2:
+// "<section>/<stem>\t<n>.jpg\t<species>\t<artist>\t<license>\t<url>"). This is a
+// SAFETY feature, not decoration: a photo deck can deliberately include a deadly
+// lookalike as a contrast shot (poison hemlock inside the Yarrow article, a coral-
+// snake mimic, etc.), and the species text carries its own warning wording
+// ("... (POISON HEMLOCK - deadly lookalike)"). Without this label the lookalike
+// appears under the article's own title with nothing marking it as the dangerous
+// one, which inverts the intended message. Rendered right under the position
+// counter so it is seen with the image; hazard wording is tinted red to draw the
+// eye. CREDITS.tsv is a few KB and this runs only on a human-paced screen build,
+// so scanning it a second time (the attribution does its own scan) is negligible.
+void append_photo_caption(FieldGuideAppState* st, const std::string& stem, int photo_num)
+{
+    std::string text;
+    if (!read_text_file("A:/guides/photos/CREDITS.tsv", text))
+    {
+        return;
+    }
+    char want[24];
+    std::snprintf(want, sizeof(want), "%d.jpg", photo_num);
+    std::string species;
+    size_t pos = 0;
+    while (pos < text.size())
+    {
+        size_t eol = text.find('\n', pos);
+        const size_t line_end = (eol == std::string::npos) ? text.size() : eol;
+        const std::string line = text.substr(pos, line_end - pos);
+        pos = line_end + 1;
+        // Fields: stem, n.jpg, species, artist, license, url
+        size_t t0 = line.find('\t');
+        if (t0 == std::string::npos || line.compare(0, t0, stem) != 0)
+        {
+            continue;
+        }
+        size_t t1 = line.find('\t', t0 + 1); // end of n.jpg
+        if (t1 == std::string::npos)
+        {
+            continue;
+        }
+        const std::string photo_field = line.substr(t0 + 1, t1 - t0 - 1);
+        if (photo_field != want)
+        {
+            continue;
+        }
+        size_t t2 = line.find('\t', t1 + 1); // end of species
+        const size_t species_end = (t2 == std::string::npos) ? line.size() : t2;
+        species = line.substr(t1 + 1, species_end - t1 - 1);
+        break;
+    }
+    if (species.empty())
+    {
+        return;
+    }
+    // Tint hazard captions red. The species text itself carries the wording; we
+    // only fold to lowercase (ASCII) and look for the danger cues so the color
+    // follows the content without a separate flag column.
+    std::string low = species;
+    for (char& c : low)
+    {
+        if (c >= 'A' && c <= 'Z')
+        {
+            c = static_cast<char>(c - 'A' + 'a');
+        }
+    }
+    const bool hazard = low.find("deadly") != std::string::npos ||
+                        low.find("poison") != std::string::npos ||
+                        low.find("venom") != std::string::npos ||
+                        low.find("lookalike") != std::string::npos;
+
+    lv_obj_t* cap = lv_label_create(st->body);
+    lv_obj_set_width(cap, LV_PCT(100));
+    lv_label_set_long_mode(cap, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_font(cap, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_align(cap, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_color(
+        cap, hazard ? lv_color_hex(0xE04030) : lv_color_hex(0xFFFFFF), 0);
+    lv_obj_set_style_pad_top(cap, 2, 0);
+    lv_label_set_text(cap, species.c_str());
+}
+
 // Count the article's photos: probe A:/guides/photos/<stem>/1.jpg .. N.jpg (baseline
 // JPEG, pre-sized to 500px wide) numbered CONTIGUOUSLY from 1; stop at the first gap.
 // Same probe the article body used to run inline; now it only yields N (how many
@@ -758,6 +839,10 @@ void show_photo_viewer_screen(FieldGuideAppState* st)
     lv_obj_set_style_text_font(counter, &lv_font_montserrat_20, 0);
     lv_obj_set_style_text_align(counter, LV_TEXT_ALIGN_CENTER, 0);
     lv_label_set_text_fmt(counter, "Photo %d / %d", idx + 1, n);
+
+    // Species label for THIS photo, directly under the counter. Safety-critical for
+    // decks that include a deadly lookalike as a contrast shot (see append_photo_caption).
+    append_photo_caption(st, st->photo_stem, idx + 1);
 
     // Decode ONLY the current photo into an app-owned descriptor so the image source
     // is LV_IMAGE_SRC_VARIABLE (in-memory) rather than LV_IMAGE_SRC_FILE. Only the
