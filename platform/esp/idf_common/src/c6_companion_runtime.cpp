@@ -95,6 +95,20 @@ void set_detail(C6CompanionStatus& status, CompanionState state, const char* det
     status.detail = detail;
 }
 
+uint8_t ble_channel_for(BleProfile profile)
+{
+    switch (profile)
+    {
+    case BleProfile::Meshtastic:
+        return TM_C6_CH_BLE_MESHTASTIC;
+    case BleProfile::MeshCore:
+        return TM_C6_CH_BLE_MESHCORE;
+    case BleProfile::TrailMate:
+        return TM_C6_CH_BLE_TRAILMATE;
+    }
+    return TM_C6_CH_BLE_TRAILMATE;
+}
+
 #if defined(ESP_PLATFORM)
 class C6Transport
 {
@@ -561,6 +575,69 @@ class C6CompanionRuntime final : public WirelessCompanion
 #endif
     }
 
+    bool sendBleDownlink(BleProfile profile,
+                         uint8_t connection_id,
+                         const uint8_t* data,
+                         size_t len) override
+    {
+        if (!status_.present || data == nullptr)
+        {
+            return false;
+        }
+        if (len > TM_C6_MAX_PAYLOAD - sizeof(tm_c6_ble_packet_header_t))
+        {
+            return false;
+        }
+
+        std::vector<uint8_t> payload(sizeof(tm_c6_ble_packet_header_t) + len);
+        tm_c6_ble_packet_header_t header{};
+        header.profile = static_cast<uint8_t>(profile);
+        header.connection_id = connection_id;
+        header.payload_len = static_cast<uint16_t>(len);
+        std::memcpy(payload.data(), &header, sizeof(header));
+        if (len > 0)
+        {
+            std::memcpy(payload.data() + sizeof(header), data, len);
+        }
+        return send_frame(TM_C6_FRAME_BLE_DOWNLINK,
+                          ble_channel_for(profile),
+                          0,
+                          0,
+                          payload.data(),
+                          payload.size());
+    }
+
+    bool sendEspNow(const uint8_t mac[6], const uint8_t* data, size_t len) override
+    {
+        if (!status_.present || data == nullptr || mac == nullptr)
+        {
+            return false;
+        }
+        if (len > TM_C6_ESPNOW_PAYLOAD_MAX)
+        {
+            return false;
+        }
+
+        tm_c6_espnow_packet_t packet{};
+        std::memcpy(packet.peer_mac, mac, sizeof(packet.peer_mac));
+        packet.rssi_valid = 0;
+        packet.rssi = 0;
+        packet.channel = 0;
+        packet.payload_len = static_cast<uint8_t>(len);
+        std::memcpy(packet.payload, data, len);
+        return send_frame(TM_C6_FRAME_ESPNOW_DOWNLINK,
+                          TM_C6_CH_ESPNOW_TEAM,
+                          0,
+                          0,
+                          reinterpret_cast<const uint8_t*>(&packet),
+                          sizeof(packet));
+    }
+
+    void setUplinkSink(WirelessUplinkSink* sink) override
+    {
+        uplink_sink_ = sink;
+    }
+
   private:
     uint16_t next_seq()
     {
@@ -816,8 +893,69 @@ class C6CompanionRuntime final : public WirelessCompanion
         return true;
     }
 
+    void deliver_ble_uplink(const hostlink::c6::Frame& frame)
+    {
+        if (uplink_sink_ == nullptr ||
+            frame.payload.size() < sizeof(tm_c6_ble_packet_header_t))
+        {
+            return;
+        }
+        tm_c6_ble_packet_header_t header{};
+        std::memcpy(&header, frame.payload.data(), sizeof(header));
+        const size_t available = frame.payload.size() - sizeof(header);
+        const size_t data_len = std::min<size_t>(header.payload_len, available);
+        uplink_sink_->onBleUplink(static_cast<BleProfile>(header.profile),
+                                  header.connection_id,
+                                  frame.payload.data() + sizeof(header),
+                                  data_len);
+    }
+
+    void deliver_ble_event(const hostlink::c6::Frame& frame)
+    {
+        if (uplink_sink_ == nullptr || frame.payload.size() != sizeof(tm_c6_ble_event_t))
+        {
+            return;
+        }
+        tm_c6_ble_event_t event{};
+        std::memcpy(&event, frame.payload.data(), sizeof(event));
+        uplink_sink_->onBleEvent(static_cast<BleProfile>(event.profile),
+                                 event.event_kind,
+                                 event.connection_id,
+                                 event.mtu,
+                                 event.error_code);
+    }
+
+    void deliver_espnow_uplink(const hostlink::c6::Frame& frame)
+    {
+        if (uplink_sink_ == nullptr ||
+            frame.payload.size() != sizeof(tm_c6_espnow_packet_t))
+        {
+            return;
+        }
+        tm_c6_espnow_packet_t packet{};
+        std::memcpy(&packet, frame.payload.data(), sizeof(packet));
+        const size_t data_len =
+            std::min<size_t>(packet.payload_len, static_cast<size_t>(TM_C6_ESPNOW_PAYLOAD_MAX));
+        uplink_sink_->onEspNowReceive(packet.peer_mac, packet.rssi, packet.payload, data_len);
+    }
+
     void handle_async_frame(const hostlink::c6::Frame& frame)
     {
+        if (frame.frame_type == TM_C6_FRAME_BLE_UPLINK)
+        {
+            deliver_ble_uplink(frame);
+            return;
+        }
+        if (frame.frame_type == TM_C6_FRAME_BLE_EVENT)
+        {
+            deliver_ble_event(frame);
+            return;
+        }
+        if (frame.frame_type == TM_C6_FRAME_ESPNOW_UPLINK)
+        {
+            deliver_espnow_uplink(frame);
+            return;
+        }
         if (frame.frame_type == TM_C6_FRAME_CONFIG_REPORT)
         {
             (void)handle_config_report(frame);
@@ -918,6 +1056,7 @@ class C6CompanionRuntime final : public WirelessCompanion
 
     C6CompanionStatus status_{};
     uint16_t next_seq_ = kInitialSequence;
+    WirelessUplinkSink* uplink_sink_ = nullptr;
 #if defined(ESP_PLATFORM)
     std::unique_ptr<C6Transport> transport_;
 #endif
