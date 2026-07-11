@@ -414,6 +414,14 @@ carto draws the `name` column verbatim, so the fix is a DB rewrite -- NO style c
   any tile still referencing it (`load_tile_image` in `platform/esp/arduino_common/src/ui/
   widgets/map/map_tiles.cpp`). The 12-slot decode cache vs 48 image objects mismatch was the
   root. Optional un-done follow-ups: clamp zoom to available tiles; debounce per-touch recompute.
+- **Map view snapped back to GPS when panned far away (FIXED, commit 8d7da87, on-device
+  confirmed 2026-07-11):** panning/zooming far (e.g. to Pakistan), then panning again, jumped the
+  view back to your GPS position. Root cause: `apply_zoom_level_centered` (gps_page_input.cpp)
+  bakes the view center into `g_gps_state.lat/lng` (the same fields the "you are here" marker
+  reads), so the next GPS tick overwrote them with the fix and re-centered. Fix (gps_page_map.cpp
+  GPS tick): measure fix movement against `last_known_lat/lng`, and only write `lat/lng` (the map
+  center) when `follow_position` is set or a fix was just acquired -- panning no longer fights the
+  GPS tick.
 - **python-mapnik 3.1 SRS:** use `+init=epsg:3857` / `+init=epsg:4326`; bare `epsg:3857` and
   proj4 `+proj=merc...` FAIL ("without proj4 support") on this PROJ6 build.
 - **osm2pgsql --append vs `statement_timeout`:** the tile-server caps query time, which cancels
@@ -427,11 +435,16 @@ carto draws the `name` column verbatim, so the fix is a DB rewrite -- NO style c
 
 ### 12.6 This session's commits (branch channel-key-passphrase, fork)
 ```
+98609d5 MAINTAINERS: bilingual foreign labels (English + local) + /XO tile top-up
+8d7da87 map: stop GPS fix from snapping the view back when panned/zoomed far away
 595334e map: fix use-after-free crash on fast pan at deep zoom
 41ced7c field guide: rewrite medical/survival articles for self-reliance + verify credibility
 b318050 field guide: caption each photo with its species in the one-at-a-time viewer
 68cd54c field guide expansion (Near-me regional view, Animals, Medicinal, seasonal notes)
 ```
+Both map fixes above (fast-pan crash + snap-back) are on-device confirmed on both units
+(2026-07-11). The Pakistan bilingual re-render is a Hive-side DB+render change, not a repo
+commit (see §12.3a).
 Non-git assets (on the Hive only): `C:\osm-tiles\work` (render toolchain + `ne/` Natural Earth
 setup), `C:\osm-tiles\sd-staging` (the card image), `tools/offline_content/photos_raw`
 (source photos; gitignored). Deep history: Claude Code memory `tdisplay-p4-map-tiles` +
