@@ -1765,15 +1765,29 @@ void tick_gps_update(bool allow_map_refresh)
 
         bool just_got_fix = !g_gps_state.has_fix;
 
-        // Always update coordinates so status stays accurate.
-        if (just_got_fix ||
-            fabs(new_lat - g_gps_state.lat) > 0.0001 ||
-            fabs(new_lng - g_gps_state.lng) > 0.0001)
+        // "Did the raw fix move?" is measured against last_known, which always tracks the real
+        // GPS fix -- NOT against g_gps_state.lat/lng. The latter doubles as the map CENTER, which
+        // the user moves by panning/zooming (apply_zoom_level_centered bakes the panned view
+        // center into lat/lng). Comparing against, then overwriting, lat/lng let a fix update
+        // clobber the user's panned/zoomed view and snap the map back to the user's position when
+        // viewing somewhere far away (the far-pan snap-back bug).
+        const bool fix_moved =
+            just_got_fix || !g_gps_state.has_last_known ||
+            fabs(new_lat - g_gps_state.last_known_lat) > 0.0001 ||
+            fabs(new_lng - g_gps_state.last_known_lng) > 0.0001;
+        if (fix_moved)
         {
-            g_gps_state.lat = new_lat;
-            g_gps_state.lng = new_lng;
             g_gps_state.has_fix = true;
             gps_state_changed = true;
+
+            // Move the MAP CENTER to the fix ONLY when auto-follow is on (or on the very first
+            // fix). When the user has panned/zoomed away (follow_position == false), leave the
+            // center where they put it so a GPS update cannot snap the view back home.
+            if (g_gps_state.follow_position || just_got_fix)
+            {
+                g_gps_state.lat = new_lat;
+                g_gps_state.lng = new_lng;
+            }
 
             // Remember this as the last-known position (in memory immediately; persisted to
             // the SD card on a coarse throttle so we don't hammer the card on every update).
