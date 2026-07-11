@@ -50,6 +50,11 @@ constexpr uint32_t kRequestedFeatures = TM_C6_FEATURE_BLE_MESHTASTIC |
                                         TM_C6_FEATURE_DIAG_LOG |
                                         TM_C6_FEATURE_HOSTLINK_PING;
 constexpr uint32_t kDefaultConfigSequence = 1;
+// The C6 is power-cycled by the P4 just before the handshake and needs a few
+// seconds to boot its firmware (Wi-Fi + BLE + NimBLE init) before it can answer
+// on the SDIO slave. Retry HELLO across that window instead of a single shot.
+constexpr uint32_t kHelloMaxAttempts = 8;
+constexpr uint32_t kHelloRetryDelayMs = 250;
 
 bool board_has_c6_companion()
 {
@@ -702,6 +707,42 @@ class C6CompanionRuntime final : public WirelessCompanion
 #endif
     }
 
+    // Receive the next frame of a specific type within total_timeout_ms, skipping
+    // any stray/out-of-order frames (e.g. a duplicate HELLO_ACK queued by our retry
+    // HELLOs). Keeps the handshake in sync without assuming strict frame ordering.
+    bool receive_expected(uint8_t expected_type,
+                          hostlink::c6::Frame& frame,
+                          uint32_t total_timeout_ms)
+    {
+#if defined(ESP_PLATFORM)
+        const uint32_t start = static_cast<uint32_t>(xTaskGetTickCount() * portTICK_PERIOD_MS);
+        for (;;)
+        {
+            if (receive_frame(frame, kShortIoTimeoutMs, false))
+            {
+                if (frame.frame_type == expected_type)
+                {
+                    return true;
+                }
+                ESP_LOGW(kTag,
+                         "C6 skip stray frame type=0x%02x while awaiting 0x%02x",
+                         static_cast<unsigned>(frame.frame_type),
+                         static_cast<unsigned>(expected_type));
+            }
+            const uint32_t now = static_cast<uint32_t>(xTaskGetTickCount() * portTICK_PERIOD_MS);
+            if (now - start >= total_timeout_ms)
+            {
+                return false;
+            }
+        }
+#else
+        (void)expected_type;
+        (void)frame;
+        (void)total_timeout_ms;
+        return false;
+#endif
+    }
+
     bool send_frame(uint8_t frame_type,
                     uint8_t channel,
                     uint16_t flags,
@@ -991,17 +1032,39 @@ class C6CompanionRuntime final : public WirelessCompanion
             return false;
         }
 
-        if (!send_hello())
-        {
-            ESP_LOGW(kTag, "C6 HELLO send failed detail=%s", status_.detail);
-            transport_.reset();
-            return false;
-        }
-
         hostlink::c6::Frame frame{};
-        if (!receive_frame(frame, kHandshakeTimeoutMs) || !handle_hello_ack(frame))
+        bool hello_ok = false;
+        for (uint32_t attempt = 1; attempt <= kHelloMaxAttempts; ++attempt)
         {
-            ESP_LOGW(kTag, "C6 HELLO_ACK failed detail=%s", status_.detail);
+            if (!send_hello())
+            {
+                ESP_LOGW(kTag, "C6 HELLO send failed detail=%s", status_.detail);
+                transport_->reset();
+                transport_.reset();
+                return false;
+            }
+            if (receive_frame(frame, kHandshakeTimeoutMs, false) && handle_hello_ack(frame))
+            {
+                hello_ok = true;
+                if (attempt > 1)
+                {
+                    ESP_LOGI(kTag, "C6 HELLO_ACK ok on attempt %lu", (unsigned long)attempt);
+                }
+                break;
+            }
+            ESP_LOGW(kTag,
+                     "C6 HELLO_ACK attempt %lu/%lu no response (%s); C6 may still be booting",
+                     (unsigned long)attempt,
+                     (unsigned long)kHelloMaxAttempts,
+                     status_.detail);
+            vTaskDelay(pdMS_TO_TICKS(kHelloRetryDelayMs));
+        }
+        if (!hello_ok)
+        {
+            ESP_LOGW(kTag,
+                     "C6 HELLO_ACK failed after %lu attempts detail=%s",
+                     (unsigned long)kHelloMaxAttempts,
+                     status_.detail);
             transport_->reset();
             transport_.reset();
             return false;
@@ -1015,7 +1078,7 @@ class C6CompanionRuntime final : public WirelessCompanion
             return false;
         }
 
-        if (!receive_frame(frame, kHandshakeTimeoutMs) || !handle_pong(frame))
+        if (!receive_expected(TM_C6_FRAME_PONG, frame, kHandshakeTimeoutMs) || !handle_pong(frame))
         {
             ESP_LOGW(kTag, "C6 PONG failed detail=%s", status_.detail);
             transport_->reset();
@@ -1031,7 +1094,8 @@ class C6CompanionRuntime final : public WirelessCompanion
             return false;
         }
 
-        if (!receive_frame(frame, kHandshakeTimeoutMs) || !handle_config_report(frame))
+        if (!receive_expected(TM_C6_FRAME_CONFIG_REPORT, frame, kHandshakeTimeoutMs) ||
+            !handle_config_report(frame))
         {
             ESP_LOGW(kTag, "C6 CONFIG_REPORT failed detail=%s", status_.detail);
             transport_->reset();
