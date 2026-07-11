@@ -360,6 +360,28 @@ Two render engines, both writing into the SAME tile tree. Toolchain lives on the
    {physical,cultural}/*.zip (public domain). The render DB has ONLY US+Pakistan, so a real
    world map REQUIRES this NE base -- do not try to render the globe from the OSM DB.
 
+### 12.3a Bilingual labels for foreign regions (English + local)
+Detailed OSM regions in a non-Latin script render local-only names by default (Pakistan came
+in Urdu). Rule for THIS device: **every foreign map carries an English translation over the
+local name** so a non-speaker can read/say it and a local can still recognize it. openstreetmap-
+carto draws the `name` column verbatim, so the fix is a DB rewrite -- NO style change:
+`name` becomes `"English\nlocal"` wherever the OSM `name:en` tag exists and differs.
+1. **Rewrite the DB** (idempotent, skips already-bilingual rows). Template with a lon/lat box:
+   `docker exec -u renderer osm-run psql -U renderer -d gis -v lonmin=<W> -v latmin=<S>
+   -v lonmax=<E> -v latmax=<N> -f /work/bilingual_labels.sql`. Pakistan example box:
+   `lonmin=60.5 latmin=23.5 lonmax=77.9 latmax=37.1` (worked, verified 2026-07-11:
+   18344 point + 26094 line + 4052 polygon rows -> "English\nUrdu"). `pk_bilingual.sql` is the
+   Pakistan-hardcoded original; `bilingual_labels.sql` is the reusable parameterized version.
+2. **FORCE re-render the region** -- this is the trap: `render_list` WITHOUT `--force` serves the
+   OLD cached tiles, so you still see local-only names and think it failed. Use `--all --force`
+   per zoom range, then `meta2tile.py` to export. `pk_force.sh` is the worked driver
+   (`render_list ... --all --force` over `ranges_pk.txt`, then export). It has no DB connection,
+   so `docker exec -d -u root` is safe for it.
+3. **Copy only the changed tiles** with robocopy `/XO /FFT` (overwrites a card tile only when
+   staging is newer) -- a foreign re-render touches a few thousand tiles, not the 2.24M set.
+4. **Verify by eye** -- read a central re-exported tile back (`Read` the .png) and a tile off the
+   physical card; confirm English sits above the local name. Do not trust the render exit code.
+
 ### 12.4 SD card workflow
 - Cards MUST be **FAT32**. **Cluster size is load-bearing:** each of the ~2.24M tiny tiles
   rounds up to one cluster, so physical size = tiles x cluster. 32KB -> ~72GB (fits 128GB with
@@ -376,6 +398,12 @@ Two render engines, both writing into the SAME tile tree. Toolchain lives on the
   is SLOW (~2 MB/s, ~60-70 files/sec -- FAT32 rewrites its dir+FAT per file), ~8-9 hours for the
   full ~72GB per card even with /MT:16 (run both cards in parallel). A small content update
   (just `guides/`+`translate/`) is fast -- copy only those.
+- **Incremental tile top-up (proven 2026-07-11 for the bilingual re-render):**
+  `robocopy <staging>\maps\base\osm <card>\maps\base\osm /E /XO /FFT /R:2 /W:2 /MT:8`. `/XO`
+  overwrites a card tile ONLY when staging is newer, so a few-thousand-tile change copies in
+  ~1 min even though robocopy still scans all 2.24M (the scan is read-only, ~10 min). `/FFT`
+  gives FAT the 2-second time granularity so unchanged tiles are correctly skipped. This is
+  additive (never deletes) and stays clear of `maps/` siblings, so user data is untouched.
 - **Preserve user data:** the device writes `waypoints.tsv`, `captures/`, `SSTV/`, `LASTFIX.DAT`
   to the SD. Never `/MIR` a card that has them without backing them up first.
 
