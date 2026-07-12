@@ -464,9 +464,18 @@ bool apply_enabled(bool enabled)
     {
         g_cache.intent = Intent::RadioDisable;
     }
-    else if (g_cache.state == ConnectionState::Disabled)
+    else
     {
-        g_cache.state = ConnectionState::Idle; // leave the "off" state on re-enable
+        // Clear a stale radio-disable intent so a disable-era disconnect that is
+        // still queued cannot put us back into Disabled after a quick re-enable.
+        if (g_cache.intent == Intent::RadioDisable)
+        {
+            g_cache.intent = Intent::None;
+        }
+        if (g_cache.state == ConnectionState::Disabled)
+        {
+            g_cache.state = ConnectionState::Idle; // leave the "off" state on re-enable
+        }
     }
     return wc::c6_companion().setWifiEnabled(enabled);
 }
