@@ -18,6 +18,8 @@
 #include "phone/meshtastic/meshtastic_phone_core.h"
 #include "phone/meshtastic/meshtastic_phone_session.h"
 #include "platform/esp/idf_common/wireless_companion/c6_companion.h"
+#include "platform/esp/idf_common/wireless_companion/c6_wifi_bridge.h"
+#include "ui/widgets/ble_pairing_popup.h"
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -33,12 +35,16 @@ namespace wc = platform::esp::idf_common::wireless_companion;
 
 constexpr const char* kBleTag = "C6_BLE";
 
-// Minimum spacing between downlink frames. update() runs many times per second, but
-// BLE can only carry roughly one notification per connection interval (~15-50ms at
-// this MTU). Sending faster overruns the C6's NimBLE notify queue and silently drops
-// frames, so the phone gets an incomplete config and retries. One frame per ~25ms
-// (~40/s) keeps pace with BLE while draining a ~40-frame config flow in ~1s.
-constexpr int64_t kMinDownlinkIntervalUs = 25000;
+// Minimum spacing between downlink frames. The C6's Meshtastic FromRadio path is a
+// SINGLE-slot buffer (tm_ble.c s_last_meshtastic_payload): it holds only the most
+// recent frame and clears it when the phone reads it. The standard Meshtastic phone
+// flow is FromNum-notify -> read FromRadio until empty, and each read is a BLE
+// round-trip (~1 connection interval, tens of ms). If we push the next frame before
+// the phone has read the previous one, we overwrite (drop) it -> the phone never gets
+// a complete config -> "too many retries" and the connect/drop/reconnect cycle.
+// Until the C6 grows a real FromRadio queue, pace conservatively so a read completes
+// between sends. ~110ms drains a ~40-frame config flow in ~4.5s, a one-time cost.
+constexpr int64_t kMinDownlinkIntervalUs = 110000;
 // MeshCore BLE frames are capped at 172 bytes (NUS MTU budget), matching the Arduino path.
 constexpr size_t kMeshCoreFrameMax = 172;
 
@@ -86,6 +92,15 @@ class C6BleService final : public BleService,
     void update() override
     {
         wc::c6_companion().poll(); // drains C6 uplink frames -> onBleUplink()/onBleEvent()
+        // Pairing prompt: while a device is connected but not yet talking (still
+        // pairing), show the PIN so the user can enter it. Hide once data flows
+        // (paired) or on disconnect. The grace window avoids flashing the PIN for an
+        // already-bonded phone that reconnects and starts talking immediately.
+        const bool awaiting = connected_ && !data_seen_ && connect_us_ != 0 &&
+                              (esp_timer_get_time() - connect_us_) > kPairingGraceUs;
+        pairing_prompt_visible_ = awaiting;
+        ::ui::BlePairingPopup::update(awaiting ? wc::c6_companion().status().ble_passkey : 0,
+                                      true, device_name_.c_str());
         if (mt_session_)
         {
             mt_session_->pumpIncomingAppData();
@@ -116,7 +131,11 @@ class C6BleService final : public BleService,
         const wc::C6CompanionStatus status = wc::c6_companion().status();
         *out = BlePairingStatus{};
         out->available = status.present;
+        out->requires_passkey = true;
+        out->is_fixed_pin = true;
+        out->passkey = status.ble_passkey;
         out->is_connected = connected_;
+        out->is_pairing_active = pairing_prompt_visible_;
         return status.present;
     }
 
@@ -136,6 +155,7 @@ class C6BleService final : public BleService,
                      const uint8_t* data, size_t len) override
     {
         last_connection_ = connection_id;
+        data_seen_ = true; // any uplink means the peer is paired and talking
         if (data == nullptr)
         {
             return;
@@ -173,10 +193,14 @@ class C6BleService final : public BleService,
         {
             connected_ = true;
             last_connection_ = connection_id;
+            connect_us_ = esp_timer_get_time();
+            data_seen_ = false;
         }
         else if (event_kind == 4u)
         {
             connected_ = false;
+            data_seen_ = false;
+            connect_us_ = 0;
             if (mt_session_)
             {
                 mt_session_->close();
@@ -185,6 +209,34 @@ class C6BleService final : public BleService,
             {
                 mc_core_->reset();
             }
+        }
+    }
+
+    void onWifiEvent(const wc::WifiEventInfo& ev) override
+    {
+        wc::c6_wifi_ingest_event(ev); // feed the UI-facing Wi-Fi runtime cache
+        switch (ev.kind)
+        {
+        case wc::WifiEventKind::ScanDone:
+            ESP_LOGI(kBleTag, "wifi scan done: %u networks", ev.result_count);
+            for (uint8_t i = 0; i < ev.result_count; ++i)
+            {
+                ESP_LOGI(kBleTag, "  wifi[%u] ssid='%s' rssi=%d ch=%u auth=%u", i,
+                         ev.results[i].ssid, ev.results[i].rssi,
+                         ev.results[i].channel, ev.results[i].authmode);
+            }
+            break;
+        case wc::WifiEventKind::StaGotIp:
+            ESP_LOGI(kBleTag, "wifi got ip %lu.%lu.%lu.%lu ssid='%s'",
+                     (unsigned long)(ev.ipv4 & 0xff),
+                     (unsigned long)((ev.ipv4 >> 8) & 0xff),
+                     (unsigned long)((ev.ipv4 >> 16) & 0xff),
+                     (unsigned long)((ev.ipv4 >> 24) & 0xff), ev.ssid);
+            break;
+        default:
+            ESP_LOGI(kBleTag, "wifi event kind=%u err=%u ssid='%s'",
+                     static_cast<unsigned>(ev.kind), ev.error_code, ev.ssid);
+            break;
         }
     }
 
@@ -264,6 +316,11 @@ class C6BleService final : public BleService,
     size_t mc_pending_len_ = 0;
     bool mc_pending_valid_ = false;
     int64_t last_downlink_us_ = 0;
+    // Pairing-prompt state: show the PIN while connected-but-not-yet-talking.
+    static constexpr int64_t kPairingGraceUs = 1200000; // 1.2s before showing PIN
+    int64_t connect_us_ = 0;
+    bool data_seen_ = false;
+    bool pairing_prompt_visible_ = false;
 };
 
 } // namespace

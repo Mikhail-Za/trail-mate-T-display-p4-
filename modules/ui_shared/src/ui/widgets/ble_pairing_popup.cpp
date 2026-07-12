@@ -106,7 +106,13 @@ void BlePairingPopup::ensureCreated()
 
     pin_label_ = lv_label_create(panel_);
     lv_obj_set_style_text_color(pin_label_, lv_color_hex(kColorAmberDark), 0);
+    // Prefer the large 36pt PIN, but fall back to 24pt on targets whose LVGL config
+    // does not compile montserrat_36 (e.g. the T-Display-P4 Kconfig font set).
+#if LV_FONT_MONTSERRAT_36
     lv_obj_set_style_text_font(pin_label_, &lv_font_montserrat_36, 0);
+#else
+    lv_obj_set_style_text_font(pin_label_, &lv_font_montserrat_24, 0);
+#endif
     lv_obj_set_style_text_align(pin_label_, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(pin_label_, LV_PCT(100));
 

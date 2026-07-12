@@ -5,10 +5,23 @@
 #include <cstdio>
 #include <cstring>
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#include "hostlink/c6/c6_protocol.h"
+#include "platform/esp/idf_common/wireless_companion/c6_companion.h"
+#include "platform/esp/idf_common/wireless_companion/c6_wifi_bridge.h"
 #include "platform/ui/settings_store.h"
 
-namespace platform::ui::wifi
-{
+// Wi-Fi on T-Display-P4 / Tab5 lives on the ESP32-C6 companion, reached over
+// HostLink. This runtime drives it: scan/connect/disconnect become WIFI_CONTROL
+// frames, and the C6's asynchronous WIFI_EVENT replies are fed back here through
+// c6_wifi_ingest_event() (called by the single uplink sink). scan() issues the
+// command and pumps the companion for a bounded window until the ScanDone event
+// arrives -- matching the synchronous UI contract while the radio work happens on
+// the C6.
+namespace wc = platform::esp::idf_common::wireless_companion;
+
 namespace
 {
 
@@ -16,13 +29,29 @@ constexpr const char* kSettingsNs = "settings";
 constexpr const char* kWifiEnabledKey = "wifi_enabled";
 constexpr const char* kWifiSsidKey = "wifi_ssid";
 constexpr const char* kWifiPasswordKey = "wifi_password";
-#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4)
-constexpr const char* kUnsupportedMessage =
-    "Wi-Fi is handled by the external C6 firmware on T-Display-P4";
-#else
-constexpr const char* kUnsupportedMessage =
-    "Wi-Fi is not wired into the current Tab5 ESP-IDF target";
-#endif
+constexpr const char* kUnsupportedMessage = "Wi-Fi companion (C6) not detected";
+constexpr int kScanPumpIterations = 300; // 300 * 20ms = 6s cap (a C6 scan is ~5s)
+constexpr TickType_t kScanPumpDelay = pdMS_TO_TICKS(20);
+
+// Latest Wi-Fi state, updated from C6 events on the companion thread and read by
+// the UI thread. All access is on the single UI/runtime thread (the companion is
+// polled there), so no locking is required.
+struct WifiCache
+{
+    bool scan_in_progress = false;
+    bool scan_done = false;
+    uint8_t result_count = 0;
+    wc::WifiScanEntry results[6] = {};
+    bool connected = false;
+    bool has_ip = false;
+    char ip[16] = {};
+    char ssid[33] = {};
+    int rssi = -127;
+    uint16_t last_error = 0;
+    platform::ui::wifi::ConnectionState state = platform::ui::wifi::ConnectionState::Idle;
+};
+
+WifiCache g_cache;
 
 void copy_text(char* out, std::size_t out_len, const char* text)
 {
@@ -33,11 +62,75 @@ void copy_text(char* out, std::size_t out_len, const char* text)
     std::snprintf(out, out_len, "%s", text ? text : "");
 }
 
+bool companion_wifi_supported()
+{
+    const wc::C6CompanionStatus st = wc::c6_companion().status();
+    return st.present && (st.supported_features & TM_C6_FEATURE_WIFI_STA) != 0;
+}
+
 } // namespace
+
+namespace platform::esp::idf_common::wireless_companion
+{
+
+void c6_wifi_ingest_event(const WifiEventInfo& event)
+{
+    switch (event.kind)
+    {
+    case WifiEventKind::ScanDone:
+        g_cache.result_count = event.result_count;
+        for (uint8_t i = 0; i < event.result_count && i < 6; ++i)
+        {
+            g_cache.results[i] = event.results[i];
+        }
+        g_cache.scan_done = true;
+        g_cache.scan_in_progress = false;
+        break;
+    case WifiEventKind::StaConnected:
+        g_cache.connected = true;
+        copy_text(g_cache.ssid, sizeof(g_cache.ssid), event.ssid);
+        if (g_cache.state != platform::ui::wifi::ConnectionState::Connected)
+        {
+            g_cache.state = platform::ui::wifi::ConnectionState::Connecting;
+        }
+        break;
+    case WifiEventKind::StaGotIp:
+        g_cache.connected = true;
+        g_cache.has_ip = true;
+        std::snprintf(g_cache.ip, sizeof(g_cache.ip), "%u.%u.%u.%u",
+                      static_cast<unsigned>(event.ipv4 & 0xff),
+                      static_cast<unsigned>((event.ipv4 >> 8) & 0xff),
+                      static_cast<unsigned>((event.ipv4 >> 16) & 0xff),
+                      static_cast<unsigned>((event.ipv4 >> 24) & 0xff));
+        if (event.ssid[0] != '\0')
+        {
+            copy_text(g_cache.ssid, sizeof(g_cache.ssid), event.ssid);
+        }
+        g_cache.state = platform::ui::wifi::ConnectionState::Connected;
+        break;
+    case WifiEventKind::StaDisconnected:
+        g_cache.connected = false;
+        g_cache.has_ip = false;
+        g_cache.ip[0] = '\0';
+        g_cache.state = platform::ui::wifi::ConnectionState::Idle;
+        break;
+    case WifiEventKind::Error:
+        g_cache.last_error = event.error_code;
+        g_cache.state = platform::ui::wifi::ConnectionState::Error;
+        break;
+    default:
+        break;
+    }
+}
+
+} // namespace platform::esp::idf_common::wireless_companion
+
+namespace platform::ui::wifi
+{
 
 bool is_supported()
 {
-    return false;
+    return companion_wifi_supported();
 }
 
 bool load_config(Config& out)
@@ -72,34 +165,130 @@ bool save_config(const Config& config)
 
 bool apply_enabled(bool enabled)
 {
-    return !enabled;
+    // The C6 keeps STA enabled; there is nothing to toggle on the P4 side. Report
+    // success when the companion is present so the UI treats Wi-Fi as available.
+    (void)enabled;
+    return companion_wifi_supported();
 }
 
 bool connect(const Config* override_config)
 {
-    (void)override_config;
-    return false;
+    Config config{};
+    if (override_config != nullptr)
+    {
+        config = *override_config;
+    }
+    else
+    {
+        (void)load_config(config);
+    }
+    if (!companion_wifi_supported() || config.ssid[0] == '\0')
+    {
+        return false;
+    }
+    g_cache.state = ConnectionState::Connecting;
+    copy_text(g_cache.ssid, sizeof(g_cache.ssid), config.ssid);
+    return wc::c6_companion().sendWifiControl(wc::WifiCommand::Connect, config.ssid,
+                                              config.password, 0);
 }
 
-void disconnect() {}
+void disconnect()
+{
+    (void)wc::c6_companion().sendWifiControl(wc::WifiCommand::Disconnect, nullptr, nullptr, 0);
+    g_cache.connected = false;
+    g_cache.has_ip = false;
+    g_cache.ip[0] = '\0';
+    g_cache.state = ConnectionState::Idle;
+}
 
 bool scan(std::vector<ScanResult>& out_results)
 {
     out_results.clear();
-    return false;
+    if (!companion_wifi_supported())
+    {
+        return false;
+    }
+    g_cache.scan_done = false;
+    g_cache.scan_in_progress = true;
+    g_cache.state = ConnectionState::Scanning;
+    if (!wc::c6_companion().sendWifiControl(wc::WifiCommand::Scan, nullptr, nullptr, 0))
+    {
+        g_cache.scan_in_progress = false;
+        g_cache.state = g_cache.connected ? ConnectionState::Connected : ConnectionState::Idle;
+        return false;
+    }
+    // Pump the companion until the ScanDone event lands (or we time out). This
+    // drives poll() ourselves because the normal update loop is blocked here.
+    for (int i = 0; i < kScanPumpIterations && !g_cache.scan_done; ++i)
+    {
+        wc::c6_companion().poll();
+        vTaskDelay(kScanPumpDelay);
+    }
+    g_cache.scan_in_progress = false;
+    g_cache.state = g_cache.connected ? ConnectionState::Connected : ConnectionState::Idle;
+    if (!g_cache.scan_done)
+    {
+        return false;
+    }
+    for (uint8_t i = 0; i < g_cache.result_count && i < 6; ++i)
+    {
+        ScanResult r{};
+        copy_text(r.ssid, sizeof(r.ssid), g_cache.results[i].ssid);
+        r.rssi = g_cache.results[i].rssi;
+        r.requires_password = g_cache.results[i].authmode != 0; // 0 == open
+        if (r.ssid[0] != '\0')
+        {
+            out_results.push_back(r);
+        }
+    }
+    return true;
 }
 
 Status status()
 {
     Status out{};
-    out.supported = false;
-    out.enabled = false;
-    out.connected = false;
-    out.scanning = false;
-    out.has_credentials = false;
-    out.rssi = -127;
-    out.state = ConnectionState::Unsupported;
-    copy_text(out.message, sizeof(out.message), kUnsupportedMessage);
+    out.supported = companion_wifi_supported();
+    if (!out.supported)
+    {
+        out.state = ConnectionState::Unsupported;
+        copy_text(out.message, sizeof(out.message), kUnsupportedMessage);
+        return out;
+    }
+
+    Config config{};
+    (void)load_config(config);
+
+    out.enabled = true;
+    out.connected = g_cache.connected;
+    out.scanning = g_cache.scan_in_progress;
+    out.has_credentials = config.ssid[0] != '\0';
+    out.rssi = g_cache.rssi;
+    out.state = g_cache.state;
+    copy_text(out.ssid, sizeof(out.ssid),
+              g_cache.ssid[0] != '\0' ? g_cache.ssid : config.ssid);
+    copy_text(out.ip, sizeof(out.ip), g_cache.ip);
+
+    if (g_cache.connected && g_cache.has_ip)
+    {
+        std::snprintf(out.message, sizeof(out.message), "Connected: %s", out.ip);
+    }
+    else if (g_cache.scan_in_progress)
+    {
+        copy_text(out.message, sizeof(out.message), "Scanning...");
+    }
+    else if (g_cache.state == ConnectionState::Connecting)
+    {
+        copy_text(out.message, sizeof(out.message), "Connecting...");
+    }
+    else if (g_cache.state == ConnectionState::Error)
+    {
+        std::snprintf(out.message, sizeof(out.message), "Wi-Fi error (code %u)",
+                      g_cache.last_error);
+    }
+    else
+    {
+        copy_text(out.message, sizeof(out.message), "Ready");
+    }
     return out;
 }
 

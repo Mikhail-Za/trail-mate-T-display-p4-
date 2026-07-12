@@ -32,6 +32,52 @@ enum class CompanionState : uint8_t
     Error = 5,
 };
 
+// Wi-Fi station/AP commands, values match tm_c6_wifi_command in c6_protocol.h.
+enum class WifiCommand : uint8_t
+{
+    Scan = 1,
+    Connect = 2,
+    Disconnect = 3,
+    GetIp = 4,
+    ApStart = 5,
+    ApStop = 6,
+};
+
+// Wi-Fi event kinds reported UP from the C6, values match tm_c6_wifi_event_kind.
+enum class WifiEventKind : uint8_t
+{
+    Started = 1,
+    Stopped = 2,
+    ScanDone = 3,
+    StaConnected = 4,
+    StaDisconnected = 5,
+    StaGotIp = 6,
+    ApStarted = 7,
+    ApStopped = 8,
+    Error = 9,
+};
+
+// One scan result. ssid is NUL-terminated (max 32 chars + NUL).
+struct WifiScanEntry
+{
+    char ssid[33] = {};
+    int8_t rssi = 0;
+    uint8_t channel = 0;
+    uint8_t authmode = 0;
+};
+
+// A decoded Wi-Fi event. `results` is valid for ScanDone (result_count entries);
+// `ipv4` (network byte order) and `ssid` are valid for StaGotIp / StaConnected.
+struct WifiEventInfo
+{
+    WifiEventKind kind = WifiEventKind::Error;
+    uint16_t error_code = 0;
+    uint32_t ipv4 = 0;
+    char ssid[33] = {};
+    uint8_t result_count = 0;
+    WifiScanEntry results[6] = {};
+};
+
 struct C6CompanionStatus
 {
     bool board_capable = false;
@@ -51,6 +97,7 @@ struct C6CompanionStatus
     uint8_t ble_state = 0;
     uint8_t espnow_state = 0;
     uint8_t wifi_state = 0;
+    uint32_t ble_passkey = 0; // 6-digit fixed BLE pairing PIN the P4 configured
     uint32_t ping_nonce = 0;
     uint32_t ping_count = 0;
     uint32_t pong_count = 0;
@@ -90,6 +137,10 @@ class WirelessUplinkSink
         (void)data;
         (void)len;
     }
+    virtual void onWifiEvent(const WifiEventInfo& event)
+    {
+        (void)event;
+    }
     virtual ~WirelessUplinkSink() = default;
 };
 
@@ -108,6 +159,12 @@ class WirelessCompanion
     virtual bool sendBleDownlink(BleProfile profile, uint8_t connection_id,
                                  const uint8_t* data, size_t len) = 0;
     virtual bool sendEspNow(const uint8_t mac[6], const uint8_t* data, size_t len) = 0;
+
+    // Wi-Fi control, P4 -> C6. `ssid`/`password` may be nullptr for commands that
+    // do not need them (Scan/Disconnect/GetIp). Returns false if not present or the
+    // send failed. The C6 answers asynchronously via WirelessUplinkSink::onWifiEvent.
+    virtual bool sendWifiControl(WifiCommand command, const char* ssid,
+                                 const char* password, uint8_t channel) = 0;
 
     // Register (or clear, with nullptr) the sink that receives uplink data/events.
     // The sink is not owned and must outlive the companion or be cleared first.

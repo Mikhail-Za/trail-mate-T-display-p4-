@@ -17,10 +17,12 @@
 #include "driver/sdmmc_defs.h"
 #include "driver/sdmmc_host.h"
 #include "esp_log.h"
+#include "esp_random.h"
 #include "esp_serial_slave_link/essl.h"
 #include "esp_serial_slave_link/essl_sdio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "nvs.h"
 #include "sdmmc_cmd.h"
 #if defined(TRAIL_MATE_ESP_BOARD_TAB5)
 #include "boards/tab5/tab5_board.h"
@@ -501,6 +503,8 @@ class C6CompanionRuntime final : public WirelessCompanion
         }
 
         status_.started = true;
+        ensure_ble_passkey();
+        status_.ble_passkey = ble_passkey_;
         status_.board_capable = board_has_c6_companion();
         status_.protocol_min = TM_C6_PROTO_MIN;
         status_.protocol_max = TM_C6_PROTO_MAX;
@@ -643,6 +647,34 @@ class C6CompanionRuntime final : public WirelessCompanion
                           0,
                           reinterpret_cast<const uint8_t*>(&packet),
                           sizeof(packet));
+    }
+
+    bool sendWifiControl(WifiCommand command, const char* ssid,
+                         const char* password, uint8_t channel) override
+    {
+        if (!status_.present)
+        {
+            return false;
+        }
+        tm_c6_wifi_control_t control{};
+        control.command = static_cast<uint8_t>(command);
+        control.flags = 0;
+        control.reserved = 0;
+        control.channel = channel;
+        if (ssid != nullptr)
+        {
+            std::strncpy(control.ssid, ssid, sizeof(control.ssid));
+        }
+        if (password != nullptr)
+        {
+            std::strncpy(control.password, password, sizeof(control.password));
+        }
+        return send_frame(TM_C6_FRAME_WIFI_CONTROL,
+                          TM_C6_CH_WIFI_MGMT,
+                          0,
+                          0,
+                          reinterpret_cast<const uint8_t*>(&control),
+                          sizeof(control));
     }
 
     void setUplinkSink(WirelessUplinkSink* sink) override
@@ -866,6 +898,40 @@ class C6CompanionRuntime final : public WirelessCompanion
         return true;
     }
 
+    // Load (or first-time generate + persist) the random 6-digit BLE pairing PIN.
+    // Persisting in NVS keeps the code stable across reboots so a paired phone need
+    // not re-pair every boot, while still being unique per device (not the well-known
+    // Meshtastic 123456 default). The P4 displays this PIN during pairing.
+    void ensure_ble_passkey()
+    {
+        if (ble_passkey_ >= 100000u && ble_passkey_ <= 999999u)
+        {
+            return;
+        }
+#if defined(ESP_PLATFORM)
+        uint32_t pin = 0;
+        nvs_handle_t handle = 0;
+        if (nvs_open("tm_c6", NVS_READWRITE, &handle) == ESP_OK)
+        {
+            const esp_err_t rc = nvs_get_u32(handle, "ble_pin", &pin);
+            if (rc != ESP_OK || pin < 100000u || pin > 999999u)
+            {
+                pin = 100000u + (esp_random() % 900000u);
+                (void)nvs_set_u32(handle, "ble_pin", pin);
+                (void)nvs_commit(handle);
+            }
+            nvs_close(handle);
+        }
+        else
+        {
+            pin = 100000u + (esp_random() % 900000u);
+        }
+        ble_passkey_ = pin;
+#else
+        ble_passkey_ = 123456u;
+#endif
+    }
+
     tm_c6_companion_config_t default_config() const
     {
         tm_c6_companion_config_t config{};
@@ -876,9 +942,17 @@ class C6CompanionRuntime final : public WirelessCompanion
         config.ble.meshtastic_enabled = 1;
         config.ble.meshcore_enabled = 1;
         config.ble.trailmate_enabled = 1;
+        // Fixed-PIN pairing using the per-device random 6-digit code (shown on the
+        // P4 screen during pairing). Stable across reboots so a bonded phone need not
+        // re-pair, and not the well-known Meshtastic 123456 default.
         config.ble.pairing_mode = TM_C6_PAIRING_FIXED_PIN;
         config.ble.fixed_pin_enabled = 1;
-        std::memcpy(config.ble.fixed_pin, "123456", 6);
+        char pin_buf[16];
+        const unsigned long pin =
+            static_cast<unsigned long>((ble_passkey_ >= 100000u ? ble_passkey_ : 123456u) %
+                                       1000000u);
+        std::snprintf(pin_buf, sizeof(pin_buf), "%06lu", pin);
+        std::memcpy(config.ble.fixed_pin, pin_buf, 6); // exactly 6 digits, no NUL
         std::memcpy(config.ble.device_name, "TrailMate-C6", 11);
         config.ble.preferred_mtu = 247;
 
@@ -890,10 +964,13 @@ class C6CompanionRuntime final : public WirelessCompanion
                   std::end(config.espnow.broadcast_mac),
                   static_cast<uint8_t>(0xFF));
 
-        config.wifi.wifi_enabled = 0;
-        config.wifi.sta_enabled = 0;
+        // Wi-Fi STA enabled so the C6 can scan and connect on demand; it stays idle
+        // (no association) until the P4 issues a WifiCommand::Connect. AP stays off.
+        // BLE + ESP-NOW keep running via the C6's radio coexistence.
+        config.wifi.wifi_enabled = 1;
+        config.wifi.sta_enabled = 1;
         config.wifi.ap_enabled = 0;
-        config.wifi.persist_credentials = 0;
+        config.wifi.persist_credentials = 1;
         std::memcpy(config.wifi.ap_ssid, "TrailMate-C6", 11);
         config.wifi.ap_channel = 1;
         return config;
@@ -987,6 +1064,35 @@ class C6CompanionRuntime final : public WirelessCompanion
         uplink_sink_->onEspNowReceive(packet.peer_mac, packet.rssi, packet.payload, data_len);
     }
 
+    void deliver_wifi_event(const hostlink::c6::Frame& frame)
+    {
+        if (uplink_sink_ == nullptr ||
+            frame.payload.size() != sizeof(tm_c6_wifi_event_t))
+        {
+            return;
+        }
+        tm_c6_wifi_event_t raw{};
+        std::memcpy(&raw, frame.payload.data(), sizeof(raw));
+        WifiEventInfo ev{};
+        ev.kind = static_cast<WifiEventKind>(raw.event_kind);
+        ev.error_code = raw.error_code;
+        ev.ipv4 = raw.ipv4_addr;
+        std::memcpy(ev.ssid, raw.ssid, sizeof(raw.ssid));
+        ev.ssid[sizeof(ev.ssid) - 1] = '\0';
+        const uint8_t count =
+            std::min<uint8_t>(raw.result_count, TM_C6_WIFI_SCAN_RESULT_COUNT);
+        ev.result_count = count;
+        for (uint8_t i = 0; i < count; ++i)
+        {
+            std::memcpy(ev.results[i].ssid, raw.results[i].ssid, sizeof(raw.results[i].ssid));
+            ev.results[i].ssid[sizeof(ev.results[i].ssid) - 1] = '\0';
+            ev.results[i].rssi = raw.results[i].rssi;
+            ev.results[i].channel = raw.results[i].channel;
+            ev.results[i].authmode = raw.results[i].authmode;
+        }
+        uplink_sink_->onWifiEvent(ev);
+    }
+
     void handle_async_frame(const hostlink::c6::Frame& frame)
     {
         if (frame.frame_type == TM_C6_FRAME_BLE_UPLINK)
@@ -1002,6 +1108,11 @@ class C6CompanionRuntime final : public WirelessCompanion
         if (frame.frame_type == TM_C6_FRAME_ESPNOW_UPLINK)
         {
             deliver_espnow_uplink(frame);
+            return;
+        }
+        if (frame.frame_type == TM_C6_FRAME_WIFI_EVENT)
+        {
+            deliver_wifi_event(frame);
             return;
         }
         if (frame.frame_type == TM_C6_FRAME_CONFIG_REPORT)
@@ -1127,6 +1238,7 @@ class C6CompanionRuntime final : public WirelessCompanion
 
     C6CompanionStatus status_{};
     uint16_t next_seq_ = kInitialSequence;
+    uint32_t ble_passkey_ = 0; // random 6-digit BLE pairing PIN, persisted in NVS
     WirelessUplinkSink* uplink_sink_ = nullptr;
 #if defined(ESP_PLATFORM)
     std::unique_ptr<C6Transport> transport_;
