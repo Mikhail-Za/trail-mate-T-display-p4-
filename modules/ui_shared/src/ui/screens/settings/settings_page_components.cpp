@@ -150,6 +150,7 @@ static char kWifiNetworkOptionLabels[kMaxWifiNetworks][64] = {};
 static wifi_runtime::ScanResult kWifiScanResults[kMaxWifiNetworks] = {};
 static lv_timer_t* s_firmware_update_timer = nullptr;
 static lv_timer_t* s_wireless_timer = nullptr;
+static uint32_t s_last_scan_gen = 0; // last Wi-Fi scan generation the list rendered
 static bool s_firmware_overlay_owned = false;
 static firmware_update_runtime::Phase s_last_firmware_phase = firmware_update_runtime::Phase::Unsupported;
 static bool s_last_firmware_busy = false;
@@ -1427,11 +1428,21 @@ static void modal_restore_group()
     settings::ui::input::on_ui_refreshed();
 }
 
-static void modal_close()
+static void modal_close(bool synchronous = false)
 {
     if (g_state.modal_root)
     {
-        lv_obj_del_async(g_state.modal_root);
+        // During screen teardown the parent root is deleted synchronously right
+        // after; an async delete would then fire against freed memory. Delete
+        // synchronously in that case.
+        if (synchronous)
+        {
+            lv_obj_del(g_state.modal_root);
+        }
+        else
+        {
+            lv_obj_del_async(g_state.modal_root);
+        }
         g_state.modal_root = nullptr;
     }
     g_state.modal_textarea = nullptr;
@@ -2809,7 +2820,10 @@ static void on_saved_forget_clicked(lv_event_t* e)
     ::ui::SystemNotification::show(::ui::i18n::tr("Network forgotten"), 2000);
     if (p->row)
     {
-        lv_obj_del_async(p->row); // remove the row in place
+        // Leave the nav group first (LVGL moves focus to a surviving object), then
+        // delete, so queued input cannot target the freed row.
+        lv_group_remove_obj(p->row);
+        lv_obj_del_async(p->row);
         p->row = nullptr;
     }
 }
@@ -4425,10 +4439,14 @@ static void wireless_refresh_timer_cb(lv_timer_t* /*timer*/)
     if (std::strcmp(label, "Wi-Fi") == 0)
     {
         refresh_wifi_state_from_runtime();
-        std::vector<wifi_runtime::ScanResult> results;
-        (void)wifi_runtime::get_scan_results(results);
-        if (results.size() != kWifiNetworkOptionCount)
+        // Rebuild the network list when a new scan completed (content can change
+        // even when the count is the same), otherwise just update status in place.
+        const uint32_t gen = wifi_runtime::get_scan_generation();
+        if (gen != s_last_scan_gen)
         {
+            s_last_scan_gen = gen;
+            std::vector<wifi_runtime::ScanResult> results;
+            (void)wifi_runtime::get_scan_results(results);
             rebuild_wifi_scan_options(results);
             build_item_list();
         }
@@ -4583,7 +4601,7 @@ void destroy()
 
     if (g_state.modal_root)
     {
-        modal_close();
+        modal_close(/*synchronous=*/true); // parent root is freed right after
     }
     if (s_firmware_update_timer)
     {

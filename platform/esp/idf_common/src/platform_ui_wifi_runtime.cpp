@@ -50,7 +50,8 @@ struct WifiCache
 {
     bool scan_in_progress = false;
     bool scan_done = false;
-    uint16_t scan_op = 0; // op_id of the in-flight scan; stale ScanDone is ignored
+    uint16_t scan_op = 0;        // op_id of the in-flight scan; stale ScanDone ignored
+    uint32_t scan_generation = 0; // bumped on each accepted ScanDone (content may differ)
     uint8_t result_count = 0;
     wc::WifiScanEntry results[6] = {};
     bool connected = false;
@@ -126,6 +127,8 @@ struct PendingSave
 };
 PendingSave g_pending;
 
+bool persist_saved_blob();
+
 void load_saved_blob()
 {
     if (g_saved_loaded)
@@ -135,6 +138,7 @@ void load_saved_blob()
     g_saved_loaded = true;
     g_saved = SavedBlob{};
     g_saved.version = kSavedSchemaVersion;
+    bool found = false;
 #if defined(ESP_PLATFORM)
     nvs_handle_t handle = 0;
     if (nvs_open(kSavedNvsNs, NVS_READONLY, &handle) == ESP_OK)
@@ -149,12 +153,15 @@ void load_saved_blob()
             {
                 g_saved.count = kMaxSaved;
             }
+            found = true;
         }
         nvs_close(handle);
     }
 #endif
-    // Migrate the legacy single credential into the store on first run.
-    if (g_saved.count == 0)
+    // Only on first run (no valid blob yet): migrate the legacy single credential,
+    // then persist so a later "forget everything" is NOT undone on the next boot
+    // (a deliberately-empty blob must be distinguishable from "never saved").
+    if (!found)
     {
         std::string ssid;
         if (::platform::ui::settings_store::get_string(kSettingsNs, kWifiSsidKey, ssid) &&
@@ -169,6 +176,7 @@ void load_saved_blob()
             r.auto_join = 1;
             g_saved.count = 1;
         }
+        (void)persist_saved_blob(); // create the blob so future loads see it exists
     }
 }
 
@@ -301,9 +309,15 @@ void c6_wifi_ingest_event(const WifiEventInfo& event)
         }
         g_cache.scan_done = true;
         g_cache.scan_in_progress = false;
+        ++g_cache.scan_generation; // content changed even if the count did not
         try_auto_join(); // join the strongest saved auto-join AP, if idle
         break;
     case WifiEventKind::StaConnected:
+        // Reject a connect response from a superseded attempt.
+        if (event.op_id != 0 && g_cache.conn_op != 0 && event.op_id != g_cache.conn_op)
+        {
+            break;
+        }
         g_cache.connected = true;
         g_cache.intent = Intent::None;
         copy_text(g_cache.ssid, sizeof(g_cache.ssid), event.ssid);
@@ -313,6 +327,11 @@ void c6_wifi_ingest_event(const WifiEventInfo& event)
         }
         break;
     case WifiEventKind::StaGotIp:
+        // Reject an IP from a superseded attempt (would show/commit the wrong AP).
+        if (event.op_id != 0 && g_cache.conn_op != 0 && event.op_id != g_cache.conn_op)
+        {
+            break;
+        }
         g_cache.connected = true;
         g_cache.has_ip = true;
         g_cache.intent = Intent::None;
@@ -327,8 +346,11 @@ void c6_wifi_ingest_event(const WifiEventInfo& event)
             copy_text(g_cache.ssid, sizeof(g_cache.ssid), event.ssid);
         }
         g_cache.state = uiw::ConnectionState::Connected;
-        // Auth succeeded -> commit the transient credential to the saved store.
-        if (g_pending.active)
+        // Auth succeeded -> commit the transient credential (op already matched
+        // above; also require the SSID to match so we never persist the wrong one).
+        if (g_pending.active &&
+            (event.ssid[0] == '\0' ||
+             std::strncmp(g_pending.ssid, event.ssid, sizeof(g_pending.ssid)) == 0))
         {
             store_saved(g_pending.ssid, g_pending.password, g_pending.auto_join);
             g_pending.active = false;
@@ -456,8 +478,17 @@ bool connect(const Config* override_config)
     copy_text(g_pending.ssid, sizeof(g_pending.ssid), config.ssid);
     copy_text(g_pending.password, sizeof(g_pending.password), config.password);
     g_pending.auto_join = true;
-    return wc::c6_companion().sendWifiControl(wc::WifiCommand::Connect, config.ssid,
-                                              config.password, 0, g_cache.conn_op);
+    const bool sent = wc::c6_companion().sendWifiControl(wc::WifiCommand::Connect, config.ssid,
+                                                         config.password, 0, g_cache.conn_op);
+    if (!sent)
+    {
+        // Transport failed -> roll back so we do not sit at "Connecting..." forever
+        // or let a late unrelated event commit this pending credential.
+        g_pending.active = false;
+        g_cache.intent = Intent::None;
+        g_cache.state = ConnectionState::Error;
+    }
+    return sent;
 }
 
 void disconnect()
@@ -491,8 +522,12 @@ bool scan(std::vector<ScanResult>& out_results)
     {
         g_cache.state = ConnectionState::Scanning;
     }
-    (void)wc::c6_companion().sendWifiControl(wc::WifiCommand::Scan, nullptr, nullptr, 0,
-                                             g_cache.scan_op);
+    if (!wc::c6_companion().sendWifiControl(wc::WifiCommand::Scan, nullptr, nullptr, 0,
+                                            g_cache.scan_op))
+    {
+        g_cache.scan_in_progress = false; // don't spin at "Scanning..." if send failed
+        g_cache.state = g_cache.connected ? ConnectionState::Connected : ConnectionState::Idle;
+    }
     for (uint8_t i = 0; i < g_cache.result_count && i < 6; ++i)
     {
         ScanResult r{};
@@ -526,6 +561,11 @@ bool get_scan_results(std::vector<ScanResult>& out_results)
         }
     }
     return !out_results.empty();
+}
+
+uint32_t get_scan_generation()
+{
+    return g_cache.scan_generation;
 }
 
 Status status()

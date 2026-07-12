@@ -1,6 +1,6 @@
-#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4) || defined(TRAIL_MATE_ESP_BOARD_TAB5)
+#include "platform/ui/ble_runtime.h" // needed by both branches (Status type)
 
-#include "platform/ui/ble_runtime.h"
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4) || defined(TRAIL_MATE_ESP_BOARD_TAB5)
 
 #include <cstdio>
 
@@ -59,7 +59,8 @@ Status status()
     s.passkey = wc::c6_companion().status().ble_passkey;
 
     ::ble::BlePairingStatus pairing{};
-    if (get_pairing(pairing))
+    const bool have_link = get_pairing(pairing);
+    if (have_link)
     {
         s.connected = pairing.is_connected;
         s.pairing = pairing.is_pairing_active;
@@ -88,7 +89,8 @@ Status status()
     else
     {
         s.state = LinkState::Advertising;
-        std::snprintf(s.message, sizeof(s.message), "Discoverable - not connected");
+        std::snprintf(s.message, sizeof(s.message),
+                      have_link ? "Discoverable - not connected" : "Bluetooth on");
     }
     return s;
 }

@@ -68,6 +68,9 @@ bool scan(std::vector<ScanResult>& out_results);
 // Read the most recent completed scan WITHOUT starting a new one (so a refresh
 // timer can pick up async results without re-triggering scans).
 bool get_scan_results(std::vector<ScanResult>& out_results);
+// Monotonic counter bumped on every completed scan; lets a refresh timer detect a
+// changed result set even when the network count is unchanged.
+uint32_t get_scan_generation();
 Status status();
 
 // Saved-networks store (persisted, versioned). connect_saved joins using the
