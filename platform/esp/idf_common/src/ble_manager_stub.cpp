@@ -17,6 +17,7 @@
 #include "phone/meshcore/meshcore_phone_core.h"
 #include "phone/meshtastic/meshtastic_phone_core.h"
 #include "phone/meshtastic/meshtastic_phone_session.h"
+#include "platform/esp/boards/board_runtime.h"
 #include "platform/esp/idf_common/wireless_companion/c6_companion.h"
 #include "ui/widgets/ble_pairing_popup.h"
 
@@ -100,8 +101,15 @@ class C6BleService final : public BleService,
         const bool awaiting = connected_ && !data_seen_ && connect_us_ != 0 &&
                               (esp_timer_get_time() - connect_us_) > kPairingGraceUs;
         pairing_prompt_visible_ = awaiting;
-        ::ui::BlePairingPopup::update(awaiting ? wc::c6_companion().status().ble_passkey : 0,
-                                      true, device_name_.c_str());
+        // The popup touches LVGL, but this runs on the app/runtime task, not the
+        // esp_lvgl_port task. LVGL is not thread-safe -- take the display lock (as
+        // the chat UI feed does) or the two tasks racing LVGL freeze the device.
+        const uint32_t pin = awaiting ? wc::c6_companion().status().ble_passkey : 0;
+        if (::platform::esp::boards::lockDisplay(50))
+        {
+            ::ui::BlePairingPopup::update(pin, true, device_name_.c_str());
+            ::platform::esp::boards::unlockDisplay();
+        }
         if (mt_session_)
         {
             mt_session_->pumpIncomingAppData();

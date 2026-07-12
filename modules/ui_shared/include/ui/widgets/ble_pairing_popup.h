@@ -12,6 +12,10 @@ class BlePairingPopup
     static void update(uint32_t passkey, bool is_fixed_pin, const char* device_name);
     static void hide();
     static bool isVisible();
+    // User-initiated dismiss (Cancel button): hides the popup and suppresses it for
+    // the current code so an accidental connection cannot trap the screen. Cleared
+    // when the code changes or the connection ends (update(0)).
+    static void dismiss();
 
   private:
     static void ensureCreated();
@@ -19,6 +23,9 @@ class BlePairingPopup
     static void show(uint32_t passkey, bool is_fixed_pin, const char* device_name);
 
     static lv_obj_t* overlay_;
+    static lv_obj_t* close_btn_;
+    static bool dismissed_;
+    static uint32_t dismissed_passkey_;
     static lv_obj_t* panel_;
     static lv_obj_t* title_label_;
     static lv_obj_t* mode_label_;

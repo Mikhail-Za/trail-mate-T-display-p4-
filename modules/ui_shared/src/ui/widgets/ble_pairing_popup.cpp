@@ -35,6 +35,14 @@ lv_obj_t* BlePairingPopup::footer_label_ = nullptr;
 bool BlePairingPopup::visible_ = false;
 uint32_t BlePairingPopup::shown_passkey_ = 0;
 bool BlePairingPopup::shown_fixed_pin_ = false;
+lv_obj_t* BlePairingPopup::close_btn_ = nullptr;
+bool BlePairingPopup::dismissed_ = false;
+uint32_t BlePairingPopup::dismissed_passkey_ = 0;
+
+static void ble_pairing_popup_close_cb(lv_event_t* /*e*/)
+{
+    BlePairingPopup::dismiss();
+}
 
 void BlePairingPopup::ensureCreated()
 {
@@ -123,11 +131,21 @@ void BlePairingPopup::ensureCreated()
     lv_obj_set_width(device_label_, LV_PCT(100));
 
     footer_label_ = lv_label_create(panel_);
-    ::ui::i18n::set_label_text(footer_label_, "Closes automatically after pairing");
+    ::ui::i18n::set_label_text(footer_label_, "Closes after pairing - or tap Dismiss");
     lv_obj_set_style_text_color(footer_label_, lv_color_hex(kColorOk), 0);
     lv_obj_set_style_text_font(footer_label_, &lv_font_montserrat_18, 0);
     lv_obj_set_style_text_align(footer_label_, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(footer_label_, LV_PCT(100));
+
+    // Manual escape hatch: an accidental connection can be dismissed without a reboot.
+    close_btn_ = lv_btn_create(panel_);
+    lv_obj_set_width(close_btn_, LV_PCT(70));
+    lv_obj_set_style_bg_color(close_btn_, lv_color_hex(kColorLine), 0);
+    lv_obj_add_event_cb(close_btn_, ble_pairing_popup_close_cb, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* close_label = lv_label_create(close_btn_);
+    ::ui::i18n::set_label_text(close_label, "Dismiss");
+    lv_obj_set_style_text_font(close_label, &lv_font_montserrat_18, 0);
+    lv_obj_center(close_label);
 
     applyLayout();
 }
@@ -208,9 +226,17 @@ void BlePairingPopup::update(uint32_t passkey, bool is_fixed_pin, const char* de
 {
     if (passkey == 0)
     {
+        dismissed_ = false; // connection ended -> let the next pairing session show
+        dismissed_passkey_ = 0;
         hide();
         return;
     }
+
+    if (dismissed_ && dismissed_passkey_ == passkey)
+    {
+        return; // user dismissed this exact code -> stay hidden until it changes
+    }
+    dismissed_ = false; // a new/different code -> fresh session, allow showing
 
     if (visible_ && shown_passkey_ == passkey && shown_fixed_pin_ == is_fixed_pin)
     {
@@ -219,6 +245,13 @@ void BlePairingPopup::update(uint32_t passkey, bool is_fixed_pin, const char* de
     }
 
     show(passkey, is_fixed_pin, device_name);
+}
+
+void BlePairingPopup::dismiss()
+{
+    dismissed_ = true;
+    dismissed_passkey_ = shown_passkey_;
+    hide();
 }
 
 void BlePairingPopup::hide()
