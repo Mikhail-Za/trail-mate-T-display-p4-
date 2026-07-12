@@ -19,6 +19,9 @@
 #include "phone/meshtastic/meshtastic_phone_session.h"
 #include "platform/esp/idf_common/wireless_companion/c6_companion.h"
 
+#include "esp_log.h"
+#include "esp_timer.h"
+
 #include <memory>
 #include <string>
 
@@ -28,10 +31,14 @@ namespace
 {
 namespace wc = platform::esp::idf_common::wireless_companion;
 
-// Frames drained per update(). Kept small to pace downlinks over SDIO and avoid
-// flooding the C6's NimBLE notification queue in one burst; update() runs many
-// times per second so sustained throughput stays high.
-constexpr int kMaxDrainPerUpdate = 4;
+constexpr const char* kBleTag = "C6_BLE";
+
+// Minimum spacing between downlink frames. update() runs many times per second, but
+// BLE can only carry roughly one notification per connection interval (~15-50ms at
+// this MTU). Sending faster overruns the C6's NimBLE notify queue and silently drops
+// frames, so the phone gets an incomplete config and retries. One frame per ~25ms
+// (~40/s) keeps pace with BLE while draining a ~40-frame config flow in ~1s.
+constexpr int64_t kMinDownlinkIntervalUs = 25000;
 // MeshCore BLE frames are capped at 172 bytes (NUS MTU budget), matching the Arduino path.
 constexpr size_t kMeshCoreFrameMax = 172;
 
@@ -82,12 +89,21 @@ class C6BleService final : public BleService,
         if (mt_session_)
         {
             mt_session_->pumpIncomingAppData();
-            drainMeshtastic();
         }
         if (mc_core_)
         {
             mc_core_->pumpIncomingAppData();
-            drainMeshCore();
+        }
+        // Paced downlink: at most one frame per connection interval so notifications
+        // do not overrun the BLE link (dropping config frames). Meshtastic first.
+        const int64_t now = esp_timer_get_time();
+        if (now - last_downlink_us_ < kMinDownlinkIntervalUs)
+        {
+            return;
+        }
+        if (sendOneMeshtastic() || sendOneMeshCore())
+        {
+            last_downlink_us_ = now;
         }
     }
 
@@ -124,6 +140,8 @@ class C6BleService final : public BleService,
         {
             return;
         }
+        ESP_LOGI(kBleTag, "uplink profile=%u conn=%u len=%u",
+                 static_cast<unsigned>(profile), connection_id, static_cast<unsigned>(len));
         switch (profile)
         {
         case wc::BleProfile::Meshtastic:
@@ -148,8 +166,8 @@ class C6BleService final : public BleService,
                     uint8_t connection_id, uint16_t mtu, uint16_t error_code) override
     {
         (void)profile;
-        (void)mtu;
-        (void)error_code;
+        ESP_LOGI(kBleTag, "event kind=%u conn=%u mtu=%u err=%u",
+                 event_kind, connection_id, mtu, error_code);
         // Mirrors tm_c6_ble_event_kind: 3 = CONNECTED, 4 = DISCONNECTED.
         if (event_kind == 3u)
         {
@@ -175,57 +193,56 @@ class C6BleService final : public BleService,
     // get the frame. popToPhone() is destructive, so on failure we HOLD the frame and
     // retry it next tick rather than dropping it; losing a config frame (e.g.
     // config_complete_id) would restart the phone's whole sync ("too many retries").
-    void drainMeshtastic()
+    // Sends at most one Meshtastic frame (retrying a held frame first). Returns true
+    // only if the C6 accepted the frame; on SDIO-send failure the frame is kept for a
+    // retry next tick and the rate-limit clock is left un-advanced.
+    bool sendOneMeshtastic()
     {
-        if (mt_pending_valid_)
+        if (!mt_session_)
         {
-            if (!wc::c6_companion().sendBleDownlink(wc::BleProfile::Meshtastic, last_connection_,
-                                                    mt_pending_.buf, mt_pending_.len))
-            {
-                return; // still failing; keep the held frame, retry next tick
-            }
-            mt_pending_valid_ = false;
+            return false;
         }
-        for (int i = 0; i < kMaxDrainPerUpdate; ++i)
+        if (!mt_pending_valid_)
         {
             if (!mt_session_->popToPhone(&mt_pending_))
             {
-                return;
+                return false;
             }
-            if (!wc::c6_companion().sendBleDownlink(wc::BleProfile::Meshtastic, last_connection_,
-                                                    mt_pending_.buf, mt_pending_.len))
-            {
-                mt_pending_valid_ = true; // hold the just-popped frame for retry
-                return;
-            }
+            mt_pending_valid_ = true;
         }
+        if (wc::c6_companion().sendBleDownlink(wc::BleProfile::Meshtastic, last_connection_,
+                                               mt_pending_.buf, mt_pending_.len))
+        {
+            mt_pending_valid_ = false;
+            return true;
+        }
+        ESP_LOGW(kBleTag, "mt downlink send failed len=%u (held)",
+                 static_cast<unsigned>(mt_pending_.len));
+        return false;
     }
 
-    void drainMeshCore()
+    bool sendOneMeshCore()
     {
-        if (mc_pending_valid_)
+        if (!mc_core_)
         {
-            if (!wc::c6_companion().sendBleDownlink(wc::BleProfile::MeshCore, last_connection_,
-                                                    mc_pending_, mc_pending_len_))
-            {
-                return;
-            }
-            mc_pending_valid_ = false;
+            return false;
         }
-        for (int i = 0; i < kMaxDrainPerUpdate; ++i)
+        if (!mc_pending_valid_)
         {
             mc_pending_len_ = 0;
             if (!mc_core_->popTxFrame(mc_pending_, &mc_pending_len_))
             {
-                return;
+                return false;
             }
-            if (!wc::c6_companion().sendBleDownlink(wc::BleProfile::MeshCore, last_connection_,
-                                                    mc_pending_, mc_pending_len_))
-            {
-                mc_pending_valid_ = true;
-                return;
-            }
+            mc_pending_valid_ = true;
         }
+        if (wc::c6_companion().sendBleDownlink(wc::BleProfile::MeshCore, last_connection_,
+                                               mc_pending_, mc_pending_len_))
+        {
+            mc_pending_valid_ = false;
+            return true;
+        }
+        return false;
     }
 
     app::IAppBleFacade& ctx_;
@@ -246,6 +263,7 @@ class C6BleService final : public BleService,
     uint8_t mc_pending_[kMeshCoreFrameMax] = {};
     size_t mc_pending_len_ = 0;
     bool mc_pending_valid_ = false;
+    int64_t last_downlink_us_ = 0;
 };
 
 } // namespace
