@@ -77,9 +77,83 @@ static uint16_t s_meshtastic_from_radio_sync_handle;
 static uint16_t s_meshtastic_log_handle;
 static uint16_t s_meshcore_tx_handle;
 static uint16_t s_trailmate_tx_handle;
-static uint8_t s_last_meshtastic_payload[TM_C6_MAX_PAYLOAD];
-static uint16_t s_last_meshtastic_len;
 static uint32_t s_from_num_counter;
+
+// Meshtastic FromRadio FIFO. The phone reads FromRadio (triggered by a FromNum
+// notify) until it returns empty. A single slot dropped frames whenever the P4
+// pushed the next frame before the phone read the previous one, so the phone got
+// an incomplete config and restarted ("too many retries"). This queue holds each
+// frame until the phone reads it, sized to absorb a full want_config burst
+// (~34 frames) with margin.
+// Single-producer / single-consumer ring: push() runs on the HostLink task (P4
+// downlink), pop() runs on the NimBLE host task (phone read). Keeping head and
+// tail as separate volatile indices (no shared count) makes it lock-free and
+// race-free on the C6's single core -- the producer only advances tail after the
+// slot is written; the consumer only advances head after the slot is read. Holds
+// up to DEPTH-1 frames, comfortably above a full want_config burst (~34).
+#define TM_MESHTASTIC_QUEUE_DEPTH 40
+#define TM_MESHTASTIC_FRAME_MAX 512
+typedef struct
+{
+    uint16_t len;
+    uint8_t data[TM_MESHTASTIC_FRAME_MAX];
+} tm_meshtastic_frame_t;
+static tm_meshtastic_frame_t s_mt_queue[TM_MESHTASTIC_QUEUE_DEPTH];
+static volatile uint16_t s_mt_head; // consumer (BLE read) advances this
+static volatile uint16_t s_mt_tail; // producer (downlink) advances this
+
+static bool mt_queue_push(const uint8_t* data, size_t len)
+{
+    if (len > TM_MESHTASTIC_FRAME_MAX)
+    {
+        return false;
+    }
+    const uint16_t tail = s_mt_tail;
+    const uint16_t next = (uint16_t)((tail + 1) % TM_MESHTASTIC_QUEUE_DEPTH);
+    if (next == s_mt_head)
+    {
+        return false; // full (DEPTH-1 frames queued); drop this frame
+    }
+    tm_meshtastic_frame_t* slot = &s_mt_queue[tail];
+    if (len > 0 && data != NULL)
+    {
+        memcpy(slot->data, data, len);
+    }
+    slot->len = (uint16_t)len;
+    s_mt_tail = next; // publish after the slot is fully written
+    return true;
+}
+
+static uint16_t mt_queue_pop(uint8_t* out, size_t out_max)
+{
+    if (out == NULL)
+    {
+        return 0;
+    }
+    const uint16_t head = s_mt_head;
+    if (head == s_mt_tail)
+    {
+        return 0; // empty
+    }
+    const tm_meshtastic_frame_t* slot = &s_mt_queue[head];
+    uint16_t len = slot->len;
+    if (len > out_max)
+    {
+        len = (uint16_t)out_max;
+    }
+    if (len > 0)
+    {
+        memcpy(out, slot->data, len);
+    }
+    s_mt_head = (uint16_t)((head + 1) % TM_MESHTASTIC_QUEUE_DEPTH); // publish
+    return len;
+}
+
+static void mt_queue_reset(void)
+{
+    s_mt_head = 0;
+    s_mt_tail = 0;
+}
 static uint32_t s_active_passkey;
 static uint8_t s_adv_profile_cursor = TM_C6_BLE_PROFILE_MESHTASTIC;
 
@@ -404,13 +478,10 @@ static int gatt_access_cb(uint16_t conn_handle,
         }
         if (attr_handle == s_meshtastic_from_radio_handle)
         {
-            const uint16_t len = s_last_meshtastic_len;
-            const int rc = append_mbuf(ctxt->om, s_last_meshtastic_payload, len);
-            if (rc == 0)
-            {
-                s_last_meshtastic_len = 0;
-            }
-            return rc;
+            uint8_t buf[TM_MESHTASTIC_FRAME_MAX];
+            const uint16_t len = mt_queue_pop(buf, sizeof(buf));
+            // len == 0 -> empty read, which tells the phone the queue is drained.
+            return append_mbuf(ctxt->om, buf, len);
         }
         if (attr_handle == s_meshtastic_from_num_handle)
         {
@@ -502,6 +573,7 @@ static int gap_event_cb(struct ble_gap_event* event, void* arg)
         {
             s_conn_handle = event->connect.conn_handle;
             ++s_connection_id;
+            mt_queue_reset(); // fresh FromRadio queue for the new session
             emit_event(TM_C6_BLE_EVENT_CONNECTED, TM_C6_BLE_PROFILE_NONE, ble_att_mtu(s_conn_handle), TM_C6_OK);
         }
         else
@@ -713,14 +785,16 @@ esp_err_t tm_ble_send_downlink(uint8_t profile, const uint8_t* payload, size_t p
     switch ((tm_c6_ble_profile_t)profile)
     {
     case TM_C6_BLE_PROFILE_MESHTASTIC:
-        if (payload_len <= sizeof(s_last_meshtastic_payload))
+        // Queue the frame so it survives until the phone reads FromRadio. Report
+        // success once queued: the FromNum notify below is only a hint to read, so
+        // a failed notify must NOT make the P4 re-send (that would duplicate the
+        // frame). An oversized frame cannot be queued -- drop it rather than wedge
+        // the P4 in a retry loop; the phone re-requests config if it ends up short.
+        if (!mt_queue_push(payload, payload_len))
         {
-            memcpy(s_last_meshtastic_payload, payload, payload_len);
-            s_last_meshtastic_len = (uint16_t)payload_len;
-            ++s_from_num_counter;
+            tm_services_record_error(TM_C6_ERROR_PAYLOAD_TOO_LARGE, "mt_frame_too_large");
         }
-        err = notify_handle(s_meshtastic_from_radio_sync_handle, payload, payload_len);
-        if (err != ESP_OK)
+        ++s_from_num_counter;
         {
             const uint8_t counter[4] = {
                 (uint8_t)(s_from_num_counter & 0xffu),
@@ -728,8 +802,13 @@ esp_err_t tm_ble_send_downlink(uint8_t profile, const uint8_t* payload, size_t p
                 (uint8_t)((s_from_num_counter >> 16) & 0xffu),
                 (uint8_t)((s_from_num_counter >> 24) & 0xffu),
             };
-            err = notify_handle(s_meshtastic_from_num_handle, counter, sizeof(counter));
+            // Best-effort mirror to the custom sync characteristic, then always
+            // raise FromNum -- that is what the standard Meshtastic phone waits on
+            // before it reads FromRadio.
+            (void)notify_handle(s_meshtastic_from_radio_sync_handle, payload, payload_len);
+            (void)notify_handle(s_meshtastic_from_num_handle, counter, sizeof(counter));
         }
+        err = ESP_OK;
         break;
     case TM_C6_BLE_PROFILE_MESHCORE:
         err = notify_handle(s_meshcore_tx_handle, payload, payload_len);
