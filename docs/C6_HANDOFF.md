@@ -58,10 +58,24 @@ currently-running C6 image can be read first with
    the node and complete config with no "retries" churn.
 3. (Optional) In the app, confirm all channels/config load (lossless).
 
+## Codex review outcome
+
+Two adversarial passes. All critical/high correctness findings were fixed and
+confirmed clean on re-review: the FromRadio queue (portMUX critical section, no
+deadlock, no head-overwrite between peek and drop), the frame-loss on mbuf
+exhaustion, the FromNum desync, the blocking scan that stalled BLE, the Wi-Fi
+event/BLE-sink coupling, and the SSID/password NUL-termination. Two items are
+accepted as-is (not correctness bugs), see below.
+
 ## Notes / known limitations
 - Wi-Fi management is driven by the C6 companion poll that runs from the BLE
   service; with BLE **enabled** (the default) this is a non-issue. If BLE is ever
   turned off, Wi-Fi status/scan pause until it is re-enabled.
 - Wi-Fi scan in the settings page is asynchronous: tap Scan, the list populates a
-  few seconds later (status shows "Scanning..."); tap again to refresh.
+  few seconds later (status shows "Scanning..."); tap again to see them. This is
+  intentional -- a blocking scan would freeze the UI ~5s and stall BLE. A future
+  polish is to rebuild the list from the ScanDone event so the first tap suffices.
+- FromRadio delivery: if the FromNum notify for the *last* frame transiently fails
+  (rare mbuf exhaustion, only while paired+connected), the phone re-requests config
+  on its want_config timeout and recovers; there is no explicit notify retry.
 - Trail-Mate BLE profile is still a placeholder (accepted, not routed).
