@@ -226,7 +226,10 @@ static bool handle_config_set(const tm_c6_frame_view_t* frame)
 
     tm_c6_config_report_t report = {};
     esp_err_t err = tm_services_apply_config(&config, &report);
-    if (err == ESP_OK && config.ble.ble_enabled)
+    // Always call each service's apply -- including when its *_enabled flag is 0 --
+    // so the disable transition actually runs (stop STA / terminate BLE). Each
+    // apply is idempotent and handles the disabled state internally.
+    if (err == ESP_OK)
     {
         err = tm_ble_apply_config(&config.ble);
         if (err != ESP_OK)
@@ -238,7 +241,7 @@ static bool handle_config_set(const tm_c6_frame_view_t* frame)
                                            &report);
         }
     }
-    if (err == ESP_OK && config.wifi.wifi_enabled)
+    if (err == ESP_OK)
     {
         err = tm_wifi_apply_config(&config.wifi);
         if (err != ESP_OK)
@@ -250,7 +253,7 @@ static bool handle_config_set(const tm_c6_frame_view_t* frame)
                                            &report);
         }
     }
-    if (err == ESP_OK && config.espnow.espnow_enabled)
+    if (err == ESP_OK)
     {
         err = tm_espnow_apply_config(&config.espnow);
         if (err != ESP_OK)
@@ -343,6 +346,22 @@ static bool handle_wifi_control(const tm_c6_frame_view_t* frame)
     return true;
 }
 
+static bool handle_ble_control(const tm_c6_frame_view_t* frame)
+{
+    if (frame->channel != TM_C6_CH_CONTROL || frame->payload_len != sizeof(tm_c6_ble_control_t))
+    {
+        return send_error_frame(frame, TM_C6_ERROR_UNSUPPORTED_FRAME, "bad_ble_control");
+    }
+    tm_c6_ble_control_t control = {};
+    memcpy(&control, frame->payload, sizeof(control));
+    const esp_err_t err = tm_ble_handle_control(&control);
+    if (err != ESP_OK)
+    {
+        return send_error_frame(frame, TM_C6_ERROR_INTERNAL, "ble_control_failed");
+    }
+    return true;
+}
+
 static bool handle_diag_request(const tm_c6_frame_view_t* frame)
 {
     tm_c6_diag_report_t report = {};
@@ -422,6 +441,9 @@ static void hostlink_task(void* arg)
             break;
         case TM_C6_FRAME_WIFI_CONTROL:
             (void)handle_wifi_control(&decoded.frame);
+            break;
+        case TM_C6_FRAME_BLE_CONTROL:
+            (void)handle_ble_control(&decoded.frame);
             break;
         case TM_C6_FRAME_DIAG_REQUEST:
             (void)handle_diag_request(&decoded.frame);

@@ -714,6 +714,11 @@ esp_err_t tm_ble_apply_config(const tm_c6_ble_config_t* config)
     {
         if (s_synced)
         {
+            // Real "BLE off": drop any live connection, then stop advertising.
+            if (s_conn_handle != BLE_HS_CONN_HANDLE_NONE)
+            {
+                (void)ble_gap_terminate(s_conn_handle, BLE_ERR_REM_USER_CONN_TERM);
+            }
             ble_gap_adv_stop();
         }
         return ESP_OK;
@@ -786,6 +791,79 @@ static esp_err_t notify_handle(uint16_t value_handle, const uint8_t* payload, si
     }
     const int rc = ble_gatts_notify_custom(s_conn_handle, value_handle, om);
     return rc == 0 ? ESP_OK : ESP_FAIL;
+}
+
+esp_err_t tm_ble_handle_control(const tm_c6_ble_control_t* control)
+{
+    if (control == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    switch ((tm_c6_ble_command_t)control->command)
+    {
+    case TM_C6_BLE_CMD_ENABLE:
+        s_config.ble_enabled = 1;
+        if (s_synced)
+        {
+            advertise();
+        }
+        break;
+    case TM_C6_BLE_CMD_DISABLE:
+        s_config.ble_enabled = 0;
+        if (s_synced)
+        {
+            if (s_conn_handle != BLE_HS_CONN_HANDLE_NONE)
+            {
+                (void)ble_gap_terminate(s_conn_handle, BLE_ERR_REM_USER_CONN_TERM);
+            }
+            ble_gap_adv_stop();
+        }
+        break;
+    case TM_C6_BLE_CMD_SET_PROFILE_MASK:
+        s_config.meshtastic_enabled =
+            (control->profile_mask & TM_C6_BLE_PROFILE_MASK_MESHTASTIC) ? 1 : 0;
+        s_config.meshcore_enabled =
+            (control->profile_mask & TM_C6_BLE_PROFILE_MASK_MESHCORE) ? 1 : 0;
+        s_config.trailmate_enabled =
+            (control->profile_mask & TM_C6_BLE_PROFILE_MASK_TRAILMATE) ? 1 : 0;
+        if (s_synced && s_config.ble_enabled)
+        {
+            advertise(); // next advertise cycle honors the new mask
+        }
+        break;
+    case TM_C6_BLE_CMD_SET_PIN:
+        memcpy(s_config.fixed_pin, control->pin, sizeof(s_config.fixed_pin));
+        s_config.pairing_mode = TM_C6_PAIRING_FIXED_PIN;
+        s_config.fixed_pin_enabled = 1;
+        if (parse_fixed_pin() == 0)
+        {
+            tm_services_record_error(TM_C6_ERROR_INTERNAL, "ble_ctrl_pin_invalid");
+            return ESP_ERR_INVALID_ARG;
+        }
+        apply_security_config();
+        // Drop the current link so the peer re-pairs with the new PIN.
+        if (s_conn_handle != BLE_HS_CONN_HANDLE_NONE)
+        {
+            (void)ble_gap_terminate(s_conn_handle, BLE_ERR_REM_USER_CONN_TERM);
+        }
+        break;
+    case TM_C6_BLE_CMD_BOND_RESET:
+        (void)ble_store_clear(); // wipe bonds so the peer must pair again
+        if (s_conn_handle != BLE_HS_CONN_HANDLE_NONE)
+        {
+            (void)ble_gap_terminate(s_conn_handle, BLE_ERR_REM_USER_CONN_TERM);
+        }
+        break;
+    case TM_C6_BLE_CMD_DISCONNECT:
+        if (s_conn_handle != BLE_HS_CONN_HANDLE_NONE)
+        {
+            (void)ble_gap_terminate(s_conn_handle, BLE_ERR_REM_USER_CONN_TERM);
+        }
+        break;
+    default:
+        return ESP_ERR_INVALID_ARG;
+    }
+    return ESP_OK;
 }
 
 esp_err_t tm_ble_send_downlink(uint8_t profile, const uint8_t* payload, size_t payload_len)

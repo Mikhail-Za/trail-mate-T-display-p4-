@@ -148,6 +148,25 @@ extern "C"
         TM_C6_BLE_EVENT_NOTIFY_DROPPED = 6,
     } tm_c6_ble_event_kind_t;
 
+    // Runtime BLE control commands, carried in a TM_C6_FRAME_BLE_CONTROL (0x23)
+    // frame. These let the P4 manage the peripheral at runtime without replaying
+    // the whole CONFIG_SET (which resets unrelated radios and is skipped for
+    // disabled services by the dispatcher).
+    typedef enum tm_c6_ble_command
+    {
+        TM_C6_BLE_CMD_ENABLE = 1,           // start advertising / accept connections
+        TM_C6_BLE_CMD_DISABLE = 2,          // terminate connection + stop advertising
+        TM_C6_BLE_CMD_SET_PROFILE_MASK = 3, // enable subset of meshtastic/meshcore/trailmate
+        TM_C6_BLE_CMD_SET_PIN = 4,          // set the fixed pairing PIN
+        TM_C6_BLE_CMD_BOND_RESET = 5,       // clear bonds + terminate -> forces re-pair
+        TM_C6_BLE_CMD_DISCONNECT = 6,       // drop the current connection, keep advertising
+    } tm_c6_ble_command_t;
+
+    // profile_mask bits for TM_C6_BLE_CMD_SET_PROFILE_MASK.
+    #define TM_C6_BLE_PROFILE_MASK_MESHTASTIC (1u << 0)
+    #define TM_C6_BLE_PROFILE_MASK_MESHCORE (1u << 1)
+    #define TM_C6_BLE_PROFILE_MASK_TRAILMATE (1u << 2)
+
     typedef enum tm_c6_espnow_event_kind
     {
         TM_C6_ESPNOW_EVENT_STARTED = 1,
@@ -164,6 +183,8 @@ extern "C"
         TM_C6_WIFI_CMD_GET_IP = 4,
         TM_C6_WIFI_CMD_AP_START = 5,
         TM_C6_WIFI_CMD_AP_STOP = 6,
+        TM_C6_WIFI_CMD_STA_ENABLE = 7,  // bring the STA interface up (idle, no assoc)
+        TM_C6_WIFI_CMD_STA_DISABLE = 8, // disconnect + stop STA (radio off)
     } tm_c6_wifi_command_t;
 
     typedef enum tm_c6_wifi_event_kind
@@ -313,6 +334,14 @@ extern "C"
         uint16_t mtu;
         uint16_t error_code;
     } tm_c6_ble_event_t;
+
+    typedef struct TM_C6_PACKED tm_c6_ble_control
+    {
+        uint8_t command;      // tm_c6_ble_command_t
+        uint8_t profile_mask; // SET_PROFILE_MASK: TM_C6_BLE_PROFILE_MASK_* bits
+        uint16_t config_seq;  // echoed in CONFIG_REPORT so the P4 can correlate
+        char pin[TM_C6_BLE_FIXED_PIN_LEN]; // SET_PIN: 6-digit ASCII PIN
+    } tm_c6_ble_control_t;
 
     typedef struct TM_C6_PACKED tm_c6_espnow_packet
     {

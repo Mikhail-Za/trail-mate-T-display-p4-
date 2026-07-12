@@ -191,6 +191,17 @@ esp_err_t tm_wifi_apply_config(const tm_c6_wifi_config_t* config)
     s_config = *config;
     if (!config->wifi_enabled)
     {
+        // Real "Wi-Fi off": drop the association and clear stored STA creds so it
+        // will not auto-reconnect. Keep the Wi-Fi driver running so ESP-NOW (which
+        // shares the radio) is unaffected; a full radio stop is coordinated with
+        // ESP-NOW ownership separately.
+        if (s_wifi_started)
+        {
+            (void)esp_wifi_disconnect();
+            wifi_config_t empty_sta = {};
+            (void)esp_wifi_set_config(WIFI_IF_STA, &empty_sta);
+            emit_simple_event(TM_C6_WIFI_EVENT_STA_DISCONNECTED, TM_C6_OK, NULL, 0);
+        }
         return ESP_OK;
     }
 
