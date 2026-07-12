@@ -5,9 +5,6 @@
 #include <cstdio>
 #include <cstring>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
 #include "hostlink/c6/c6_protocol.h"
 #include "platform/esp/idf_common/wireless_companion/c6_companion.h"
 #include "platform/esp/idf_common/wireless_companion/c6_wifi_bridge.h"
@@ -30,8 +27,6 @@ constexpr const char* kWifiEnabledKey = "wifi_enabled";
 constexpr const char* kWifiSsidKey = "wifi_ssid";
 constexpr const char* kWifiPasswordKey = "wifi_password";
 constexpr const char* kUnsupportedMessage = "Wi-Fi companion (C6) not detected";
-constexpr int kScanPumpIterations = 300; // 300 * 20ms = 6s cap (a C6 scan is ~5s)
-constexpr TickType_t kScanPumpDelay = pdMS_TO_TICKS(20);
 
 // Latest Wi-Fi state, updated from C6 events on the companion thread and read by
 // the UI thread. All access is on the single UI/runtime thread (the companion is
@@ -208,28 +203,15 @@ bool scan(std::vector<ScanResult>& out_results)
     {
         return false;
     }
-    g_cache.scan_done = false;
+    // Kick an ASYNCHRONOUS scan and return immediately. The C6 answers ~5s later
+    // with a ScanDone event that c6_wifi_ingest_event() folds into g_cache on the
+    // normal runtime loop -- blocking here would freeze the UI and stall BLE
+    // downlinks. The caller reflects progress via status().scanning and re-reads
+    // results (this returns the most recent completed scan, empty until the first
+    // ScanDone).
     g_cache.scan_in_progress = true;
     g_cache.state = ConnectionState::Scanning;
-    if (!wc::c6_companion().sendWifiControl(wc::WifiCommand::Scan, nullptr, nullptr, 0))
-    {
-        g_cache.scan_in_progress = false;
-        g_cache.state = g_cache.connected ? ConnectionState::Connected : ConnectionState::Idle;
-        return false;
-    }
-    // Pump the companion until the ScanDone event lands (or we time out). This
-    // drives poll() ourselves because the normal update loop is blocked here.
-    for (int i = 0; i < kScanPumpIterations && !g_cache.scan_done; ++i)
-    {
-        wc::c6_companion().poll();
-        vTaskDelay(kScanPumpDelay);
-    }
-    g_cache.scan_in_progress = false;
-    g_cache.state = g_cache.connected ? ConnectionState::Connected : ConnectionState::Idle;
-    if (!g_cache.scan_done)
-    {
-        return false;
-    }
+    (void)wc::c6_companion().sendWifiControl(wc::WifiCommand::Scan, nullptr, nullptr, 0);
     for (uint8_t i = 0; i < g_cache.result_count && i < 6; ++i)
     {
         ScanResult r{};
@@ -241,7 +223,7 @@ bool scan(std::vector<ScanResult>& out_results)
             out_results.push_back(r);
         }
     }
-    return true;
+    return !out_results.empty();
 }
 
 Status status()

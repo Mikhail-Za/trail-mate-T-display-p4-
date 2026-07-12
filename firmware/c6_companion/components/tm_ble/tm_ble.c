@@ -4,6 +4,7 @@
 
 #include "esp_log.h"
 #include "esp_random.h"
+#include "freertos/FreeRTOS.h"
 #include "host/ble_att.h"
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"
@@ -85,13 +86,15 @@ static uint32_t s_from_num_counter;
 // an incomplete config and restarted ("too many retries"). This queue holds each
 // frame until the phone reads it, sized to absorb a full want_config burst
 // (~34 frames) with margin.
-// Single-producer / single-consumer ring: push() runs on the HostLink task (P4
-// downlink), pop() runs on the NimBLE host task (phone read). Keeping head and
-// tail as separate volatile indices (no shared count) makes it lock-free and
-// race-free on the C6's single core -- the producer only advances tail after the
-// slot is written; the consumer only advances head after the slot is read. Holds
-// up to DEPTH-1 frames, comfortably above a full want_config burst (~34).
-#define TM_MESHTASTIC_QUEUE_DEPTH 40
+// Meshtastic FromRadio ring. push() runs on the HostLink/SDIO task (P4 downlink);
+// peek()/drop_head() run on the NimBLE host task (phone read); reset() runs on the
+// NimBLE task at connect. Because reset() writes both indices while push() may be
+// mid-flight on another task, and because the C memory model does not guarantee the
+// slot-write/index-publish ordering by itself, all index+slot operations are done
+// under a short portMUX critical section (single-core: brief interrupt-off around a
+// bounded <=512B copy). Depth 64 holds up to 63 frames, far above a full
+// want_config burst (~34), so a correctly paced phone never fills it.
+#define TM_MESHTASTIC_QUEUE_DEPTH 64
 #define TM_MESHTASTIC_FRAME_MAX 512
 typedef struct
 {
@@ -99,8 +102,9 @@ typedef struct
     uint8_t data[TM_MESHTASTIC_FRAME_MAX];
 } tm_meshtastic_frame_t;
 static tm_meshtastic_frame_t s_mt_queue[TM_MESHTASTIC_QUEUE_DEPTH];
-static volatile uint16_t s_mt_head; // consumer (BLE read) advances this
-static volatile uint16_t s_mt_tail; // producer (downlink) advances this
+static uint16_t s_mt_head; // index of the oldest queued frame (next to read)
+static uint16_t s_mt_tail; // index where the next pushed frame goes
+static portMUX_TYPE s_mt_mux = portMUX_INITIALIZER_UNLOCKED;
 
 static bool mt_queue_push(const uint8_t* data, size_t len)
 {
@@ -108,51 +112,64 @@ static bool mt_queue_push(const uint8_t* data, size_t len)
     {
         return false;
     }
-    const uint16_t tail = s_mt_tail;
-    const uint16_t next = (uint16_t)((tail + 1) % TM_MESHTASTIC_QUEUE_DEPTH);
-    if (next == s_mt_head)
+    bool ok = false;
+    portENTER_CRITICAL(&s_mt_mux);
+    const uint16_t next = (uint16_t)((s_mt_tail + 1) % TM_MESHTASTIC_QUEUE_DEPTH);
+    if (next != s_mt_head) // not full
     {
-        return false; // full (DEPTH-1 frames queued); drop this frame
+        tm_meshtastic_frame_t* slot = &s_mt_queue[s_mt_tail];
+        if (len > 0 && data != NULL)
+        {
+            memcpy(slot->data, data, len);
+        }
+        slot->len = (uint16_t)len;
+        s_mt_tail = next;
+        ok = true;
     }
-    tm_meshtastic_frame_t* slot = &s_mt_queue[tail];
-    if (len > 0 && data != NULL)
-    {
-        memcpy(slot->data, data, len);
-    }
-    slot->len = (uint16_t)len;
-    s_mt_tail = next; // publish after the slot is fully written
-    return true;
+    portEXIT_CRITICAL(&s_mt_mux);
+    return ok;
 }
 
-static uint16_t mt_queue_pop(uint8_t* out, size_t out_max)
+// Copies the oldest frame WITHOUT removing it, so a failed GATT append can be
+// retried on the next read. Returns its length (0 if empty). Commit with
+// mt_queue_drop_head() only after the append succeeds.
+static uint16_t mt_queue_peek(uint8_t* out, size_t out_max)
 {
-    if (out == NULL)
+    uint16_t len = 0;
+    portENTER_CRITICAL(&s_mt_mux);
+    if (s_mt_head != s_mt_tail)
     {
-        return 0;
+        const tm_meshtastic_frame_t* slot = &s_mt_queue[s_mt_head];
+        len = slot->len;
+        if (len > out_max)
+        {
+            len = (uint16_t)out_max;
+        }
+        if (len > 0 && out != NULL)
+        {
+            memcpy(out, slot->data, len);
+        }
     }
-    const uint16_t head = s_mt_head;
-    if (head == s_mt_tail)
-    {
-        return 0; // empty
-    }
-    const tm_meshtastic_frame_t* slot = &s_mt_queue[head];
-    uint16_t len = slot->len;
-    if (len > out_max)
-    {
-        len = (uint16_t)out_max;
-    }
-    if (len > 0)
-    {
-        memcpy(out, slot->data, len);
-    }
-    s_mt_head = (uint16_t)((head + 1) % TM_MESHTASTIC_QUEUE_DEPTH); // publish
+    portEXIT_CRITICAL(&s_mt_mux);
     return len;
+}
+
+static void mt_queue_drop_head(void)
+{
+    portENTER_CRITICAL(&s_mt_mux);
+    if (s_mt_head != s_mt_tail)
+    {
+        s_mt_head = (uint16_t)((s_mt_head + 1) % TM_MESHTASTIC_QUEUE_DEPTH);
+    }
+    portEXIT_CRITICAL(&s_mt_mux);
 }
 
 static void mt_queue_reset(void)
 {
+    portENTER_CRITICAL(&s_mt_mux);
     s_mt_head = 0;
     s_mt_tail = 0;
+    portEXIT_CRITICAL(&s_mt_mux);
 }
 static uint32_t s_active_passkey;
 static uint8_t s_adv_profile_cursor = TM_C6_BLE_PROFILE_MESHTASTIC;
@@ -479,9 +496,16 @@ static int gatt_access_cb(uint16_t conn_handle,
         if (attr_handle == s_meshtastic_from_radio_handle)
         {
             uint8_t buf[TM_MESHTASTIC_FRAME_MAX];
-            const uint16_t len = mt_queue_pop(buf, sizeof(buf));
+            const uint16_t len = mt_queue_peek(buf, sizeof(buf));
             // len == 0 -> empty read, which tells the phone the queue is drained.
-            return append_mbuf(ctxt->om, buf, len);
+            const int rc = append_mbuf(ctxt->om, buf, len);
+            if (rc == 0 && len > 0)
+            {
+                // Remove the frame only once it is safely in the response mbuf; on
+                // mbuf exhaustion (rc != 0) it stays queued and is retried next read.
+                mt_queue_drop_head();
+            }
+            return rc;
         }
         if (attr_handle == s_meshtastic_from_num_handle)
         {
@@ -785,14 +809,17 @@ esp_err_t tm_ble_send_downlink(uint8_t profile, const uint8_t* payload, size_t p
     switch ((tm_c6_ble_profile_t)profile)
     {
     case TM_C6_BLE_PROFILE_MESHTASTIC:
-        // Queue the frame so it survives until the phone reads FromRadio. Report
-        // success once queued: the FromNum notify below is only a hint to read, so
-        // a failed notify must NOT make the P4 re-send (that would duplicate the
-        // frame). An oversized frame cannot be queued -- drop it rather than wedge
-        // the P4 in a retry loop; the phone re-requests config if it ends up short.
+        // Queue the frame so it survives until the phone reads FromRadio. Only bump
+        // FromNum + notify AFTER a successful enqueue, so the counter the phone sees
+        // always matches what is actually readable. A push only fails if the frame
+        // is oversized (never happens for Meshtastic) or the 63-slot queue is full
+        // (a correctly paced phone never fills it); drop rather than wedge -- the
+        // phone re-requests config if it ends up short.
         if (!mt_queue_push(payload, payload_len))
         {
-            tm_services_record_error(TM_C6_ERROR_PAYLOAD_TOO_LARGE, "mt_frame_too_large");
+            tm_services_record_error(TM_C6_ERROR_PAYLOAD_TOO_LARGE, "mt_queue_full_or_oversized");
+            err = ESP_OK;
+            break;
         }
         ++s_from_num_counter;
         {

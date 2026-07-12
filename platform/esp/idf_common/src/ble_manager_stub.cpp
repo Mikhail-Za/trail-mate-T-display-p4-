@@ -18,7 +18,6 @@
 #include "phone/meshtastic/meshtastic_phone_core.h"
 #include "phone/meshtastic/meshtastic_phone_session.h"
 #include "platform/esp/idf_common/wireless_companion/c6_companion.h"
-#include "platform/esp/idf_common/wireless_companion/c6_wifi_bridge.h"
 #include "ui/widgets/ble_pairing_popup.h"
 
 #include "esp_log.h"
@@ -87,6 +86,8 @@ class C6BleService final : public BleService,
         mt_session_.reset();
         mc_core_.reset();
         connected_ = false;
+        mt_pending_valid_ = false;
+        mc_pending_valid_ = false;
     }
 
     void update() override
@@ -201,6 +202,10 @@ class C6BleService final : public BleService,
             connected_ = false;
             data_seen_ = false;
             connect_us_ = 0;
+            // Drop any held (destructively popped) downlink so it is not delivered
+            // to the next phone/session.
+            mt_pending_valid_ = false;
+            mc_pending_valid_ = false;
             if (mt_session_)
             {
                 mt_session_->close();
@@ -214,7 +219,8 @@ class C6BleService final : public BleService,
 
     void onWifiEvent(const wc::WifiEventInfo& ev) override
     {
-        wc::c6_wifi_ingest_event(ev); // feed the UI-facing Wi-Fi runtime cache
+        // The Wi-Fi cache is fed directly from the companion (see
+        // deliver_wifi_event); here we only surface events for logging.
         switch (ev.kind)
         {
         case wc::WifiEventKind::ScanDone:

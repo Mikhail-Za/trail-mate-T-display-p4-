@@ -1,4 +1,5 @@
 #include "platform/esp/idf_common/wireless_companion/c6_companion.h"
+#include "platform/esp/idf_common/wireless_companion/c6_wifi_bridge.h"
 
 #include "hostlink/c6/c6_frame_codec.h"
 #include "hostlink/c6/c6_protocol.h"
@@ -661,13 +662,15 @@ class C6CompanionRuntime final : public WirelessCompanion
         control.flags = 0;
         control.reserved = 0;
         control.channel = channel;
+        // control is zero-initialised, so copying at most sizeof-1 leaves the final
+        // byte NUL: the C6 reads these fixed arrays as C strings.
         if (ssid != nullptr)
         {
-            std::strncpy(control.ssid, ssid, sizeof(control.ssid));
+            std::strncpy(control.ssid, ssid, sizeof(control.ssid) - 1);
         }
         if (password != nullptr)
         {
-            std::strncpy(control.password, password, sizeof(control.password));
+            std::strncpy(control.password, password, sizeof(control.password) - 1);
         }
         return send_frame(TM_C6_FRAME_WIFI_CONTROL,
                           TM_C6_CH_WIFI_MGMT,
@@ -1066,8 +1069,7 @@ class C6CompanionRuntime final : public WirelessCompanion
 
     void deliver_wifi_event(const hostlink::c6::Frame& frame)
     {
-        if (uplink_sink_ == nullptr ||
-            frame.payload.size() != sizeof(tm_c6_wifi_event_t))
+        if (frame.payload.size() != sizeof(tm_c6_wifi_event_t))
         {
             return;
         }
@@ -1090,7 +1092,14 @@ class C6CompanionRuntime final : public WirelessCompanion
             ev.results[i].channel = raw.results[i].channel;
             ev.results[i].authmode = raw.results[i].authmode;
         }
-        uplink_sink_->onWifiEvent(ev);
+        // Feed the UI Wi-Fi cache directly so Wi-Fi status/scan work regardless of
+        // whether a BLE uplink sink is registered (e.g. BLE disabled). Still notify
+        // the sink for any BLE-side consumer/logging.
+        c6_wifi_ingest_event(ev);
+        if (uplink_sink_ != nullptr)
+        {
+            uplink_sink_->onWifiEvent(ev);
+        }
     }
 
     void handle_async_frame(const hostlink::c6::Frame& frame)
