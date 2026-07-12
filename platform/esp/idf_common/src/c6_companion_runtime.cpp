@@ -490,7 +490,14 @@ class C6CompanionRuntime final : public WirelessCompanion
     {
         if (status_.started)
         {
-            return status_.present;
+            if (status_.present)
+            {
+                return true;
+            }
+            // A prior probe did not reach Present (e.g. the C6 was still booting or
+            // SDIO transiently failed during the startup probe). Retry the handshake
+            // rather than latching "missing" until the next P4 reboot.
+            return try_handshake();
         }
 
         status_.started = true;

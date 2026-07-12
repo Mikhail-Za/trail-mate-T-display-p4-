@@ -28,8 +28,10 @@ namespace
 {
 namespace wc = platform::esp::idf_common::wireless_companion;
 
-// Bound on frames drained per update() so a burst can't monopolize the loop.
-constexpr int kMaxDrainPerUpdate = 16;
+// Frames drained per update(). Kept small to pace downlinks over SDIO and avoid
+// flooding the C6's NimBLE notification queue in one burst; update() runs many
+// times per second so sustained throughput stays high.
+constexpr int kMaxDrainPerUpdate = 4;
 // MeshCore BLE frames are capped at 172 bytes (NUS MTU budget), matching the Arduino path.
 constexpr size_t kMeshCoreFrameMax = 172;
 
@@ -169,25 +171,60 @@ class C6BleService final : public BleService,
     }
 
   private:
+    // sendBleDownlink() returning false means the SDIO write failed -- the C6 did NOT
+    // get the frame. popToPhone() is destructive, so on failure we HOLD the frame and
+    // retry it next tick rather than dropping it; losing a config frame (e.g.
+    // config_complete_id) would restart the phone's whole sync ("too many retries").
     void drainMeshtastic()
     {
-        phone::meshtastic::MeshtasticBleFrame frame;
-        for (int i = 0; i < kMaxDrainPerUpdate && mt_session_->popToPhone(&frame); ++i)
+        if (mt_pending_valid_)
         {
-            wc::c6_companion().sendBleDownlink(wc::BleProfile::Meshtastic, last_connection_,
-                                               frame.buf, frame.len);
+            if (!wc::c6_companion().sendBleDownlink(wc::BleProfile::Meshtastic, last_connection_,
+                                                    mt_pending_.buf, mt_pending_.len))
+            {
+                return; // still failing; keep the held frame, retry next tick
+            }
+            mt_pending_valid_ = false;
+        }
+        for (int i = 0; i < kMaxDrainPerUpdate; ++i)
+        {
+            if (!mt_session_->popToPhone(&mt_pending_))
+            {
+                return;
+            }
+            if (!wc::c6_companion().sendBleDownlink(wc::BleProfile::Meshtastic, last_connection_,
+                                                    mt_pending_.buf, mt_pending_.len))
+            {
+                mt_pending_valid_ = true; // hold the just-popped frame for retry
+                return;
+            }
         }
     }
 
     void drainMeshCore()
     {
-        uint8_t out[kMeshCoreFrameMax] = {};
-        size_t out_len = 0;
-        for (int i = 0; i < kMaxDrainPerUpdate && mc_core_->popTxFrame(out, &out_len); ++i)
+        if (mc_pending_valid_)
         {
-            wc::c6_companion().sendBleDownlink(wc::BleProfile::MeshCore, last_connection_, out,
-                                               out_len);
-            out_len = 0;
+            if (!wc::c6_companion().sendBleDownlink(wc::BleProfile::MeshCore, last_connection_,
+                                                    mc_pending_, mc_pending_len_))
+            {
+                return;
+            }
+            mc_pending_valid_ = false;
+        }
+        for (int i = 0; i < kMaxDrainPerUpdate; ++i)
+        {
+            mc_pending_len_ = 0;
+            if (!mc_core_->popTxFrame(mc_pending_, &mc_pending_len_))
+            {
+                return;
+            }
+            if (!wc::c6_companion().sendBleDownlink(wc::BleProfile::MeshCore, last_connection_,
+                                                    mc_pending_, mc_pending_len_))
+            {
+                mc_pending_valid_ = true;
+                return;
+            }
         }
     }
 
@@ -202,6 +239,13 @@ class C6BleService final : public BleService,
     bool started_ = false;
     bool connected_ = false;
     uint8_t last_connection_ = 0;
+
+    // Hold-and-retry buffers for a downlink frame whose SDIO send failed (see drains).
+    phone::meshtastic::MeshtasticBleFrame mt_pending_{};
+    bool mt_pending_valid_ = false;
+    uint8_t mc_pending_[kMeshCoreFrameMax] = {};
+    size_t mc_pending_len_ = 0;
+    bool mc_pending_valid_ = false;
 };
 
 } // namespace

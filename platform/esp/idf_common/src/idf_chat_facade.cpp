@@ -663,6 +663,16 @@ void IdfChatFacade::updateCoreServices()
     //   3. drain the event queue: resolve send status, update contacts, and feed
     //      the chat UI so bubbles/receipts render.
     pumpMeshAndDrainEvents(32U);
+
+    // Drive the C6-backed BLE companion pump every tick: poll uplink frames from the
+    // C6 (phone ToRadio / MeshCore RX) and drain FromRadio/TX frames back to it. The
+    // IDF lifecycle tick does NOT call BleManager::update() anywhere else (that path
+    // exists only in the Arduino runtime), so without this the phone-session pump
+    // never runs and a connecting phone times out ("too many retries").
+    if (ble_manager_)
+    {
+        ble_manager_->update();
+    }
 }
 
 void IdfChatFacade::tickEventRuntime()
