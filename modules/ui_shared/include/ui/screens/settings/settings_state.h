@@ -133,6 +133,13 @@ struct SettingsData
     bool ble_enabled = true;
     bool vibration_enabled = true;
 
+    // Bluetooth (C6 peripheral) management page
+    bool ble_prof_meshtastic = true;
+    bool ble_prof_meshcore = true;
+    bool ble_prof_trailmate = true;
+    char ble_pin[16] = "";
+    char ble_status[96] = "";
+
     // Wi-Fi
     bool wifi_enabled = false;
     int wifi_network_index = -1;

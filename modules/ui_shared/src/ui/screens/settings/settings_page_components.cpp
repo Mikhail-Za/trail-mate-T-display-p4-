@@ -29,6 +29,7 @@
 #include "platform/ui/time_runtime.h"
 #include "platform/ui/timezone_profile.h"
 #include "platform/ui/tracker_runtime.h"
+#include "platform/ui/ble_runtime.h"
 #include "platform/ui/wifi_runtime.h"
 #include "platform/ui/wireless_companion_runtime.h"
 #include "ui/app_runtime.h"
@@ -316,6 +317,18 @@ static void refresh_wifi_state_from_runtime()
     {
         copy_bounded(g_settings.wifi_status, sizeof(g_settings.wifi_status), status.message);
     }
+}
+
+static void refresh_bluetooth_state_from_runtime()
+{
+    const platform::ui::ble::Status s = platform::ui::ble::status();
+    g_settings.ble_enabled = s.enabled;
+    g_settings.ble_prof_meshtastic = s.meshtastic;
+    g_settings.ble_prof_meshcore = s.meshcore;
+    g_settings.ble_prof_trailmate = s.trailmate;
+    std::snprintf(g_settings.ble_pin, sizeof(g_settings.ble_pin), "%06lu",
+                  static_cast<unsigned long>(s.passkey % 1000000u));
+    copy_bounded(g_settings.ble_status, sizeof(g_settings.ble_status), s.message);
 }
 
 static void firmware_status_summary(const firmware_update_runtime::Status& status,
@@ -1236,6 +1249,7 @@ static void settings_load()
     g_settings.ble_enabled = cfg.ble_enabled;
     g_settings.vibration_enabled = prefs_get_bool("vibration_enabled", true);
     refresh_wifi_state_from_runtime();
+    refresh_bluetooth_state_from_runtime();
     refresh_firmware_update_state_from_runtime();
     refresh_settings_backup_state_from_runtime();
     refresh_wireless_companion_state_from_runtime();
@@ -3351,6 +3365,17 @@ static settings::ui::SettingItem kAdvancedItems[] = {
     {"Debug Logs", settings::ui::SettingType::Toggle, nullptr, 0, nullptr, &g_settings.advanced_debug_logs, nullptr, 0, false, "adv_debug"},
 };
 
+// Bluetooth management (the device is a BLE peripheral; phones pair to it).
+static settings::ui::SettingItem kBluetoothItems[] = {
+    {"Bluetooth", settings::ui::SettingType::Toggle, nullptr, 0, nullptr, &g_settings.ble_enabled, nullptr, 0, false, "bt_enabled"},
+    {"Status", settings::ui::SettingType::Info, nullptr, 0, nullptr, nullptr, g_settings.ble_status, sizeof(g_settings.ble_status), false, "bt_status"},
+    {"Pairing PIN", settings::ui::SettingType::Info, nullptr, 0, nullptr, nullptr, g_settings.ble_pin, sizeof(g_settings.ble_pin), false, "bt_pin"},
+    {"Rotate PIN", settings::ui::SettingType::Action, nullptr, 0, nullptr, nullptr, nullptr, 0, false, "bt_rotate_pin"},
+    {"Meshtastic", settings::ui::SettingType::Toggle, nullptr, 0, nullptr, &g_settings.ble_prof_meshtastic, nullptr, 0, false, "bt_prof_mt"},
+    {"MeshCore", settings::ui::SettingType::Toggle, nullptr, 0, nullptr, &g_settings.ble_prof_meshcore, nullptr, 0, false, "bt_prof_mc"},
+    {"Trail-Mate", settings::ui::SettingType::Toggle, nullptr, 0, nullptr, &g_settings.ble_prof_trailmate, nullptr, 0, false, "bt_prof_tm"},
+};
+
 // Non-const so the Chat entry can be re-pointed at the runtime-built merged
 // array (base chat rows + the 8 channel slots) in ensure_chat_category_built().
 static CategoryDef kCategories[] = {
@@ -3360,6 +3385,7 @@ static CategoryDef kCategories[] = {
     {"Network", kNetworkItems, sizeof(kNetworkItems) / sizeof(kNetworkItems[0])},
     {"System", kScreenItems, sizeof(kScreenItems) / sizeof(kScreenItems[0])},
     {"Wi-Fi", kWifiItems, sizeof(kWifiItems) / sizeof(kWifiItems[0])},
+    {"Bluetooth", kBluetoothItems, sizeof(kBluetoothItems) / sizeof(kBluetoothItems[0])},
     {"Advanced", kAdvancedItems, sizeof(kAdvancedItems) / sizeof(kAdvancedItems[0])},
 };
 static constexpr size_t kChatCategoryIndex = 2;
@@ -3694,6 +3720,16 @@ static void build_item_list()
         return;
     }
     ensure_chat_category_built();
+    // Keep the Bluetooth page's status + PIN current while it is on screen.
+    {
+        const size_t cat = static_cast<size_t>(g_state.current_category);
+        if (cat < sizeof(kCategories) / sizeof(kCategories[0]) &&
+            kCategories[cat].label &&
+            std::strcmp(kCategories[cat].label, "Bluetooth") == 0)
+        {
+            refresh_bluetooth_state_from_runtime();
+        }
+    }
     s_building_list = true;
 #if defined(ESP_PLATFORM)
     ESP_LOGI(kLogTag,
@@ -3929,6 +3965,24 @@ static bool activate_item_widget(settings::ui::ItemWidget& widget)
                 app_ctx.saveConfig();
                 app_ctx.setBleEnabled(*item.bool_value);
             }
+            if (item.pref_key && strcmp(item.pref_key, "bt_enabled") == 0)
+            {
+                // Stop the P4-side bridge AND the C6 radio for a real Bluetooth off.
+                app::IAppFacade& app_ctx = app::appFacade();
+                app_ctx.getConfig().ble_enabled = *item.bool_value;
+                app_ctx.saveConfig();
+                app_ctx.setBleEnabled(*item.bool_value);
+                (void)platform::ui::ble::set_enabled(*item.bool_value);
+                refresh_bluetooth_state_from_runtime();
+            }
+            if (item.pref_key && (strcmp(item.pref_key, "bt_prof_mt") == 0 ||
+                                  strcmp(item.pref_key, "bt_prof_mc") == 0 ||
+                                  strcmp(item.pref_key, "bt_prof_tm") == 0))
+            {
+                (void)platform::ui::ble::set_profiles(g_settings.ble_prof_meshtastic,
+                                                      g_settings.ble_prof_meshcore,
+                                                      g_settings.ble_prof_trailmate);
+            }
             if (item.pref_key && strcmp(item.pref_key, "wifi_enabled") == 0)
             {
                 wifi_runtime::Config config{};
@@ -4041,6 +4095,17 @@ static bool activate_item_widget(settings::ui::ItemWidget& widget)
         {
             wifi_runtime::disconnect();
             refresh_wifi_state_from_runtime();
+            build_item_list();
+        }
+        else if (item.pref_key && strcmp(item.pref_key, "bt_rotate_pin") == 0)
+        {
+            const uint32_t pin = platform::ui::ble::rotate_pin();
+            if (pin != 0)
+            {
+                ::ui::SystemNotification::show(
+                    ::ui::i18n::tr("New PIN set - re-pair your phone"), 4000);
+            }
+            refresh_bluetooth_state_from_runtime();
             build_item_list();
         }
         else if (item.pref_key && strcmp(item.pref_key, "fw_check") == 0)

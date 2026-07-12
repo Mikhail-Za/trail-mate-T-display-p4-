@@ -769,6 +769,7 @@ set(TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_tracker_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_route_storage.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_wifi_runtime.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/platform_ui_ble_runtime.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/startup_support.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/screen_sleep.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/sx126x_radio.cpp"
