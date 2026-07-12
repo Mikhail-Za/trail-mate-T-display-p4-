@@ -1738,8 +1738,18 @@ static void open_text_modal(const settings::ui::SettingItem& item, settings::ui:
         return;
     }
     modal_prepare_group();
-    // Masked fields get a wider modal to fit the third (Show/Hide) button.
-    g_state.modal_root = create_modal_root(item.mask_text ? 340 : 300, 170);
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4) || defined(TRAIL_MATE_ESP_BOARD_TAB5)
+    // Pointer-only touch devices have no physical keyboard; host a soft on-screen
+    // keyboard and size this modal as a tall sheet to fit it.
+    constexpr bool kSoftKeyboard = true;
+#else
+    constexpr bool kSoftKeyboard = false;
+#endif
+    // Masked fields get a wider modal to fit the third (Show/Hide) button; the
+    // soft-keyboard variant is a tall sheet instead.
+    g_state.modal_root = kSoftKeyboard
+                             ? create_modal_root(520, 940)
+                             : create_modal_root(item.mask_text ? 340 : 300, 170);
     lv_obj_t* win = lv_obj_get_child(g_state.modal_root, 0);
 
     lv_obj_t* title = lv_label_create(win);
@@ -1804,6 +1814,19 @@ static void open_text_modal(const settings::ui::SettingItem& item, settings::ui:
         lv_obj_add_event_cb(reveal_btn, on_text_reveal_clicked, LV_EVENT_CLICKED, reveal_label);
         lv_group_add_obj(g_state.modal_group, reveal_btn);
     }
+#if defined(TRAIL_MATE_ESP_BOARD_T_DISPLAY_P4) || defined(TRAIL_MATE_ESP_BOARD_TAB5)
+    {
+        // Buttons sit just under the textarea; the keyboard fills the lower half.
+        lv_obj_align(btn_row, LV_ALIGN_TOP_MID, 0, 120);
+        lv_obj_t* keyboard = lv_keyboard_create(win);
+        lv_keyboard_set_textarea(keyboard, g_state.modal_textarea);
+        lv_obj_set_size(keyboard, LV_PCT(100), LV_PCT(52));
+        lv_obj_align(keyboard, LV_ALIGN_BOTTOM_MID, 0, 0);
+        // Intentionally NOT added to modal_group: it is touch-driven, and adding it
+        // would trap the two-pane D-pad traversal on encoder builds. It is a child
+        // of the modal window, so modal teardown deletes it with the rest.
+    }
+#endif
     lv_group_focus_obj(g_state.modal_textarea);
 }
 
