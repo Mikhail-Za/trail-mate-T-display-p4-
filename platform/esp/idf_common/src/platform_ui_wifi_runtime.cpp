@@ -28,6 +28,18 @@ constexpr const char* kWifiSsidKey = "wifi_ssid";
 constexpr const char* kWifiPasswordKey = "wifi_password";
 constexpr const char* kUnsupportedMessage = "Wi-Fi companion (C6) not detected";
 
+// Why the last STA_DISCONNECTED / transition happened, so an event can be
+// interpreted correctly (a user-requested disconnect must not read as a failure,
+// and must not trigger auto-join).
+enum class Intent : uint8_t
+{
+    None,          // idle / unsolicited
+    Connecting,    // a connect is in flight
+    UserDisconnect,
+    RadioDisable,
+    Forget,
+};
+
 // Latest Wi-Fi state, updated from C6 events on the companion thread and read by
 // the UI thread. All access is on the single UI/runtime thread (the companion is
 // polled there), so no locking is required.
@@ -35,18 +47,32 @@ struct WifiCache
 {
     bool scan_in_progress = false;
     bool scan_done = false;
+    uint16_t scan_op = 0; // op_id of the in-flight scan; stale ScanDone is ignored
     uint8_t result_count = 0;
     wc::WifiScanEntry results[6] = {};
     bool connected = false;
     bool has_ip = false;
     char ip[16] = {};
-    char ssid[33] = {};
+    char ssid[33] = {};          // current/last connected SSID
+    char attempt_ssid[33] = {};  // SSID of the in-flight connect
     int rssi = -127;
     uint16_t last_error = 0;
+    uint16_t conn_op = 0;   // op_id of the in-flight connect/disconnect
+    Intent intent = Intent::None;
     platform::ui::wifi::ConnectionState state = platform::ui::wifi::ConnectionState::Idle;
 };
 
 WifiCache g_cache;
+uint16_t g_op_seq = 0; // monotonic op_id source (0 reserved for "don't care")
+
+uint16_t next_op()
+{
+    if (++g_op_seq == 0)
+    {
+        g_op_seq = 1;
+    }
+    return g_op_seq;
+}
 
 void copy_text(char* out, std::size_t out_len, const char* text)
 {
@@ -70,9 +96,16 @@ namespace platform::esp::idf_common::wireless_companion
 
 void c6_wifi_ingest_event(const WifiEventInfo& event)
 {
+    namespace uiw = platform::ui::wifi;
     switch (event.kind)
     {
     case WifiEventKind::ScanDone:
+        // Ignore a stale scan (e.g. one issued before the user disabled Wi-Fi or
+        // started a newer scan) so it cannot repopulate the list or drive auto-join.
+        if (event.op_id != 0 && g_cache.scan_op != 0 && event.op_id != g_cache.scan_op)
+        {
+            break;
+        }
         g_cache.result_count = event.result_count;
         for (uint8_t i = 0; i < event.result_count && i < 6; ++i)
         {
@@ -83,15 +116,18 @@ void c6_wifi_ingest_event(const WifiEventInfo& event)
         break;
     case WifiEventKind::StaConnected:
         g_cache.connected = true;
+        g_cache.intent = Intent::None;
         copy_text(g_cache.ssid, sizeof(g_cache.ssid), event.ssid);
-        if (g_cache.state != platform::ui::wifi::ConnectionState::Connected)
+        if (g_cache.state != uiw::ConnectionState::Connected)
         {
-            g_cache.state = platform::ui::wifi::ConnectionState::Connecting;
+            g_cache.state = uiw::ConnectionState::Connecting; // associated, await IP
         }
         break;
     case WifiEventKind::StaGotIp:
         g_cache.connected = true;
         g_cache.has_ip = true;
+        g_cache.intent = Intent::None;
+        g_cache.last_error = 0;
         std::snprintf(g_cache.ip, sizeof(g_cache.ip), "%u.%u.%u.%u",
                       static_cast<unsigned>(event.ipv4 & 0xff),
                       static_cast<unsigned>((event.ipv4 >> 8) & 0xff),
@@ -101,17 +137,41 @@ void c6_wifi_ingest_event(const WifiEventInfo& event)
         {
             copy_text(g_cache.ssid, sizeof(g_cache.ssid), event.ssid);
         }
-        g_cache.state = platform::ui::wifi::ConnectionState::Connected;
+        g_cache.state = uiw::ConnectionState::Connected;
         break;
     case WifiEventKind::StaDisconnected:
         g_cache.connected = false;
         g_cache.has_ip = false;
         g_cache.ip[0] = '\0';
-        g_cache.state = platform::ui::wifi::ConnectionState::Idle;
+        if (g_cache.intent == Intent::UserDisconnect || g_cache.intent == Intent::Forget)
+        {
+            g_cache.state = uiw::ConnectionState::Idle; // intentional -> clean, no error
+        }
+        else if (g_cache.intent == Intent::RadioDisable)
+        {
+            g_cache.state = uiw::ConnectionState::Disabled;
+        }
+        else if (g_cache.state == uiw::ConnectionState::Connecting)
+        {
+            // Never associated -> the attempt failed (bad password / AP not found).
+            g_cache.state = uiw::ConnectionState::Error;
+            if (g_cache.last_error == 0)
+            {
+                g_cache.last_error = event.error_code;
+            }
+        }
+        else
+        {
+            g_cache.state = uiw::ConnectionState::Idle; // lost an established link
+        }
+        g_cache.intent = Intent::None;
         break;
     case WifiEventKind::Error:
         g_cache.last_error = event.error_code;
-        g_cache.state = platform::ui::wifi::ConnectionState::Error;
+        if (g_cache.state == uiw::ConnectionState::Connecting)
+        {
+            g_cache.state = uiw::ConnectionState::Error;
+        }
         break;
     default:
         break;
@@ -160,10 +220,17 @@ bool save_config(const Config& config)
 
 bool apply_enabled(bool enabled)
 {
-    // The C6 keeps STA enabled; there is nothing to toggle on the P4 side. Report
-    // success when the companion is present so the UI treats Wi-Fi as available.
-    (void)enabled;
-    return companion_wifi_supported();
+    // Actually gate the C6 STA radio (was a no-op). Disabling records the intent so
+    // the resulting disconnect reads as a clean radio-off rather than a failure.
+    if (!companion_wifi_supported())
+    {
+        return false;
+    }
+    if (!enabled)
+    {
+        g_cache.intent = Intent::RadioDisable;
+    }
+    return wc::c6_companion().setWifiEnabled(enabled);
 }
 
 bool connect(const Config* override_config)
@@ -181,15 +248,22 @@ bool connect(const Config* override_config)
     {
         return false;
     }
+    g_cache.conn_op = next_op();
+    g_cache.intent = Intent::Connecting;
     g_cache.state = ConnectionState::Connecting;
+    g_cache.last_error = 0;
+    copy_text(g_cache.attempt_ssid, sizeof(g_cache.attempt_ssid), config.ssid);
     copy_text(g_cache.ssid, sizeof(g_cache.ssid), config.ssid);
     return wc::c6_companion().sendWifiControl(wc::WifiCommand::Connect, config.ssid,
-                                              config.password, 0);
+                                              config.password, 0, g_cache.conn_op);
 }
 
 void disconnect()
 {
-    (void)wc::c6_companion().sendWifiControl(wc::WifiCommand::Disconnect, nullptr, nullptr, 0);
+    g_cache.conn_op = next_op();
+    g_cache.intent = Intent::UserDisconnect;
+    (void)wc::c6_companion().sendWifiControl(wc::WifiCommand::Disconnect, nullptr, nullptr, 0,
+                                             g_cache.conn_op);
     g_cache.connected = false;
     g_cache.has_ip = false;
     g_cache.ip[0] = '\0';
@@ -208,10 +282,15 @@ bool scan(std::vector<ScanResult>& out_results)
     // normal runtime loop -- blocking here would freeze the UI and stall BLE
     // downlinks. The caller reflects progress via status().scanning and re-reads
     // results (this returns the most recent completed scan, empty until the first
-    // ScanDone).
+    // ScanDone). The op_id lets a stale ScanDone be discarded.
     g_cache.scan_in_progress = true;
-    g_cache.state = ConnectionState::Scanning;
-    (void)wc::c6_companion().sendWifiControl(wc::WifiCommand::Scan, nullptr, nullptr, 0);
+    g_cache.scan_op = next_op();
+    if (g_cache.state != ConnectionState::Connected)
+    {
+        g_cache.state = ConnectionState::Scanning;
+    }
+    (void)wc::c6_companion().sendWifiControl(wc::WifiCommand::Scan, nullptr, nullptr, 0,
+                                             g_cache.scan_op);
     for (uint8_t i = 0; i < g_cache.result_count && i < 6; ++i)
     {
         ScanResult r{};
@@ -260,12 +339,17 @@ Status status()
     }
     else if (g_cache.state == ConnectionState::Connecting)
     {
-        copy_text(out.message, sizeof(out.message), "Connecting...");
+        std::snprintf(out.message, sizeof(out.message), "Connecting to %s...",
+                      g_cache.attempt_ssid[0] != '\0' ? g_cache.attempt_ssid : out.ssid);
     }
     else if (g_cache.state == ConnectionState::Error)
     {
-        std::snprintf(out.message, sizeof(out.message), "Wi-Fi error (code %u)",
-                      g_cache.last_error);
+        std::snprintf(out.message, sizeof(out.message), "Couldn't connect to %s",
+                      g_cache.attempt_ssid[0] != '\0' ? g_cache.attempt_ssid : out.ssid);
+    }
+    else if (g_cache.state == ConnectionState::Disabled)
+    {
+        copy_text(out.message, sizeof(out.message), "Wi-Fi off");
     }
     else
     {
