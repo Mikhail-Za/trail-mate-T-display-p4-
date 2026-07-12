@@ -41,6 +41,8 @@ enum class WifiCommand : uint8_t
     GetIp = 4,
     ApStart = 5,
     ApStop = 6,
+    StaEnable = 7,
+    StaDisable = 8,
 };
 
 // Wi-Fi event kinds reported UP from the C6, values match tm_c6_wifi_event_kind.
@@ -169,6 +171,17 @@ class WirelessCompanion
     virtual bool sendWifiControl(WifiCommand command, const char* ssid,
                                  const char* password, uint8_t channel,
                                  uint16_t op_id = 0) = 0;
+
+    // Runtime management (P4 -> C6), backed by the v2 control frames. Each returns
+    // false if the companion is not present or the send failed.
+    virtual bool setWifiEnabled(bool enabled) = 0;       // STA up idle / disconnect+off
+    virtual bool setBleEnabled(bool enabled) = 0;        // advertise / terminate+stop
+    virtual bool setBleProfiles(bool meshtastic, bool meshcore, bool trailmate) = 0;
+    virtual bool bleDisconnect() = 0;                    // drop the current phone link
+    virtual bool bleBondReset() = 0;                     // clear bonds + drop -> re-pair
+    // Generate + persist a fresh random 6-digit PIN, push it to the C6 and reset
+    // bonds so the peer must re-pair. Returns the new PIN (0 if not present).
+    virtual uint32_t rotateBlePin() = 0;
 
     // Register (or clear, with nullptr) the sink that receives uplink data/events.
     // The sink is not owned and must outlive the companion or be cleared first.

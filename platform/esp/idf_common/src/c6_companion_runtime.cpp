@@ -584,9 +584,17 @@ class C6CompanionRuntime final : public WirelessCompanion
         {
             return;
         }
-        hostlink::c6::Frame frame{};
-        if (receive_frame(frame, 0, false))
+        // Drain a bounded batch per tick so a burst (scan + connect + BLE uplink +
+        // ESP-NOW + config-report arriving together) does not backlog behind a
+        // one-frame-per-poll drain. Bounded so a flood cannot starve the loop.
+        constexpr int kMaxDrainPerPoll = 16;
+        for (int i = 0; i < kMaxDrainPerPoll; ++i)
         {
+            hostlink::c6::Frame frame{};
+            if (!receive_frame(frame, 0, false))
+            {
+                break;
+            }
             handle_async_frame(frame);
         }
 #endif
@@ -680,12 +688,96 @@ class C6CompanionRuntime final : public WirelessCompanion
                           sizeof(control));
     }
 
+    bool setWifiEnabled(bool enabled) override
+    {
+        return sendWifiControl(enabled ? WifiCommand::StaEnable : WifiCommand::StaDisable,
+                               nullptr, nullptr, 0, 0);
+    }
+
+    bool setBleEnabled(bool enabled) override
+    {
+        return sendBleControl(enabled ? TM_C6_BLE_CMD_ENABLE : TM_C6_BLE_CMD_DISABLE, 0, 0);
+    }
+
+    bool setBleProfiles(bool meshtastic, bool meshcore, bool trailmate) override
+    {
+        uint8_t mask = 0;
+        if (meshtastic)
+        {
+            mask |= TM_C6_BLE_PROFILE_MASK_MESHTASTIC;
+        }
+        if (meshcore)
+        {
+            mask |= TM_C6_BLE_PROFILE_MASK_MESHCORE;
+        }
+        if (trailmate)
+        {
+            mask |= TM_C6_BLE_PROFILE_MASK_TRAILMATE;
+        }
+        return sendBleControl(TM_C6_BLE_CMD_SET_PROFILE_MASK, mask, 0);
+    }
+
+    bool bleDisconnect() override
+    {
+        return sendBleControl(TM_C6_BLE_CMD_DISCONNECT, 0, 0);
+    }
+
+    bool bleBondReset() override
+    {
+        return sendBleControl(TM_C6_BLE_CMD_BOND_RESET, 0, 0);
+    }
+
+    uint32_t rotateBlePin() override
+    {
+        if (!status_.present)
+        {
+            return 0;
+        }
+        uint32_t pin = 123456u;
+#if defined(ESP_PLATFORM)
+        pin = 100000u + (esp_random() % 900000u);
+        nvs_handle_t handle = 0;
+        if (nvs_open("tm_c6", NVS_READWRITE, &handle) == ESP_OK)
+        {
+            (void)nvs_set_u32(handle, "ble_pin", pin);
+            (void)nvs_commit(handle);
+            nvs_close(handle);
+        }
+#endif
+        ble_passkey_ = pin;
+        status_.ble_passkey = pin;
+        (void)sendBleControl(TM_C6_BLE_CMD_SET_PIN, 0, pin);
+        (void)sendBleControl(TM_C6_BLE_CMD_BOND_RESET, 0, 0);
+        return pin;
+    }
+
     void setUplinkSink(WirelessUplinkSink* sink) override
     {
         uplink_sink_ = sink;
     }
 
   private:
+    bool sendBleControl(uint8_t command, uint8_t profile_mask, uint32_t pin)
+    {
+        if (!status_.present)
+        {
+            return false;
+        }
+        tm_c6_ble_control_t control{};
+        control.command = command;
+        control.profile_mask = profile_mask;
+        control.config_seq = static_cast<uint16_t>(++ble_config_seq_);
+        if (command == TM_C6_BLE_CMD_SET_PIN)
+        {
+            char pin_buf[16];
+            std::snprintf(pin_buf, sizeof(pin_buf), "%06lu",
+                          static_cast<unsigned long>(pin % 1000000u));
+            std::memcpy(control.pin, pin_buf, 6); // 6 digits, no NUL (fixed field)
+        }
+        return send_frame(TM_C6_FRAME_BLE_CONTROL, TM_C6_CH_CONTROL, 0, 0,
+                          reinterpret_cast<const uint8_t*>(&control), sizeof(control));
+    }
+
     uint16_t next_seq()
     {
         const uint16_t current = next_seq_++;
@@ -1249,6 +1341,7 @@ class C6CompanionRuntime final : public WirelessCompanion
     C6CompanionStatus status_{};
     uint16_t next_seq_ = kInitialSequence;
     uint32_t ble_passkey_ = 0; // random 6-digit BLE pairing PIN, persisted in NVS
+    uint16_t ble_config_seq_ = 0; // increments per BLE_CONTROL frame for correlation
     WirelessUplinkSink* uplink_sink_ = nullptr;
 #if defined(ESP_PLATFORM)
     std::unique_ptr<C6Transport> transport_;
