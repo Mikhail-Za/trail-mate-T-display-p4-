@@ -2791,6 +2791,123 @@ static void open_enabled_imes_modal(settings::ui::ItemWidget& widget)
     }
 }
 
+struct SavedNetClick
+{
+    char ssid[33];
+    lv_obj_t* row;
+};
+static SavedNetClick s_saved_clicks[8];
+
+static void on_saved_forget_clicked(lv_event_t* e)
+{
+    auto* p = static_cast<SavedNetClick*>(lv_event_get_user_data(e));
+    if (!p)
+    {
+        return;
+    }
+    (void)wifi_runtime::forget_network(p->ssid);
+    ::ui::SystemNotification::show(::ui::i18n::tr("Network forgotten"), 2000);
+    if (p->row)
+    {
+        lv_obj_del_async(p->row); // remove the row in place
+        p->row = nullptr;
+    }
+}
+
+static void open_saved_networks_modal(settings::ui::ItemWidget& widget)
+{
+    (void)widget;
+    if (g_state.modal_root)
+    {
+        return;
+    }
+    modal_prepare_group();
+
+    const auto& profile = ::ui::page_profile::current();
+    const lv_coord_t top_bar_h = profile.top_bar_height > 0
+                                     ? profile.top_bar_height
+                                     : static_cast<lv_coord_t>(::ui::widgets::kTopBarHeight);
+    const lv_coord_t gap_from_top_bar = 3;
+    const lv_coord_t content_h = lv_obj_get_height(g_state.root) - top_bar_h;
+
+    g_state.modal_root = lv_obj_create(g_state.root);
+    lv_obj_set_size(g_state.modal_root, LV_PCT(100), content_h);
+    lv_obj_set_pos(g_state.modal_root, 0, top_bar_h);
+    style::apply_modal_bg(g_state.modal_root);
+    style::apply_modal_panel(g_state.modal_root);
+    lv_obj_set_style_border_width(g_state.modal_root, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(g_state.modal_root, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(g_state.modal_root, 0, LV_PART_MAIN);
+    lv_obj_clear_flag(g_state.modal_root, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(g_state.modal_root, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t* list = lv_obj_create(g_state.modal_root);
+    lv_obj_set_size(list, LV_PCT(100), content_h - gap_from_top_bar);
+    lv_obj_set_pos(list, 0, gap_from_top_bar);
+    lv_obj_set_style_pad_all(list, 0, LV_PART_MAIN);
+    lv_obj_set_style_border_width(list, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(list, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
+    lv_obj_set_scrollbar_mode(list, LV_SCROLLBAR_MODE_AUTO);
+
+    lv_obj_t* hint = lv_label_create(list);
+    ::ui::i18n::set_label_text(hint, "Tap a network to forget it");
+    style::apply_label_primary(hint);
+
+    std::vector<wifi_runtime::SavedNetwork> saved;
+    wifi_runtime::list_saved(saved);
+    int count = 0;
+    for (const auto& net : saved)
+    {
+        if (count >= 8)
+        {
+            break;
+        }
+        lv_obj_t* btn = lv_btn_create(list);
+        lv_obj_set_size(btn, LV_PCT(100), ::ui::page_profile::resolve_control_button_height());
+        style::apply_btn_modal(btn);
+        lv_obj_set_style_pad_left(btn, 12, LV_PART_MAIN);
+        lv_obj_set_style_pad_right(btn, 12, LV_PART_MAIN);
+        lv_obj_set_flex_flow(btn, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(btn, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER,
+                              LV_FLEX_ALIGN_CENTER);
+
+        lv_obj_t* name = lv_label_create(btn);
+        ::ui::i18n::set_label_text_raw(name, net.ssid);
+        style::apply_label_primary(name);
+        lv_obj_t* action = lv_label_create(btn);
+        ::ui::i18n::set_label_text(action, net.auto_join ? "Forget (auto)" : "Forget");
+        style::apply_label_primary(action);
+
+        copy_bounded(s_saved_clicks[count].ssid, sizeof(s_saved_clicks[count].ssid), net.ssid);
+        s_saved_clicks[count].row = btn;
+        lv_obj_add_event_cb(btn, on_saved_forget_clicked, LV_EVENT_CLICKED, &s_saved_clicks[count]);
+        lv_obj_add_event_cb(btn, option_modal_focused_cb, LV_EVENT_FOCUSED, nullptr);
+        lv_group_add_obj(g_state.modal_group, btn);
+        ++count;
+    }
+
+    if (saved.empty())
+    {
+        lv_obj_t* empty = lv_label_create(list);
+        ::ui::i18n::set_label_text(empty, "No saved networks");
+        style::apply_label_primary(empty);
+    }
+
+    lv_obj_t* back_btn = lv_btn_create(list);
+    lv_obj_set_size(back_btn, LV_PCT(100), ::ui::page_profile::resolve_control_button_height());
+    style::apply_btn_modal(back_btn);
+    lv_obj_t* back_label = lv_label_create(back_btn);
+    ::ui::i18n::set_label_text(back_label, "Back");
+    style::apply_label_primary(back_label);
+    lv_obj_center(back_label);
+    lv_obj_add_event_cb(back_btn, on_enabled_imes_back_clicked, LV_EVENT_CLICKED, nullptr);
+    lv_obj_add_event_cb(back_btn, option_modal_focused_cb, LV_EVENT_FOCUSED, nullptr);
+    lv_group_add_obj(g_state.modal_group, back_btn);
+    lv_group_focus_obj(back_btn);
+}
+
 static void open_option_modal(const settings::ui::SettingItem& item, settings::ui::ItemWidget& widget)
 {
     if (g_state.modal_root)
@@ -3352,6 +3469,7 @@ static settings::ui::SettingItem kWifiItems[] = {
     {"Password", settings::ui::SettingType::Text, nullptr, 0, nullptr, nullptr, g_settings.wifi_password, sizeof(g_settings.wifi_password), true, "wifi_password"},
     {"Connect", settings::ui::SettingType::Action, nullptr, 0, nullptr, nullptr, nullptr, 0, false, "wifi_connect"},
     {"Disconnect", settings::ui::SettingType::Action, nullptr, 0, nullptr, nullptr, nullptr, 0, false, "wifi_disconnect"},
+    {"Saved Networks", settings::ui::SettingType::Action, nullptr, 0, nullptr, nullptr, nullptr, 0, false, "wifi_saved"},
 };
 
 static settings::ui::SettingItem kAdvancedItems[] = {
@@ -4097,6 +4215,10 @@ static bool activate_item_widget(settings::ui::ItemWidget& widget)
             wifi_runtime::disconnect();
             refresh_wifi_state_from_runtime();
             build_item_list();
+        }
+        else if (item.pref_key && strcmp(item.pref_key, "wifi_saved") == 0)
+        {
+            open_saved_networks_modal(widget);
         }
         else if (item.pref_key && strcmp(item.pref_key, "bt_rotate_pin") == 0)
         {
