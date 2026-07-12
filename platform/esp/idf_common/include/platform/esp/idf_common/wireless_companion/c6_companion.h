@@ -72,6 +72,7 @@ struct WifiEventInfo
 {
     WifiEventKind kind = WifiEventKind::Error;
     uint16_t error_code = 0;
+    uint16_t op_id = 0; // echoes the control op_id that caused this event (0 = none)
     uint32_t ipv4 = 0;
     char ssid[33] = {};
     uint8_t result_count = 0;
@@ -161,10 +162,13 @@ class WirelessCompanion
     virtual bool sendEspNow(const uint8_t mac[6], const uint8_t* data, size_t len) = 0;
 
     // Wi-Fi control, P4 -> C6. `ssid`/`password` may be nullptr for commands that
-    // do not need them (Scan/Disconnect/GetIp). Returns false if not present or the
-    // send failed. The C6 answers asynchronously via WirelessUplinkSink::onWifiEvent.
+    // do not need them (Scan/Disconnect/GetIp). `op_id` is echoed on the resulting
+    // events so the caller can correlate async replies (0 = don't-care). Returns
+    // false if not present or the send failed. The C6 answers asynchronously via
+    // WirelessUplinkSink::onWifiEvent.
     virtual bool sendWifiControl(WifiCommand command, const char* ssid,
-                                 const char* password, uint8_t channel) = 0;
+                                 const char* password, uint8_t channel,
+                                 uint16_t op_id = 0) = 0;
 
     // Register (or clear, with nullptr) the sink that receives uplink data/events.
     // The sink is not owned and must outlive the companion or be cleared first.

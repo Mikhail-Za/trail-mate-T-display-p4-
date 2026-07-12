@@ -3,9 +3,12 @@
 #include <stdint.h>
 
 #define TM_C6_MAGIC 0x36434D54u
-#define TM_C6_PROTO_VERSION 1u
-#define TM_C6_PROTO_MIN 1u
-#define TM_C6_PROTO_MAX 1u
+// v2: adds runtime BLE_CONTROL commands, Wi-Fi STA enable/disable, and an echoed
+// op_id on the Wi-Fi control/event structs (a wire-size change). Bumped as a hard
+// break so a mismatched P4/C6 pair fails at HELLO rather than misreading payloads.
+#define TM_C6_PROTO_VERSION 2u
+#define TM_C6_PROTO_MIN 2u
+#define TM_C6_PROTO_MAX 2u
 #define TM_C6_FRAME_HEADER_LEN 20u
 #define TM_C6_MAX_PAYLOAD 1024u
 
@@ -365,7 +368,7 @@ extern "C"
     {
         uint8_t command;
         uint8_t flags;
-        uint16_t reserved;
+        uint16_t op_id; // P4-assigned operation id, echoed on the resulting events
         char ssid[TM_C6_WIFI_SSID_LEN];
         char password[TM_C6_WIFI_PASSWORD_LEN];
         uint8_t channel;
@@ -385,6 +388,8 @@ extern "C"
         uint8_t event_kind;
         uint8_t result_count;
         uint16_t error_code;
+        uint16_t op_id; // echoes the tm_c6_wifi_control op_id that caused this event
+        uint16_t reserved;
         uint32_t ipv4_addr;
         char ssid[TM_C6_WIFI_SSID_LEN];
         tm_c6_wifi_scan_result_t results[TM_C6_WIFI_SCAN_RESULT_COUNT];

@@ -651,7 +651,7 @@ class C6CompanionRuntime final : public WirelessCompanion
     }
 
     bool sendWifiControl(WifiCommand command, const char* ssid,
-                         const char* password, uint8_t channel) override
+                         const char* password, uint8_t channel, uint16_t op_id) override
     {
         if (!status_.present)
         {
@@ -660,7 +660,7 @@ class C6CompanionRuntime final : public WirelessCompanion
         tm_c6_wifi_control_t control{};
         control.command = static_cast<uint8_t>(command);
         control.flags = 0;
-        control.reserved = 0;
+        control.op_id = op_id;
         control.channel = channel;
         // control is zero-initialised, so copying at most sizeof-1 leaves the final
         // byte NUL: the C6 reads these fixed arrays as C strings.
@@ -1078,6 +1078,7 @@ class C6CompanionRuntime final : public WirelessCompanion
         WifiEventInfo ev{};
         ev.kind = static_cast<WifiEventKind>(raw.event_kind);
         ev.error_code = raw.error_code;
+        ev.op_id = raw.op_id;
         ev.ipv4 = raw.ipv4_addr;
         std::memcpy(ev.ssid, raw.ssid, sizeof(raw.ssid));
         ev.ssid[sizeof(ev.ssid) - 1] = '\0';

@@ -20,6 +20,9 @@ static bool s_wifi_started;
 static esp_netif_t* s_sta_netif;
 static esp_netif_t* s_ap_netif;
 static tm_c6_wifi_config_t s_config;
+// op_id of the most recent control command, stamped onto every event we emit so
+// the P4 can correlate an async reply to the operation that caused it.
+static uint16_t s_current_op_id;
 
 static void copy_text(char* out, size_t out_len, const char* text)
 {
@@ -36,6 +39,7 @@ static void emit_simple_event(uint8_t kind, uint16_t error_code, const char* ssi
         .event_kind = kind,
         .result_count = 0,
         .error_code = error_code,
+        .op_id = s_current_op_id,
         .ipv4_addr = ipv4_addr,
     };
     copy_text(event.ssid, sizeof(event.ssid), ssid);
@@ -253,6 +257,7 @@ static esp_err_t emit_scan_results(void)
         .event_kind = TM_C6_WIFI_EVENT_SCAN_DONE,
         .result_count = (uint8_t)result_count,
         .error_code = TM_C6_OK,
+        .op_id = s_current_op_id,
     };
     for (uint16_t i = 0; i < result_count && i < TM_C6_WIFI_SCAN_RESULT_COUNT; ++i)
     {
@@ -272,11 +277,19 @@ esp_err_t tm_wifi_handle_control(const tm_c6_wifi_control_t* control)
     {
         return ESP_ERR_INVALID_ARG;
     }
+    s_current_op_id = control->op_id;
 
     switch ((tm_c6_wifi_command_t)control->command)
     {
     case TM_C6_WIFI_CMD_SCAN:
         return emit_scan_results();
+    case TM_C6_WIFI_CMD_STA_ENABLE:
+        s_config.wifi_enabled = 1;
+        s_config.sta_enabled = 1;
+        return tm_wifi_apply_config(&s_config); // STA up, idle until a CONNECT
+    case TM_C6_WIFI_CMD_STA_DISABLE:
+        s_config.wifi_enabled = 0;
+        return tm_wifi_apply_config(&s_config); // disconnect + clear creds
     case TM_C6_WIFI_CMD_CONNECT:
     {
         s_config.wifi_enabled = 1;
