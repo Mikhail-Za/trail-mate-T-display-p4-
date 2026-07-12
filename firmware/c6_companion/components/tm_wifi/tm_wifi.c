@@ -107,8 +107,22 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
             break;
         }
         case WIFI_EVENT_STA_DISCONNECTED:
-            emit_simple_event(TM_C6_WIFI_EVENT_STA_DISCONNECTED, TM_C6_OK, NULL, 0);
+        {
+            const wifi_event_sta_disconnected_t* event =
+                (const wifi_event_sta_disconnected_t*)event_data;
+            char ssid[TM_C6_WIFI_SSID_LEN] = {};
+            uint16_t reason = TM_C6_OK;
+            if (event != NULL)
+            {
+                const size_t copy_len =
+                    event->ssid_len < sizeof(ssid) ? event->ssid_len : sizeof(ssid) - 1;
+                memcpy(ssid, event->ssid, copy_len);
+                reason = event->reason; // 802.11 reason, for the P4 to correlate/map
+            }
+            // The SSID lets the P4 discard a stale disconnect for a superseded AP.
+            emit_simple_event(TM_C6_WIFI_EVENT_STA_DISCONNECTED, reason, ssid, 0);
             break;
+        }
         case WIFI_EVENT_AP_START:
             emit_simple_event(TM_C6_WIFI_EVENT_AP_STARTED, TM_C6_OK, s_config.ap_ssid, 0);
             break;

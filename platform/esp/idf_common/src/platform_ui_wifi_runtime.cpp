@@ -357,9 +357,25 @@ void c6_wifi_ingest_event(const WifiEventInfo& event)
         }
         break;
     case WifiEventKind::StaDisconnected:
+        // Ignore a disconnect for a DIFFERENT AP than the one we are on/attempting
+        // (a stale drop from a superseded attempt during rapid A->B switching --
+        // the C6 stamps events with the latest op, so SSID is the reliable key).
+        // Radio-disable disconnects may not carry a matching SSID, so skip then.
+        if (g_cache.intent != Intent::RadioDisable && event.ssid[0] != '\0' &&
+            std::strncmp(event.ssid, g_cache.ssid, sizeof(event.ssid)) != 0 &&
+            std::strncmp(event.ssid, g_cache.attempt_ssid, sizeof(event.ssid)) != 0)
+        {
+            break;
+        }
         g_cache.connected = false;
         g_cache.has_ip = false;
         g_cache.ip[0] = '\0';
+        if (g_cache.state == uiw::ConnectionState::Disabled)
+        {
+            // Already off: a second (synthetic + real) disconnect must not flip to Idle.
+            g_cache.intent = Intent::None;
+            break;
+        }
         if (g_cache.intent == Intent::UserDisconnect || g_cache.intent == Intent::Forget)
         {
             g_cache.state = uiw::ConnectionState::Idle; // intentional -> clean, no error
@@ -447,6 +463,10 @@ bool apply_enabled(bool enabled)
     if (!enabled)
     {
         g_cache.intent = Intent::RadioDisable;
+    }
+    else if (g_cache.state == ConnectionState::Disabled)
+    {
+        g_cache.state = ConnectionState::Idle; // leave the "off" state on re-enable
     }
     return wc::c6_companion().setWifiEnabled(enabled);
 }
