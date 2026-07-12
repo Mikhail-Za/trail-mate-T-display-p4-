@@ -19,6 +19,7 @@
 #include <cstring>
 
 #include "esp_log.h"
+#include "esp_mac.h"
 
 #include "app/app_facade_access.h"
 #include "board/LoraBoard.h"
@@ -222,6 +223,17 @@ bool IdfChatFacade::initialize()
     {
         ::app::bindAppFacade(*this);
         bound_ = true;
+    }
+
+    // Bring up the C6-backed BLE companion pump. The C6 already advertises the
+    // enabled profiles from the HostLink handshake; enabling here creates the
+    // C6BleService so the Meshtastic/MeshCore phone-session pump actually runs and
+    // the runtime tick (tickRuntime -> getBleManager()->update()) drives it.
+    ble_manager_ = std::make_unique<::ble::BleManager>(*this);
+    ble_manager_->begin();
+    if (config_.ble_enabled)
+    {
+        ble_manager_->setEnabled(true);
     }
 
     initialized_ = true;
@@ -555,22 +567,59 @@ void IdfChatFacade::clearMessageDb()
 
 ::ble::BleManager* IdfChatFacade::getBleManager()
 {
-    return nullptr;
+    return ble_manager_.get();
 }
 
 const ::ble::BleManager* IdfChatFacade::getBleManager() const
 {
-    return nullptr;
+    return ble_manager_.get();
 }
 
 bool IdfChatFacade::isBleEnabled() const
 {
-    return false;
+    return ble_manager_ && ble_manager_->isEnabled();
 }
 
 void IdfChatFacade::setBleEnabled(bool enabled)
 {
-    (void)enabled;
+    config_.ble_enabled = enabled;
+    if (ble_manager_)
+    {
+        ble_manager_->setEnabled(enabled);
+    }
+}
+
+// -- IAppBleFacade ----------------------------------------------------------
+
+::chat::contacts::INodeStore* IdfChatFacade::getNodeStore()
+{
+    return runtime_.contacts.node_store.get();
+}
+
+const ::chat::contacts::INodeStore* IdfChatFacade::getNodeStore() const
+{
+    return runtime_.contacts.node_store.get();
+}
+
+bool IdfChatFacade::getDeviceMacAddress(uint8_t out_mac[6]) const
+{
+    if (out_mac == nullptr)
+    {
+        return false;
+    }
+    return esp_efuse_mac_get_default(out_mac) == ESP_OK;
+}
+
+bool IdfChatFacade::syncCurrentEpochSeconds(uint32_t epoch_seconds)
+{
+    // v1: accept the phone's time; on-device clock sync is handled elsewhere.
+    (void)epoch_seconds;
+    return true;
+}
+
+void IdfChatFacade::resetMeshConfig()
+{
+    // v1: no destructive phone-initiated mesh-config reset yet.
 }
 
 void IdfChatFacade::restartDevice()

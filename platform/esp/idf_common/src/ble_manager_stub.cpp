@@ -1,24 +1,26 @@
-// IDF BleManager implementation, C6-backed, with the Meshtastic phone-session pump.
+// IDF BleManager implementation, C6-backed, with the Meshtastic + MeshCore phone pumps.
 //
 // On T-Display P4 / Tab5 the BLE radio lives on the ESP32-C6 companion, reached over
-// HostLink/SDIO via WirelessCompanion. The C6 runs the GATT server; this P4-side service
-// bridges the reusable Meshtastic phone-session (ToRadio/FromRadio protocol pump) onto the
-// HostLink BLE channel:
-//   - phone writes ToRadio  -> C6 -> BLE_UPLINK -> onBleUplink() -> session.handleToRadio()
-//   - session emits FromRadio -> popToPhone() -> sendBleDownlink() -> C6 notifies the phone
-// The C6 owns the from_num / FromRadio-notify semantics (tm_ble.c), so the P4 just pushes
-// each FromRadio frame. MeshCore + Trail-Mate profiles and Wi-Fi are follow-on work.
+// HostLink/SDIO via WirelessCompanion. The C6 runs the GATT servers; this P4-side service
+// bridges the reusable phone-session cores onto the HostLink BLE channels:
+//   phone write -> C6 -> BLE_UPLINK -> onBleUplink() -> session/core handleToRadio/handleRxFrame
+//   core emits  -> popToPhone/popTxFrame -> sendBleDownlink() -> C6 notifies the phone
+// The C6 owns the GATT notify/read semantics (tm_ble.c). Meshtastic uses MeshtasticPhoneSession;
+// MeshCore uses MeshCorePhoneCore. Trail-Mate is a private profile with no P4-side protocol yet,
+// so its uplink is accepted but not routed. Wi-Fi management is handled separately.
 #include "ble/ble_manager.h"
 
 #include "app/app_config.h"
 #include "ble/app_phone_facade.h"
 #include "meshtastic/config.pb.h"
 #include "meshtastic/module_config.pb.h"
+#include "phone/meshcore/meshcore_phone_core.h"
 #include "phone/meshtastic/meshtastic_phone_core.h"
 #include "phone/meshtastic/meshtastic_phone_session.h"
 #include "platform/esp/idf_common/wireless_companion/c6_companion.h"
 
 #include <memory>
+#include <string>
 
 namespace ble
 {
@@ -28,6 +30,8 @@ namespace wc = platform::esp::idf_common::wireless_companion;
 
 // Bound on frames drained per update() so a burst can't monopolize the loop.
 constexpr int kMaxDrainPerUpdate = 16;
+// MeshCore BLE frames are capped at 172 bytes (NUS MTU budget), matching the Arduino path.
+constexpr size_t kMeshCoreFrameMax = 172;
 
 class C6BleService final : public BleService,
                           public wc::WirelessUplinkSink,
@@ -52,6 +56,8 @@ class C6BleService final : public BleService,
         mt_session_.reset(new phone::meshtastic::MeshtasticPhoneSession(
             phone_facade_, *this, &phone_facade_, &phone_facade_, &phone_facade_,
             &phone_facade_, &phone_facade_, &phone_facade_));
+        mc_core_.reset(new phone::meshcore::MeshCorePhoneCore(phone_facade_, device_name_,
+                                                             &phone_facade_));
         started_ = true;
         return companion.isPresent();
     }
@@ -64,6 +70,7 @@ class C6BleService final : public BleService,
             started_ = false;
         }
         mt_session_.reset();
+        mc_core_.reset();
         connected_ = false;
     }
 
@@ -73,7 +80,12 @@ class C6BleService final : public BleService,
         if (mt_session_)
         {
             mt_session_->pumpIncomingAppData();
-            drainToPhone();
+            drainMeshtastic();
+        }
+        if (mc_core_)
+        {
+            mc_core_->pumpIncomingAppData();
+            drainMeshCore();
         }
     }
 
@@ -97,8 +109,7 @@ class C6BleService final : public BleService,
     }
     void notifyFromNum(uint32_t from_num) override
     {
-        // The C6 raises the FromNum / FromRadio notify itself when we push a downlink,
-        // so there is nothing to do here; we drain the session queue in update().
+        // The C6 raises the FromNum / FromRadio notify itself when we push a downlink.
         (void)from_num;
     }
 
@@ -107,11 +118,28 @@ class C6BleService final : public BleService,
                      const uint8_t* data, size_t len) override
     {
         last_connection_ = connection_id;
-        if (profile == wc::BleProfile::Meshtastic && mt_session_ && data != nullptr)
+        if (data == nullptr)
         {
-            mt_session_->handleToRadio(data, len);
+            return;
         }
-        // MeshCore / Trail-Mate uplink routing is follow-on work.
+        switch (profile)
+        {
+        case wc::BleProfile::Meshtastic:
+            if (mt_session_)
+            {
+                mt_session_->handleToRadio(data, len);
+            }
+            break;
+        case wc::BleProfile::MeshCore:
+            if (mc_core_)
+            {
+                mc_core_->handleRxFrame(data, len);
+            }
+            break;
+        case wc::BleProfile::TrailMate:
+            // Private profile: no P4-side protocol yet. Accept and drop.
+            break;
+        }
     }
 
     void onBleEvent(wc::BleProfile profile, uint8_t event_kind,
@@ -133,11 +161,15 @@ class C6BleService final : public BleService,
             {
                 mt_session_->close();
             }
+            if (mc_core_)
+            {
+                mc_core_->reset();
+            }
         }
     }
 
   private:
-    void drainToPhone()
+    void drainMeshtastic()
     {
         phone::meshtastic::MeshtasticBleFrame frame;
         for (int i = 0; i < kMaxDrainPerUpdate && mt_session_->popToPhone(&frame); ++i)
@@ -147,12 +179,26 @@ class C6BleService final : public BleService,
         }
     }
 
+    void drainMeshCore()
+    {
+        uint8_t out[kMeshCoreFrameMax] = {};
+        size_t out_len = 0;
+        for (int i = 0; i < kMaxDrainPerUpdate && mc_core_->popTxFrame(out, &out_len); ++i)
+        {
+            wc::c6_companion().sendBleDownlink(wc::BleProfile::MeshCore, last_connection_, out,
+                                               out_len);
+            out_len = 0;
+        }
+    }
+
     app::IAppBleFacade& ctx_;
     // Declared before phone_facade_: it holds references to these two configs.
     meshtastic_Config_BluetoothConfig ble_config_ = meshtastic_Config_BluetoothConfig_init_zero;
     meshtastic_LocalModuleConfig module_config_ = meshtastic_LocalModuleConfig_init_zero;
     AppPhoneFacade phone_facade_;
+    std::string device_name_ = "TrailMate-C6";
     std::unique_ptr<phone::meshtastic::MeshtasticPhoneSession> mt_session_;
+    std::unique_ptr<phone::meshcore::MeshCorePhoneCore> mc_core_;
     bool started_ = false;
     bool connected_ = false;
     uint8_t last_connection_ = 0;

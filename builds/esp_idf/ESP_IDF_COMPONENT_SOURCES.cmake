@@ -261,7 +261,8 @@ set(TRAILMATE_ESP_IDF_CORE_PHONE_SOURCES
     "${TRAILMATE_ROOT}/modules/core_phone/src/meshtastic/meshtastic_phone_core.cpp"
     "${TRAILMATE_ROOT}/modules/core_phone/src/meshtastic/meshtastic_phone_session.cpp"
     "${TRAILMATE_ROOT}/modules/core_phone/src/meshcore/meshcore_phone_core.cpp"
-    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ble/app_phone_facade.cpp")
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ble/app_phone_facade.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_ble_phone_facade_stubs.cpp")
 
 # Portable presentation/runtime deps of the LVGL chat screen.
 set(TRAILMATE_ESP_IDF_CHAT_PRESENTATION_SOURCES

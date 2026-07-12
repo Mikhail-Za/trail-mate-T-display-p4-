@@ -26,6 +26,7 @@
 
 #include "app/app_config.h"
 #include "app/app_facades.h"
+#include "ble/ble_manager.h"
 #include "chat/domain/chat_types.h"
 #include "platform/esp/idf_common/idf_chat_factory.h"
 #include "platform/esp/idf_common/team/idf_lora_pairing_service.h"
@@ -48,7 +49,7 @@ struct Event;
 namespace platform::esp::idf_common
 {
 
-class IdfChatFacade final : public ::app::IAppFacade
+class IdfChatFacade final : public ::app::IAppBleFacade
 {
   public:
     /**
@@ -123,6 +124,13 @@ class IdfChatFacade final : public ::app::IAppFacade
     void setChatUiRuntime(::chat::ui::IChatUiRuntime* runtime) override;
     ::BoardBase* getBoard() override;
     const ::BoardBase* getBoard() const override;
+
+    // -- IAppBleFacade ------------------------------------------------------
+    ::chat::contacts::INodeStore* getNodeStore() override;
+    const ::chat::contacts::INodeStore* getNodeStore() const override;
+    bool getDeviceMacAddress(uint8_t out_mac[6]) const override;
+    bool syncCurrentEpochSeconds(uint32_t epoch_seconds) override;
+    void resetMeshConfig() override;
 
     // -- IAppLifecycleFacade ------------------------------------------------
     void updateCoreServices() override;
@@ -220,6 +228,11 @@ class IdfChatFacade final : public ::app::IAppFacade
     // after keys are established (rather than waiting a full interval), and so the
     // timer resets when a team is left.
     bool team_presence_had_keys_ = false;
+
+    // C6-backed BLE. Declared last so it destructs first (it references this facade
+    // via AppPhoneFacade -> ctx_). Created + enabled in initialize(); getBleManager()
+    // returns it and the runtime tick drives the phone-session pump on the C6.
+    std::unique_ptr<::ble::BleManager> ble_manager_;
     // Throttle for publishTeamSystemTick(): last time (ms) a SystemTick was published.
     // The pump would otherwise publish one every iteration, flooding the main loop and
     // freezing touch on the pairing screen; gated to ~1 Hz (kTeamSystemTickIntervalMs).
