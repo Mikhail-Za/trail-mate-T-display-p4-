@@ -50,6 +50,14 @@ struct ScanResult
     bool requires_password = true;
 };
 
+// A remembered network. The password itself is never surfaced through the list.
+struct SavedNetwork
+{
+    char ssid[kMaxSsidLength + 1] = {};
+    bool has_password = false;
+    bool auto_join = true;
+};
+
 bool is_supported();
 bool load_config(Config& out);
 bool save_config(const Config& config);
@@ -58,5 +66,15 @@ bool connect(const Config* override_config = nullptr);
 void disconnect();
 bool scan(std::vector<ScanResult>& out_results);
 Status status();
+
+// Saved-networks store (persisted, versioned). connect_saved joins using the
+// stored password; a network connected with a freshly typed password is only
+// committed to the store once it authenticates successfully.
+std::size_t list_saved(std::vector<SavedNetwork>& out);
+bool save_network(const char* ssid, const char* password, bool auto_join);
+bool forget_network(const char* ssid);
+bool set_auto_join(const char* ssid, bool auto_join);
+bool is_saved(const char* ssid);
+bool connect_saved(const char* ssid);
 
 } // namespace platform::ui::wifi

@@ -4,6 +4,9 @@
 
 #include <cstdio>
 #include <cstring>
+#include <string>
+
+#include "nvs.h"
 
 #include "hostlink/c6/c6_protocol.h"
 #include "platform/esp/idf_common/wireless_companion/c6_companion.h"
@@ -89,6 +92,191 @@ bool companion_wifi_supported()
     return st.present && (st.supported_features & TM_C6_FEATURE_WIFI_STA) != 0;
 }
 
+// ---- Saved networks: one versioned NVS blob, written transactionally ----
+constexpr const char* kSavedNvsNs = "wifi_saved";
+constexpr const char* kSavedNvsKey = "nets";
+constexpr uint16_t kSavedSchemaVersion = 1;
+constexpr int kMaxSaved = 8;
+
+struct SavedRecord
+{
+    char ssid[33];
+    char password[65];
+    uint8_t auto_join;
+    uint8_t pad[3];
+};
+struct SavedBlob
+{
+    uint16_t version;
+    uint16_t count;
+    SavedRecord records[kMaxSaved];
+};
+
+SavedBlob g_saved{};
+bool g_saved_loaded = false;
+
+// A credential typed at connect time, held transient until it authenticates so a
+// typo never overwrites a known-good saved password.
+struct PendingSave
+{
+    bool active = false;
+    char ssid[33] = {};
+    char password[65] = {};
+    bool auto_join = true;
+};
+PendingSave g_pending;
+
+void load_saved_blob()
+{
+    if (g_saved_loaded)
+    {
+        return;
+    }
+    g_saved_loaded = true;
+    g_saved = SavedBlob{};
+    g_saved.version = kSavedSchemaVersion;
+#if defined(ESP_PLATFORM)
+    nvs_handle_t handle = 0;
+    if (nvs_open(kSavedNvsNs, NVS_READONLY, &handle) == ESP_OK)
+    {
+        SavedBlob tmp{};
+        size_t len = sizeof(tmp);
+        if (nvs_get_blob(handle, kSavedNvsKey, &tmp, &len) == ESP_OK &&
+            len == sizeof(SavedBlob) && tmp.version == kSavedSchemaVersion)
+        {
+            g_saved = tmp;
+            if (g_saved.count > kMaxSaved)
+            {
+                g_saved.count = kMaxSaved;
+            }
+        }
+        nvs_close(handle);
+    }
+#endif
+    // Migrate the legacy single credential into the store on first run.
+    if (g_saved.count == 0)
+    {
+        std::string ssid;
+        if (::platform::ui::settings_store::get_string(kSettingsNs, kWifiSsidKey, ssid) &&
+            !ssid.empty())
+        {
+            std::string pw;
+            (void)::platform::ui::settings_store::get_string(kSettingsNs, kWifiPasswordKey, pw);
+            SavedRecord& r = g_saved.records[0];
+            r = SavedRecord{};
+            copy_text(r.ssid, sizeof(r.ssid), ssid.c_str());
+            copy_text(r.password, sizeof(r.password), pw.c_str());
+            r.auto_join = 1;
+            g_saved.count = 1;
+        }
+    }
+}
+
+bool persist_saved_blob()
+{
+#if defined(ESP_PLATFORM)
+    nvs_handle_t handle = 0;
+    if (nvs_open(kSavedNvsNs, NVS_READWRITE, &handle) != ESP_OK)
+    {
+        return false;
+    }
+    const esp_err_t rc = nvs_set_blob(handle, kSavedNvsKey, &g_saved, sizeof(g_saved));
+    if (rc == ESP_OK)
+    {
+        (void)nvs_commit(handle);
+    }
+    nvs_close(handle);
+    return rc == ESP_OK;
+#else
+    return false;
+#endif
+}
+
+int find_saved(const char* ssid)
+{
+    if (ssid == nullptr || ssid[0] == '\0')
+    {
+        return -1;
+    }
+    for (uint16_t i = 0; i < g_saved.count && i < kMaxSaved; ++i)
+    {
+        if (std::strncmp(g_saved.records[i].ssid, ssid, sizeof(g_saved.records[i].ssid)) == 0)
+        {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+bool store_saved(const char* ssid, const char* password, bool auto_join)
+{
+    if (ssid == nullptr || ssid[0] == '\0')
+    {
+        return false;
+    }
+    load_saved_blob();
+    int idx = find_saved(ssid);
+    if (idx < 0)
+    {
+        if (g_saved.count >= kMaxSaved)
+        {
+            for (int i = 1; i < kMaxSaved; ++i) // evict oldest (index 0)
+            {
+                g_saved.records[i - 1] = g_saved.records[i];
+            }
+            g_saved.count = kMaxSaved - 1;
+        }
+        idx = g_saved.count++;
+        g_saved.records[idx] = SavedRecord{};
+    }
+    SavedRecord& r = g_saved.records[idx];
+    copy_text(r.ssid, sizeof(r.ssid), ssid);
+    if (password != nullptr)
+    {
+        copy_text(r.password, sizeof(r.password), password);
+    }
+    r.auto_join = auto_join ? 1 : 0;
+    return persist_saved_blob();
+}
+
+// Auto-join the strongest visible saved+auto-join network, single-flight: only
+// when idle and not user-disabled. Called after a scan completes.
+void try_auto_join()
+{
+    namespace uiw = platform::ui::wifi;
+    if (g_cache.state == uiw::ConnectionState::Connected ||
+        g_cache.state == uiw::ConnectionState::Connecting ||
+        g_cache.state == uiw::ConnectionState::Disabled)
+    {
+        return;
+    }
+    if (g_cache.intent == Intent::UserDisconnect || g_cache.intent == Intent::RadioDisable)
+    {
+        return;
+    }
+    load_saved_blob();
+    int best = -1;
+    int best_rssi = -128;
+    for (uint8_t i = 0; i < g_cache.result_count && i < 6; ++i)
+    {
+        const int idx = find_saved(g_cache.results[i].ssid);
+        if (idx >= 0 && g_saved.records[idx].auto_join != 0 &&
+            g_cache.results[i].rssi > best_rssi)
+        {
+            best = idx;
+            best_rssi = g_cache.results[i].rssi;
+        }
+    }
+    if (best >= 0)
+    {
+        uiw::Config cfg{};
+        cfg.enabled = true;
+        copy_text(cfg.ssid, sizeof(cfg.ssid), g_saved.records[best].ssid);
+        copy_text(cfg.password, sizeof(cfg.password), g_saved.records[best].password);
+        (void)uiw::connect(&cfg);
+    }
+}
+
 } // namespace
 
 namespace platform::esp::idf_common::wireless_companion
@@ -113,6 +301,7 @@ void c6_wifi_ingest_event(const WifiEventInfo& event)
         }
         g_cache.scan_done = true;
         g_cache.scan_in_progress = false;
+        try_auto_join(); // join the strongest saved auto-join AP, if idle
         break;
     case WifiEventKind::StaConnected:
         g_cache.connected = true;
@@ -138,6 +327,12 @@ void c6_wifi_ingest_event(const WifiEventInfo& event)
             copy_text(g_cache.ssid, sizeof(g_cache.ssid), event.ssid);
         }
         g_cache.state = uiw::ConnectionState::Connected;
+        // Auth succeeded -> commit the transient credential to the saved store.
+        if (g_pending.active)
+        {
+            store_saved(g_pending.ssid, g_pending.password, g_pending.auto_join);
+            g_pending.active = false;
+        }
         break;
     case WifiEventKind::StaDisconnected:
         g_cache.connected = false;
@@ -159,6 +354,7 @@ void c6_wifi_ingest_event(const WifiEventInfo& event)
             {
                 g_cache.last_error = event.error_code;
             }
+            g_pending.active = false; // don't persist a credential that failed auth
         }
         else
         {
@@ -254,6 +450,12 @@ bool connect(const Config* override_config)
     g_cache.last_error = 0;
     copy_text(g_cache.attempt_ssid, sizeof(g_cache.attempt_ssid), config.ssid);
     copy_text(g_cache.ssid, sizeof(g_cache.ssid), config.ssid);
+    // Hold the credential transient; committed to the saved store only on auth
+    // success (StaGotIp), discarded on failure.
+    g_pending.active = true;
+    copy_text(g_pending.ssid, sizeof(g_pending.ssid), config.ssid);
+    copy_text(g_pending.password, sizeof(g_pending.password), config.password);
+    g_pending.auto_join = true;
     return wc::c6_companion().sendWifiControl(wc::WifiCommand::Connect, config.ssid,
                                               config.password, 0, g_cache.conn_op);
 }
@@ -356,6 +558,83 @@ Status status()
         copy_text(out.message, sizeof(out.message), "Ready");
     }
     return out;
+}
+
+std::size_t list_saved(std::vector<SavedNetwork>& out)
+{
+    out.clear();
+    load_saved_blob();
+    for (uint16_t i = 0; i < g_saved.count && i < kMaxSaved; ++i)
+    {
+        SavedNetwork n{};
+        copy_text(n.ssid, sizeof(n.ssid), g_saved.records[i].ssid);
+        n.has_password = g_saved.records[i].password[0] != '\0';
+        n.auto_join = g_saved.records[i].auto_join != 0;
+        out.push_back(n);
+    }
+    return out.size();
+}
+
+bool save_network(const char* ssid, const char* password, bool auto_join)
+{
+    return store_saved(ssid, password, auto_join);
+}
+
+bool forget_network(const char* ssid)
+{
+    load_saved_blob();
+    const int idx = find_saved(ssid);
+    if (idx < 0)
+    {
+        return false;
+    }
+    const bool is_current = std::strncmp(g_cache.ssid, ssid, sizeof(g_cache.ssid)) == 0;
+    for (int i = idx + 1; i < static_cast<int>(g_saved.count); ++i)
+    {
+        g_saved.records[i - 1] = g_saved.records[i];
+    }
+    --g_saved.count;
+    g_saved.records[g_saved.count] = SavedRecord{};
+    if (is_current && g_cache.connected)
+    {
+        g_cache.intent = Intent::Forget;
+        (void)wc::c6_companion().sendWifiControl(wc::WifiCommand::Disconnect, nullptr, nullptr,
+                                                 0, next_op());
+    }
+    return persist_saved_blob();
+}
+
+bool set_auto_join(const char* ssid, bool auto_join)
+{
+    load_saved_blob();
+    const int idx = find_saved(ssid);
+    if (idx < 0)
+    {
+        return false;
+    }
+    g_saved.records[idx].auto_join = auto_join ? 1 : 0;
+    return persist_saved_blob();
+}
+
+bool is_saved(const char* ssid)
+{
+    load_saved_blob();
+    return find_saved(ssid) >= 0;
+}
+
+bool connect_saved(const char* ssid)
+{
+    load_saved_blob();
+    const int idx = find_saved(ssid);
+    if (idx < 0)
+    {
+        return false;
+    }
+    Config cfg{};
+    cfg.enabled = true;
+    copy_text(cfg.ssid, sizeof(cfg.ssid), g_saved.records[idx].ssid);
+    copy_text(cfg.password, sizeof(cfg.password), g_saved.records[idx].password);
+    return connect(&cfg);
 }
 
 } // namespace platform::ui::wifi
