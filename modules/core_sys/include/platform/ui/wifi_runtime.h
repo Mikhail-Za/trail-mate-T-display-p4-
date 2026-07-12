@@ -65,6 +65,9 @@ bool apply_enabled(bool enabled);
 bool connect(const Config* override_config = nullptr);
 void disconnect();
 bool scan(std::vector<ScanResult>& out_results);
+// Read the most recent completed scan WITHOUT starting a new one (so a refresh
+// timer can pick up async results without re-triggering scans).
+bool get_scan_results(std::vector<ScanResult>& out_results);
 Status status();
 
 // Saved-networks store (persisted, versioned). connect_saved joins using the

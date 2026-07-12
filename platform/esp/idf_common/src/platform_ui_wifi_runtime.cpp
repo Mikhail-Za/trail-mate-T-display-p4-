@@ -507,6 +507,27 @@ bool scan(std::vector<ScanResult>& out_results)
     return !out_results.empty();
 }
 
+bool get_scan_results(std::vector<ScanResult>& out_results)
+{
+    out_results.clear();
+    if (!companion_wifi_supported())
+    {
+        return false;
+    }
+    for (uint8_t i = 0; i < g_cache.result_count && i < 6; ++i)
+    {
+        ScanResult r{};
+        copy_text(r.ssid, sizeof(r.ssid), g_cache.results[i].ssid);
+        r.rssi = g_cache.results[i].rssi;
+        r.requires_password = g_cache.results[i].authmode != 0;
+        if (r.ssid[0] != '\0')
+        {
+            out_results.push_back(r);
+        }
+    }
+    return !out_results.empty();
+}
+
 Status status()
 {
     Status out{};

@@ -149,6 +149,7 @@ static size_t kWifiNetworkOptionCount = 0;
 static char kWifiNetworkOptionLabels[kMaxWifiNetworks][64] = {};
 static wifi_runtime::ScanResult kWifiScanResults[kMaxWifiNetworks] = {};
 static lv_timer_t* s_firmware_update_timer = nullptr;
+static lv_timer_t* s_wireless_timer = nullptr;
 static bool s_firmware_overlay_owned = false;
 static firmware_update_runtime::Phase s_last_firmware_phase = firmware_update_runtime::Phase::Unsupported;
 static bool s_last_firmware_busy = false;
@@ -4283,6 +4284,44 @@ static void refresh_timezone_option_count()
     }
 }
 
+static void wireless_refresh_timer_cb(lv_timer_t* /*timer*/)
+{
+    // Keep the Wi-Fi / Bluetooth page live without a manual re-tap. Never touch UI
+    // while a modal is open (a timer rebuild can invalidate a focused/modal
+    // object). Update status text in place; only rebuild the list when the scan
+    // result set actually changed.
+    if (!g_state.list_panel || g_state.modal_root)
+    {
+        return;
+    }
+    const size_t cat = static_cast<size_t>(g_state.current_category);
+    if (cat >= sizeof(kCategories) / sizeof(kCategories[0]) || !kCategories[cat].label)
+    {
+        return;
+    }
+    const char* label = kCategories[cat].label;
+    if (std::strcmp(label, "Wi-Fi") == 0)
+    {
+        refresh_wifi_state_from_runtime();
+        std::vector<wifi_runtime::ScanResult> results;
+        (void)wifi_runtime::get_scan_results(results);
+        if (results.size() != kWifiNetworkOptionCount)
+        {
+            rebuild_wifi_scan_options(results);
+            build_item_list();
+        }
+        else
+        {
+            refresh_visible_item_values();
+        }
+    }
+    else if (std::strcmp(label, "Bluetooth") == 0)
+    {
+        refresh_bluetooth_state_from_runtime();
+        refresh_visible_item_values();
+    }
+}
+
 } // namespace
 
 void create(lv_obj_t* parent)
@@ -4377,6 +4416,16 @@ void create(lv_obj_t* parent)
     {
         lv_timer_set_repeat_count(s_firmware_update_timer, -1);
     }
+    if (s_wireless_timer)
+    {
+        lv_timer_del(s_wireless_timer);
+        s_wireless_timer = nullptr;
+    }
+    s_wireless_timer = lv_timer_create(wireless_refresh_timer_cb, 1000, nullptr);
+    if (s_wireless_timer)
+    {
+        lv_timer_set_repeat_count(s_wireless_timer, -1);
+    }
     {
         const firmware_update_runtime::Status status = firmware_update_runtime::status();
         s_last_firmware_phase = status.phase;
@@ -4418,6 +4467,11 @@ void destroy()
     {
         lv_timer_del(s_firmware_update_timer);
         s_firmware_update_timer = nullptr;
+    }
+    if (s_wireless_timer)
+    {
+        lv_timer_del(s_wireless_timer);
+        s_wireless_timer = nullptr;
     }
     if (s_firmware_overlay_owned)
     {
