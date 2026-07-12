@@ -253,6 +253,16 @@ set(TRAILMATE_ESP_IDF_ARDUINO_CHAT_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/chat/infra/chat_event_bus_bridge.cpp"
     "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/sys/event_bus.cpp")
 
+# Phone-session pump: the transport-agnostic Meshtastic/MeshCore ToRadio<->FromRadio
+# protocol cores plus the AppPhoneFacade adapter (IAppBleFacade -> IPhoneAppFacade).
+# Needed on IDF so the C6 BLE companion can drive a real phone session (Stage 2b).
+# AppPhoneFacade lives under arduino_common but is NimBLE-free.
+set(TRAILMATE_ESP_IDF_CORE_PHONE_SOURCES
+    "${TRAILMATE_ROOT}/modules/core_phone/src/meshtastic/meshtastic_phone_core.cpp"
+    "${TRAILMATE_ROOT}/modules/core_phone/src/meshtastic/meshtastic_phone_session.cpp"
+    "${TRAILMATE_ROOT}/modules/core_phone/src/meshcore/meshcore_phone_core.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/arduino_common/src/ble/app_phone_facade.cpp")
+
 # Portable presentation/runtime deps of the LVGL chat screen.
 set(TRAILMATE_ESP_IDF_CHAT_PRESENTATION_SOURCES
     "${TRAILMATE_ROOT}/modules/ui_presentation/src/chat/chat_workspace_model.cpp"

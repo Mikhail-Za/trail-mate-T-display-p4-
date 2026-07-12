@@ -30,6 +30,7 @@ idf_component_register(
         ${TRAILMATE_ESP_IDF_PLATFORM_MESHCORE_SOURCES}
         ${TRAILMATE_ESP_IDF_RADIOLIB_SOURCES}
         ${TRAILMATE_ESP_IDF_ARDUINO_CHAT_SOURCES}
+        ${TRAILMATE_ESP_IDF_CORE_PHONE_SOURCES}
         ${TRAILMATE_ESP_IDF_CHAT_PRESENTATION_SOURCES}
         ${TRAILMATE_ESP_IDF_CHAT_UI_SOURCES}
         ${TRAILMATE_ESP_IDF_CONTACTS_UI_SOURCES}
@@ -71,6 +72,14 @@ idf_component_register(
 
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     TRAIL_MATE_LORA_TX_POWER_MAX_DBM=22)
+
+# The shared phone-session cores use fixed-buffer strncpy into pre-zeroed fields
+# (termination is guaranteed by a preceding memset). The IDF build's stricter
+# -Werror=stringop-truncation flags them as errors even though the host/linux
+# build compiles them cleanly. Downgrade that single warning for these files only.
+set_source_files_properties(
+    ${TRAILMATE_ESP_IDF_CORE_PHONE_SOURCES}
+    PROPERTIES COMPILE_OPTIONS "-Wno-error=stringop-truncation")
 
 # Keep the external i18n pack scan OFF on IDF builds. The scan's compile guard uses
 # LV_USE_FS_POSIX as a proxy for "this target ships the SD pack feature", and enabling
