@@ -75,22 +75,22 @@ void BlePairingPopup::ensureCreated()
     lv_obj_set_style_border_width(panel_, 2, 0);
     lv_obj_set_style_border_color(panel_, lv_color_hex(kColorLine), 0);
     lv_obj_set_style_radius(panel_, 16, 0);
-    lv_obj_set_style_pad_left(panel_, 18, 0);
-    lv_obj_set_style_pad_right(panel_, 18, 0);
-    lv_obj_set_style_pad_top(panel_, 16, 0);
-    lv_obj_set_style_pad_bottom(panel_, 14, 0);
+    lv_obj_set_style_pad_left(panel_, 24, 0);
+    lv_obj_set_style_pad_right(panel_, 24, 0);
+    lv_obj_set_style_pad_top(panel_, 22, 0);
+    lv_obj_set_style_pad_bottom(panel_, 22, 0);
     lv_obj_set_style_shadow_width(panel_, 18, 0);
     lv_obj_set_style_shadow_color(panel_, lv_color_hex(kColorAmberDark), 0);
     lv_obj_set_style_shadow_opa(panel_, LV_OPA_20, 0);
     lv_obj_clear_flag(panel_, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(panel_, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(panel_, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(panel_, 8, 0);
+    lv_obj_set_style_pad_row(panel_, 12, 0);
 
     title_label_ = lv_label_create(panel_);
     ::ui::i18n::set_label_text(title_label_, "Bluetooth Pairing");
     lv_obj_set_style_text_color(title_label_, lv_color_hex(kColorText), 0);
-    lv_obj_set_style_text_font(title_label_, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(title_label_, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_align(title_label_, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(title_label_, LV_PCT(100));
 
@@ -98,7 +98,7 @@ void BlePairingPopup::ensureCreated()
     lv_obj_set_style_bg_color(mode_label_, lv_color_hex(kColorInfo), 0);
     lv_obj_set_style_bg_opa(mode_label_, LV_OPA_COVER, 0);
     lv_obj_set_style_text_color(mode_label_, lv_color_hex(kColorPanelBg), 0);
-    lv_obj_set_style_text_font(mode_label_, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(mode_label_, &lv_font_montserrat_20, 0);
     lv_obj_set_style_pad_left(mode_label_, 10, 0);
     lv_obj_set_style_pad_right(mode_label_, 10, 0);
     lv_obj_set_style_pad_top(mode_label_, 4, 0);
@@ -108,16 +108,16 @@ void BlePairingPopup::ensureCreated()
     hint_label_ = lv_label_create(panel_);
     ::ui::i18n::set_label_text(hint_label_, "Enter this 6-digit PIN on your phone");
     lv_obj_set_style_text_color(hint_label_, lv_color_hex(kColorTextDim), 0);
-    lv_obj_set_style_text_font(hint_label_, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(hint_label_, &lv_font_montserrat_20, 0);
     lv_obj_set_style_text_align(hint_label_, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(hint_label_, LV_PCT(100));
 
     pin_label_ = lv_label_create(panel_);
     lv_obj_set_style_text_color(pin_label_, lv_color_hex(kColorAmberDark), 0);
-    // Prefer the large 36pt PIN, but fall back to 24pt on targets whose LVGL config
-    // does not compile montserrat_36 (e.g. the T-Display-P4 Kconfig font set).
-#if LV_FONT_MONTSERRAT_36
-    lv_obj_set_style_text_font(pin_label_, &lv_font_montserrat_36, 0);
+    // Prefer the large 32pt PIN, but fall back to 24pt on targets whose LVGL config
+    // does not compile montserrat_32 (the T-Display-P4 TFT build enables 32).
+#if LV_FONT_MONTSERRAT_32
+    lv_obj_set_style_text_font(pin_label_, &lv_font_montserrat_32, 0);
 #else
     lv_obj_set_style_text_font(pin_label_, &lv_font_montserrat_24, 0);
 #endif
@@ -126,25 +126,34 @@ void BlePairingPopup::ensureCreated()
 
     device_label_ = lv_label_create(panel_);
     lv_obj_set_style_text_color(device_label_, lv_color_hex(kColorText), 0);
-    lv_obj_set_style_text_font(device_label_, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(device_label_, &lv_font_montserrat_20, 0);
     lv_obj_set_style_text_align(device_label_, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(device_label_, LV_PCT(100));
 
     footer_label_ = lv_label_create(panel_);
     ::ui::i18n::set_label_text(footer_label_, "Closes after pairing - or tap Dismiss");
     lv_obj_set_style_text_color(footer_label_, lv_color_hex(kColorOk), 0);
-    lv_obj_set_style_text_font(footer_label_, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(footer_label_, &lv_font_montserrat_20, 0);
     lv_obj_set_style_text_align(footer_label_, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(footer_label_, LV_PCT(100));
 
     // Manual escape hatch: an accidental connection can be dismissed without a reboot.
+    // Full-width, tall, high-contrast target so it is easy to tap. (The old small,
+    // 70%-width button sat below the panel's fixed height and was clipped off the
+    // bottom of the non-scrollable panel, so taps landed on nothing -- that is why
+    // "tap Dismiss" appeared not to work. The panel now auto-sizes to its content.)
     close_btn_ = lv_btn_create(panel_);
-    lv_obj_set_width(close_btn_, LV_PCT(70));
-    lv_obj_set_style_bg_color(close_btn_, lv_color_hex(kColorLine), 0);
+    lv_obj_set_width(close_btn_, LV_PCT(92));
+    lv_obj_set_height(close_btn_, 64);
+    lv_obj_set_style_margin_top(close_btn_, 8, 0);
+    lv_obj_set_style_radius(close_btn_, 12, 0);
+    lv_obj_set_style_bg_color(close_btn_, lv_color_hex(kColorAmberDark), 0);
+    lv_obj_set_style_bg_opa(close_btn_, LV_OPA_COVER, 0);
     lv_obj_add_event_cb(close_btn_, ble_pairing_popup_close_cb, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* close_label = lv_label_create(close_btn_);
     ::ui::i18n::set_label_text(close_label, "Dismiss");
-    lv_obj_set_style_text_font(close_label, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(close_label, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(close_label, lv_color_hex(kColorPanelBg), 0);
     lv_obj_center(close_label);
 
     applyLayout();
@@ -167,28 +176,24 @@ void BlePairingPopup::applyLayout()
     const lv_coord_t screen_h = lv_obj_get_height(top);
     lv_obj_set_size(overlay_, screen_w, screen_h);
 
-    lv_coord_t panel_w = screen_w - 28;
-    if (panel_w > 296)
+    // Roughly-double-size card: take most of the screen width, and size the HEIGHT to
+    // the content (LV_SIZE_CONTENT) so every child -- including the Dismiss button at
+    // the bottom -- is always inside the panel. The previous fixed 198px height clipped
+    // the button off the bottom of a non-scrollable panel, which is why tapping Dismiss
+    // did nothing.
+    lv_coord_t panel_w = static_cast<lv_coord_t>(screen_w * 92 / 100);
+    if (panel_w > 520)
     {
-        panel_w = 296;
+        panel_w = 520;
     }
-    if (panel_w < 220)
+    if (panel_w < 300)
     {
-        panel_w = 220;
+        panel_w = 300;
     }
-
-    lv_coord_t panel_h = 198;
-    if (screen_h < 220)
-    {
-        panel_h = screen_h - 20;
-    }
-    if (panel_h < 150)
-    {
-        panel_h = 150;
-    }
-
-    lv_obj_set_size(panel_, panel_w, panel_h);
+    lv_obj_set_width(panel_, panel_w);
+    lv_obj_set_height(panel_, LV_SIZE_CONTENT);
     lv_obj_center(panel_);
+    (void)screen_h;
 }
 
 void BlePairingPopup::show(uint32_t passkey, bool is_fixed_pin, const char* device_name)
@@ -213,7 +218,7 @@ void BlePairingPopup::show(uint32_t passkey, bool is_fixed_pin, const char* devi
         "Device: %s",
         (device_name && device_name[0] != '\0') ? device_name : "Meshtastic");
     lv_label_set_text(device_label_, name_text.c_str());
-    ::ui::fonts::apply_localized_font(device_label_, name_text.c_str(), &lv_font_montserrat_18);
+    ::ui::fonts::apply_localized_font(device_label_, name_text.c_str(), &lv_font_montserrat_20);
 
     lv_obj_clear_flag(overlay_, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(overlay_);
