@@ -160,6 +160,13 @@ def main():
                "--size", str(FONT_SIZE),
                "--bpp", str(FONT_BPP),
                "--format", "bin",
+               # The device firmware builds with LV_USE_FONT_COMPRESSED OFF (see
+               # sdkconfig CONFIG_LV_USE_FONT_COMPRESSED not set). lv_font_conv
+               # compresses glyph bitmaps by default; a compressed binfont loads
+               # fine but its glyph lookup returns NULL at render time, so every
+               # non-builtin (SD) glyph draws blank. --no-compress emits plain
+               # bitmaps the firmware can actually render. Keep these in sync.
+               "--no-compress",
                "--no-kerning",
                "-o", out_bin,
                "--symbols", symbols]
