@@ -13,7 +13,7 @@ Meshtastic sync, Wi-Fi management, and a real pairing PIN. Branch
   then disconnected" loop.
 - **Pairing is a real per-device PIN.** The P4 generates a random 6-digit PIN
   once, persists it in NVS (stable across reboots), and configures the C6 for
-  fixed-PIN pairing. **Current PIN: `REDACTED`.** It shows on screen (BLE pairing
+  fixed-PIN pairing. **Current PIN: `&lt;per-device; shown on the on-screen pairing popup, persisted in NVS ns `tm_c6` key `ble_pin`&gt;`.** It shows on screen (BLE pairing
   popup) while a phone is pairing, and the connected state drives the existing
   "BLE linked" status. The temporary no-PIN debug mode is reverted; verified the
   C6 now rejects an unpaired write with `Insufficient Authentication`.
@@ -54,7 +54,7 @@ currently-running C6 image can be read first with
 
 ### Verify after flashing
 1. Power-cycle; on the P4 UART (COM6) confirm `C6 present ... enabled=0x1f`.
-2. Pair a phone in the Meshtastic app using PIN **REDACTED**; the app should reach
+2. Pair a phone in the Meshtastic app using PIN **&lt;per-device; shown on the on-screen pairing popup, persisted in NVS ns `tm_c6` key `ble_pin`&gt;**; the app should reach
    the node and complete config with no "retries" churn.
 3. (Optional) In the app, confirm all channels/config load (lossless).
 
