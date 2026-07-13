@@ -24,6 +24,7 @@
 //     suppresses noisy at-rest vertical wander while still logging sustained climbs.
 
 #include "lvgl.h"
+#include "ui/widgets/back_button.h"
 #include "ui/app_runtime.h"
 #include "ui/callback_app_screen.h"
 
@@ -424,6 +425,7 @@ void trip_enter(void* user_data, lv_obj_t* parent)
     lv_obj_t* back_btn = lv_button_create(bar);
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);

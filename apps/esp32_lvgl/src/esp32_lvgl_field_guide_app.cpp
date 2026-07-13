@@ -13,6 +13,7 @@
 // through ui_request_exit_to_menu().
 
 #include "lvgl.h"
+#include "ui/widgets/back_button.h"
 #include "src/draw/lv_image_decoder_private.h"     // lv_image_decoder_dsc_t body (.decoded)
 #include "src/misc/cache/instance/lv_image_cache.h" // lv_image_cache_drop
 #include "platform/ui/gps_runtime.h"          // platform::ui::gps::get_data() for "Near me"
@@ -1030,6 +1031,7 @@ void field_guide_enter(void* user_data, lv_obj_t* parent)
     lv_obj_t* back_btn = lv_button_create(bar);
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { go_back(&s_state); }, LV_EVENT_CLICKED, nullptr);

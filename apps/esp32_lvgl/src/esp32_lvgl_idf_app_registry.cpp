@@ -17,6 +17,7 @@
 #include "ui/screens/pc_link/pc_link_page_shell.h"
 #include "ui/screens/settings/settings_page_shell.h"
 #include "ui/screens/sstv/sstv_page_shell.h"
+#include "ui/widgets/back_button.h"
 #include "ui/screens/team/team_page_shell.h"
 #include "ui/screens/tracker/tracker_page_shell.h"
 #include "ui/screens/walkie_talkie/walkie_talkie_page_shell.h"
@@ -240,6 +241,7 @@ void companion_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_width(back_btn, LV_PCT(45));
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
@@ -648,6 +650,7 @@ void snake_enter(void* user_data, lv_obj_t* parent)
     lv_obj_t* back_btn = lv_button_create(top);
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
@@ -1258,6 +1261,7 @@ void tetris_enter(void* user_data, lv_obj_t* parent)
     lv_obj_t* back_btn = lv_button_create(top);
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
@@ -1530,6 +1534,7 @@ void help_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_width(back_btn, LV_PCT(45));
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
@@ -2351,6 +2356,7 @@ void systest_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_width(back_btn, LV_PCT(45));
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
@@ -2664,6 +2670,7 @@ void gps_position_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_width(back_btn, LV_PCT(45));
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
@@ -3152,6 +3159,7 @@ void g2048_enter(void* user_data, lv_obj_t* parent)
     lv_obj_t* back_btn = lv_button_create(top);
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
@@ -3417,6 +3425,7 @@ void games_enter(void* user_data, lv_obj_t* parent)
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_obj_set_style_text_font(back_lbl, &lv_font_montserrat_20, 0);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
@@ -3737,6 +3746,7 @@ void flashlight_enter(void* user_data, lv_obj_t* parent)
     lv_obj_t* back_btn = lv_button_create(bar);
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
@@ -4236,6 +4246,7 @@ void stopwatch_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_width(back_btn, LV_PCT(45));
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
@@ -4891,6 +4902,7 @@ void node_radar_enter(void* user_data, lv_obj_t* parent)
     lv_obj_set_width(back_btn, LV_PCT(45));
     lv_obj_t* back_lbl = lv_label_create(back_btn);
     lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
+    ::ui::style_back_button(back_btn, back_lbl);
     lv_obj_center(back_lbl);
     lv_obj_add_event_cb(
         back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
