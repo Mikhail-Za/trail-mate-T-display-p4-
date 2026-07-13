@@ -534,7 +534,11 @@ static void configure_list_item_button(lv_obj_t* btn)
         return;
     }
 
-    lv_obj_set_size(btn, LV_PCT(100), resolve_settings_list_item_height());
+    // Height grows to fit a wrapped (two-line) name label; the resolved height is
+    // the one-line MINIMUM, so ordinary single-line rows look exactly as before.
+    lv_obj_set_width(btn, LV_PCT(100));
+    lv_obj_set_height(btn, LV_SIZE_CONTENT);
+    lv_obj_set_style_min_height(btn, resolve_settings_list_item_height(), LV_PART_MAIN);
     const bool dense = ::ui::page_profile::is_dense();
     lv_obj_set_style_pad_left(btn, dense ? 6 : 10, LV_PART_MAIN);
     lv_obj_set_style_pad_right(btn, dense ? 6 : 10, LV_PART_MAIN);
@@ -561,20 +565,29 @@ static void create_item_content(settings::ui::ItemWidget& widget, lv_obj_t* btn)
     lv_obj_t* label = lv_label_create(btn);
     ::ui::i18n::set_label_text(label, widget.def->label);
     style::apply_label_primary(label);
-    lv_label_set_long_mode(label, LV_LABEL_LONG_DOT);
-    if (::ui::page_profile::is_dense())
-    {
-        lv_obj_set_width(label, 0);
-        lv_obj_set_flex_grow(label, 1);
-    }
+    // Bound both labels within the row so a long setting name WRAPS to a second
+    // line (and the row grows to fit -- see configure_list_item_button) instead of
+    // the name and value overprinting each other. Previously on the non-dense (P4)
+    // profile neither label had a width bound, so LV_LABEL_LONG_DOT never fired and
+    // a long name + value smeared together in the SPACE_BETWEEN row.
+    lv_obj_set_width(label, 0);
+    lv_obj_set_flex_grow(label, 1);
+    lv_label_set_long_mode(
+        label, ::ui::page_profile::is_dense() ? LV_LABEL_LONG_DOT : LV_LABEL_LONG_WRAP);
 
     widget.value_label = lv_label_create(btn);
     style::apply_label_muted(widget.value_label);
     lv_label_set_long_mode(widget.value_label, LV_LABEL_LONG_DOT);
+    lv_obj_set_style_text_align(widget.value_label, LV_TEXT_ALIGN_RIGHT, 0);
     if (::ui::page_profile::is_dense())
     {
         lv_obj_set_width(widget.value_label, 72);
-        lv_obj_set_style_text_align(widget.value_label, LV_TEXT_ALIGN_RIGHT, 0);
+    }
+    else
+    {
+        // Hard-cap the value column so it stays a tight right-aligned preview and
+        // can never expand into (overprint) the name; the name absorbs the rest.
+        lv_obj_set_style_max_width(widget.value_label, LV_PCT(45), LV_PART_MAIN);
     }
     update_item_value(widget);
 }
@@ -2584,22 +2597,31 @@ static void open_gps_diagnostics_modal()
     modal_prepare_group();
     g_state.modal_root = create_modal_root(300, 220);
     lv_obj_t* win = lv_obj_get_child(g_state.modal_root, 0);
+    // Lay the modal out as a growing vertical column so the fixed 8-line
+    // diagnostics text can never be overdrawn by the button row (the old fixed
+    // 220px window hid the last ~2 lines behind the buttons). The window grows to
+    // its content and re-centres; SCROLLABLE is a safety net on short screens.
+    lv_obj_set_flex_flow(win, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(win, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(win, 10, LV_PART_MAIN);
+    lv_obj_set_height(win, LV_SIZE_CONTENT);
+    lv_obj_set_style_min_height(win, 220, LV_PART_MAIN);
+    lv_obj_set_style_max_height(win, LV_PCT(92), LV_PART_MAIN);
+    lv_obj_add_flag(win, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_center(win);
 
     lv_obj_t* title = lv_label_create(win);
     ::ui::i18n::set_label_text(title, "GPS Diagnostics");
     style::apply_label_primary(title);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 0);
 
     s_gps_diagnostics_label = lv_label_create(win);
     lv_obj_set_width(s_gps_diagnostics_label, LV_PCT(100));
     lv_label_set_long_mode(s_gps_diagnostics_label, LV_LABEL_LONG_WRAP);
     style::apply_label_muted(s_gps_diagnostics_label);
-    lv_obj_align(s_gps_diagnostics_label, LV_ALIGN_TOP_LEFT, 0, 28);
     refresh_gps_diagnostics_label();
 
     lv_obj_t* btn_row = lv_obj_create(win);
     lv_obj_set_size(btn_row, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_align(btn_row, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_flex_flow(btn_row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(btn_row,
                           LV_FLEX_ALIGN_SPACE_EVENLY,
