@@ -18,6 +18,7 @@
 #include "driver/sdmmc_defs.h"
 #include "driver/sdmmc_host.h"
 #include "esp_log.h"
+#include "esp_mac.h"
 #include "esp_random.h"
 #include "esp_serial_slave_link/essl.h"
 #include "esp_serial_slave_link/essl_sdio.h"
@@ -1048,7 +1049,18 @@ class C6CompanionRuntime final : public WirelessCompanion
                                        1000000u);
         std::snprintf(pin_buf, sizeof(pin_buf), "%06lu", pin);
         std::memcpy(config.ble.fixed_pin, pin_buf, 6); // exactly 6 digits, no NUL
-        std::memcpy(config.ble.device_name, "TrailMate-C6", 11);
+        // Per-device BLE name so two units are distinguishable in the phone's
+        // Bluetooth list. Both previously advertised the same "TrailMate-C6" (and the
+        // old 11-byte memcpy even dropped the trailing '6', so it showed as
+        // "TrailMate-C"). Suffix = last 2 bytes of the P4 factory MAC: unique per board
+        // from a single firmware image, no per-unit configuration.
+        uint8_t board_mac[6] = {0};
+        esp_efuse_mac_get_default(board_mac);
+        char device_name_buf[TM_C6_BLE_DEVICE_NAME_LEN];
+        std::snprintf(device_name_buf, sizeof(device_name_buf), "TrailMate-%02X%02X",
+                      board_mac[4], board_mac[5]);
+        std::snprintf(config.ble.device_name, sizeof(config.ble.device_name), "%s",
+                      device_name_buf);
         config.ble.preferred_mtu = 247;
 
         config.espnow.espnow_enabled = 1;
@@ -1066,7 +1078,8 @@ class C6CompanionRuntime final : public WirelessCompanion
         config.wifi.sta_enabled = 1;
         config.wifi.ap_enabled = 0;
         config.wifi.persist_credentials = 1;
-        std::memcpy(config.wifi.ap_ssid, "TrailMate-C6", 11);
+        std::snprintf(config.wifi.ap_ssid, sizeof(config.wifi.ap_ssid), "%s",
+                      device_name_buf);
         config.wifi.ap_channel = 1;
         return config;
     }
