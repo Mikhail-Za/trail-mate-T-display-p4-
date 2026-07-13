@@ -237,14 +237,7 @@ void companion_enter(void* user_data, lv_obj_t* parent)
 
     // Back button: the C6 page previously had no way out (forced a reboot).
     // Route to the launcher menu via the same exit the Chat app uses.
-    lv_obj_t* back_btn = lv_button_create(state->root);
-    lv_obj_set_width(back_btn, LV_PCT(45));
-    lv_obj_t* back_lbl = lv_label_create(back_btn);
-    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
-    ::ui::style_back_button(back_btn, back_lbl);
-    lv_obj_center(back_lbl);
-    lv_obj_add_event_cb(
-        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+    ::ui::make_back_button_row(state->root, [](lv_event_t*) { ::ui_request_exit_to_menu(); });
 
     add_label(state->root, ::ui::i18n::tr("C6 Companion"), &lv_font_montserrat_14, ui::theme::text());
 
@@ -1530,14 +1523,7 @@ void help_enter(void* user_data, lv_obj_t* parent)
 
     // Back button: routes to the launcher menu via the same exit the Chat app
     // uses (exactly like companion_enter's back button).
-    lv_obj_t* back_btn = lv_button_create(state->root);
-    lv_obj_set_width(back_btn, LV_PCT(45));
-    lv_obj_t* back_lbl = lv_label_create(back_btn);
-    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
-    ::ui::style_back_button(back_btn, back_lbl);
-    lv_obj_center(back_lbl);
-    lv_obj_add_event_cb(
-        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+    ::ui::make_back_button_row(state->root, [](lv_event_t*) { ::ui_request_exit_to_menu(); });
 
     // Page title.
     help_add_page_title(state->root, "Trail Mate Help");
@@ -2352,14 +2338,7 @@ void systest_enter(void* user_data, lv_obj_t* parent)
 
     // Back button: routes to the launcher menu via the same exit the Chat app
     // uses (exactly like companion_enter/help_enter).
-    lv_obj_t* back_btn = lv_button_create(state->root);
-    lv_obj_set_width(back_btn, LV_PCT(45));
-    lv_obj_t* back_lbl = lv_label_create(back_btn);
-    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
-    ::ui::style_back_button(back_btn, back_lbl);
-    lv_obj_center(back_lbl);
-    lv_obj_add_event_cb(
-        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+    ::ui::make_back_button_row(state->root, [](lv_event_t*) { ::ui_request_exit_to_menu(); });
 
     // Page title.
     lv_obj_t* title = lv_label_create(state->root);
@@ -2666,14 +2645,7 @@ void gps_position_enter(void* user_data, lv_obj_t* parent)
 
     // Back button: routes to the launcher menu via the same exit the Chat app
     // uses (exactly like companion_enter/help_enter/systest_enter).
-    lv_obj_t* back_btn = lv_button_create(state->root);
-    lv_obj_set_width(back_btn, LV_PCT(45));
-    lv_obj_t* back_lbl = lv_label_create(back_btn);
-    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
-    ::ui::style_back_button(back_btn, back_lbl);
-    lv_obj_center(back_lbl);
-    lv_obj_add_event_cb(
-        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+    ::ui::make_back_button_row(state->root, [](lv_event_t*) { ::ui_request_exit_to_menu(); });
 
     // Page title.
     lv_obj_t* title = lv_label_create(state->root);
@@ -4242,14 +4214,7 @@ void stopwatch_enter(void* user_data, lv_obj_t* parent)
 
     // Back button: routes to the launcher menu via the same exit the Chat app uses
     // (exactly like companion_enter/help_enter/systest_enter).
-    lv_obj_t* back_btn = lv_button_create(state->root);
-    lv_obj_set_width(back_btn, LV_PCT(45));
-    lv_obj_t* back_lbl = lv_label_create(back_btn);
-    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
-    ::ui::style_back_button(back_btn, back_lbl);
-    lv_obj_center(back_lbl);
-    lv_obj_add_event_cb(
-        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+    ::ui::make_back_button_row(state->root, [](lv_event_t*) { ::ui_request_exit_to_menu(); });
 
     // Status line (mode / "Time's up").
     state->status_label = lv_label_create(state->root);
@@ -4898,14 +4863,7 @@ void node_radar_enter(void* user_data, lv_obj_t* parent)
 
     // Back button: routes to the launcher menu via the same exit the Chat app
     // uses (exactly like companion_enter/help_enter/systest_enter).
-    lv_obj_t* back_btn = lv_button_create(state->root);
-    lv_obj_set_width(back_btn, LV_PCT(45));
-    lv_obj_t* back_lbl = lv_label_create(back_btn);
-    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
-    ::ui::style_back_button(back_btn, back_lbl);
-    lv_obj_center(back_lbl);
-    lv_obj_add_event_cb(
-        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+    ::ui::make_back_button_row(state->root, [](lv_event_t*) { ::ui_request_exit_to_menu(); });
 
     // Page title.
     lv_obj_t* title = lv_label_create(state->root);

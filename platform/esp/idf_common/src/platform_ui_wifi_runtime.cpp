@@ -611,7 +611,11 @@ Status status()
     Config config{};
     (void)load_config(config);
 
-    out.enabled = true;
+    // Reflect the user's actual Wi-Fi on/off setting (persisted wifi_enabled), not a
+    // hardcoded true. Otherwise the top-bar Wi-Fi icon (ui_status keys off
+    // status().enabled) stays lit even after Wi-Fi is disabled in settings. config
+    // was just loaded from the settings store via load_config() above.
+    out.enabled = config.enabled;
     out.connected = g_cache.connected;
     out.scanning = g_cache.scan_in_progress;
     out.has_credentials = config.ssid[0] != '\0';

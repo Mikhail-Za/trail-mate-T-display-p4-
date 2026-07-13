@@ -239,14 +239,7 @@ void power_enter(void* user_data, lv_obj_t* parent)
     lv_obj_add_flag(st->root, LV_OBJ_FLAG_SCROLLABLE);
 
     // Back button (top-left), routed to the launcher menu like the other apps.
-    lv_obj_t* back_btn = lv_button_create(st->root);
-    lv_obj_set_width(back_btn, LV_PCT(45));
-    lv_obj_t* back_lbl = lv_label_create(back_btn);
-    lv_label_set_text(back_lbl, LV_SYMBOL_LEFT " Back");
-    ::ui::style_back_button(back_btn, back_lbl);
-    lv_obj_center(back_lbl);
-    lv_obj_add_event_cb(
-        back_btn, [](lv_event_t*) { ::ui_request_exit_to_menu(); }, LV_EVENT_CLICKED, nullptr);
+    ::ui::make_back_button_row(st->root, [](lv_event_t*) { ::ui_request_exit_to_menu(); });
 
     lv_obj_t* title = make_line(st->root, &lv_font_montserrat_24);
     lv_label_set_text(title, "Battery");
