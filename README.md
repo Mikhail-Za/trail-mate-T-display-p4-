@@ -4,6 +4,16 @@
 
 > A low-power, offline-first handheld device for outdoor navigation and communication
 
+**This repo is Trail Mate built out for the LilyGo T-Display P4**, based on
+[vicliu624's Trail Mate](https://github.com/vicliu624/trail-mate) with a long list of
+added apps: waypoints & GoTo, GPS-course compass, trip computer, sun & moon,
+emergency beacon, battery/power monitor, walkie with on-screen hold-to-talk, SSTV,
+offline map + GPS position, a C6 BLE companion, and a games folder (Snake, Tetris,
+2048). Prebuilt firmware for both P4 SKUs is on the
+[Releases page](../../releases). Also for this board:
+[DualMesh Boot Launcher](https://github.com/Mikhail-Za/DualMesh-Boot-Launcher-for-LilyGo-T-Display-P4),
+a touch boot-switcher for running two firmwares side by side.
+
 [English](README.md) | [中文](README_CN.md) | [Join Discord](https://discord.gg/UpDsAz9H3)
 
 ---
