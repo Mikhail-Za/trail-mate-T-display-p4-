@@ -22,6 +22,11 @@ Shared rules for every group (read fully before starting):
   If a Commons file is PNG, save it as .png with the same number; the pipeline converts.
 - CREDITS: in each article folder also write `credits.tsv`, one row per kept photo:
   `<n>.jpg <TAB> <species shown> <TAB> <artist> <TAB> <license> <TAB> <commons file page URL>`
+  Use the SOURCE photo number; PNG sources may use that same number with either
+  `.png` or `.jpg` in credits. The builder renumbers photos and credits together.
+  Every photo needs one complete credit row; duplicate numbers, extra/missing
+  rows, empty fields, symlinks, and decks over six photos fail validation.
+  Copy generated content to a card only after the builder reports STAGING_DONE.
 - Shot lists say what each numbered photo should show. 2 photos minimum, 3-4 when the
   shot list has more entries and good candidates exist.
 - Final message: "DONE <group> <total photos> photos across <n> articles" plus any

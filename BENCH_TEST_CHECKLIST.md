@@ -79,16 +79,20 @@ pinch_out / two_finger_tap / double_tap`.
       First Aid, Edible Plants, Plant Hazards, Wildlife & Nature, Preparedness) with
       counts; open an article: title + scrollable body render, Back walks list ->
       categories -> launcher.
-- [ ] **Field Guide plant photos** (JPEG decoder path): open an Edible Plants article
-      (e.g. Cattail) -> 2-3 real photos render inline above the text, sharp, full
-      screen width, with a small grey "Photos: <artist> (<license>) / Wikimedia Commons"
-      attribution line under them (required by the CC-BY licenses). Open a Plant Hazards
-      article (e.g. poison ivy) -> its photos show. Article body text has NO stray boxes
-      at line ends (the CRLF->tofu fix). Text-only sections have no photos by design.
-- [ ] **Photo scrolling** (known perf caveat): scrolling a photo-heavy article may
-      stutter because LVGL's image cache is OFF (CONFIG_LV_CACHE_DEF_SIZE=0), so photos
-      re-decode on repaint. Deferred, not applied blind: if the jank is bad, the fix is
-      to set an image cache (~2-4MB, PSRAM) and re-verify map memory. Note the severity.
+- [ ] **Field Guide photo viewer**: open an Edible Plants article (e.g. Cattail),
+      choose View Photos, and use Prev/Next. One sharp photo appears at a time with
+      its exact species caption and attribution. Back returns to the same article.
+      Check a deliberate lookalike (Yarrow/poison hemlock): its identifying warning
+      remains visible in red. Article text has no stray CRLF boxes.
+- [ ] **Missing photo identification** — use a copied test card: test an absent or
+      unreadable guides/photos/CREDITS.tsv, a missing photo row, blank species,
+      truncated row, and duplicate matching rows. Each affected photo must be
+      withheld with a missing-identification message. Prev/Next/Back still work.
+      Switch valid -> invalid -> valid photos; no prior caption/image may carry
+      over. Restore the valid test metadata and confirm normal display returns.
+- [ ] **Photo navigation/lifetime**: repeatedly use Prev/Next/Back and reopen the
+      viewer. It must remain responsive, without accumulating images or crashing.
+
 - [ ] **Translate, forward**: pick Spanish -> categories appear + native name
       "Español" renders with accents; open Emergency -> "Help!" -> card shows
       "¡Auxilio!" LARGE. Latin fonts prove the SD binfont path.

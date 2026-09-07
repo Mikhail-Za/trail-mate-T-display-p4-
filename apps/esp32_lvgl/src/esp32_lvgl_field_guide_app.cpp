@@ -623,47 +623,74 @@ void append_photo_credits(FieldGuideAppState* st, const std::string& stem, int p
 // counter so it is seen with the image; hazard wording is tinted red to draw the
 // eye. CREDITS.tsv is a few KB and this runs only on a human-paced screen build,
 // so scanning it a second time (the attribution does its own scan) is negligible.
-void append_photo_caption(FieldGuideAppState* st, const std::string& stem, int photo_num)
+bool append_photo_caption(FieldGuideAppState* st, const std::string& stem, int photo_num)
 {
     std::string text;
     if (!read_text_file("A:/guides/photos/CREDITS.tsv", text))
     {
-        return;
+        return false;
     }
-    char want[24];
-    std::snprintf(want, sizeof(want), "%d.jpg", photo_num);
+    const std::string want = std::to_string(photo_num) + ".jpg";
     std::string species;
+    bool matched = false;
     size_t pos = 0;
     while (pos < text.size())
     {
-        size_t eol = text.find('\n', pos);
+        const size_t eol = text.find('\n', pos);
         const size_t line_end = (eol == std::string::npos) ? text.size() : eol;
-        const std::string line = text.substr(pos, line_end - pos);
+        std::string line = text.substr(pos, line_end - pos);
         pos = line_end + 1;
-        // Fields: stem, n.jpg, species, artist, license, url
-        size_t t0 = line.find('\t');
+        if (!line.empty() && line.back() == '\r')
+        {
+            line.pop_back();
+        }
+        const size_t t0 = line.find('\t');
         if (t0 == std::string::npos || line.compare(0, t0, stem) != 0)
         {
             continue;
         }
-        size_t t1 = line.find('\t', t0 + 1); // end of n.jpg
-        if (t1 == std::string::npos)
+        const size_t t1 = line.find('\t', t0 + 1);
+        if (line.substr(t0 + 1, t1 == std::string::npos ? t1 : t1 - t0 - 1) != want)
         {
             continue;
         }
-        const std::string photo_field = line.substr(t0 + 1, t1 - t0 - 1);
-        if (photo_field != want)
+        // Never choose between conflicting rows or accept a truncated identity.
+        if (matched || t1 == std::string::npos)
         {
-            continue;
+            return false;
         }
-        size_t t2 = line.find('\t', t1 + 1); // end of species
-        const size_t species_end = (t2 == std::string::npos) ? line.size() : t2;
-        species = line.substr(t1 + 1, species_end - t1 - 1);
-        break;
+        matched = true;
+        size_t field_start = t1 + 1;
+        for (int field = 2; field < 6; ++field)
+        {
+            const size_t tab = line.find('\t', field_start);
+            if ((field < 5 && tab == std::string::npos) ||
+                (field == 5 && tab != std::string::npos))
+            {
+                return false;
+            }
+            const std::string value = line.substr(field_start, tab == std::string::npos ? tab : tab - field_start);
+            if (value.find_first_not_of(" ") == std::string::npos)
+            {
+                return false;
+            }
+            for (unsigned char c : value)
+            {
+                if (c < 0x20 || c == 0x7F)
+                {
+                    return false;
+                }
+            }
+            if (field == 2)
+            {
+                species = value;
+            }
+            field_start = tab == std::string::npos ? line.size() : tab + 1;
+        }
     }
-    if (species.empty())
+    if (!matched)
     {
-        return;
+        return false;
     }
     // Tint hazard captions red. The species text itself carries the wording; we
     // only fold to lowercase (ASCII) and look for the danger cues so the color
@@ -690,6 +717,7 @@ void append_photo_caption(FieldGuideAppState* st, const std::string& stem, int p
         cap, hazard ? lv_color_hex(0xE04030) : lv_color_hex(0xFFFFFF), 0);
     lv_obj_set_style_pad_top(cap, 2, 0);
     lv_label_set_text(cap, species.c_str());
+    return true;
 }
 
 // Count the article's photos: probe A:/guides/photos/<stem>/1.jpg .. N.jpg (baseline
@@ -843,56 +871,67 @@ void show_photo_viewer_screen(FieldGuideAppState* st)
 
     // Species label for THIS photo, directly under the counter. Safety-critical for
     // decks that include a deadly lookalike as a contrast shot (see append_photo_caption).
-    append_photo_caption(st, st->photo_stem, idx + 1);
+    const bool caption_valid = append_photo_caption(st, st->photo_stem, idx + 1);
 
-    // Decode ONLY the current photo into an app-owned descriptor so the image source
-    // is LV_IMAGE_SRC_VARIABLE (in-memory) rather than LV_IMAGE_SRC_FILE. Only the
-    // VARIABLE path is eligible for the P4 hardware PPA blit; a file src stays on the
-    // software renderer. Same decode-to-owned code the article used inline, mirroring
-    // map_tiles.cpp: copy the header (w/h/cf/stride/flags/magic) and pixel bytes into
-    // buffers we own, tracked in st->photo_dscs and freed by free_photo_dscs.
-    char photo_path[160];
-    std::snprintf(photo_path, sizeof(photo_path), "A:/guides/photos/%s/%d.jpg",
-                  st->photo_stem.c_str(), idx + 1);
-    lv_obj_t* img = lv_image_create(st->body);
-    lv_image_decoder_dsc_t dsc;
-    std::memset(&dsc, 0, sizeof(dsc));
-    lv_result_t r = lv_image_decoder_open(&dsc, photo_path, NULL);
-    bool owned_set = false;
-    if (r == LV_RESULT_OK && dsc.decoded != NULL)
+    if (caption_valid)
     {
-        const lv_draw_buf_t* decoded = dsc.decoded;
-        lv_image_dsc_t* owned = (lv_image_dsc_t*)lv_malloc(sizeof(lv_image_dsc_t));
-        if (owned != nullptr)
+        // Decode ONLY the current photo into an app-owned descriptor so the image source
+        // is LV_IMAGE_SRC_VARIABLE (in-memory) rather than LV_IMAGE_SRC_FILE. Only the
+        // VARIABLE path is eligible for the P4 hardware PPA blit; a file src stays on the
+        // software renderer. Same decode-to-owned code the article used inline, mirroring
+        // map_tiles.cpp: copy the header (w/h/cf/stride/flags/magic) and pixel bytes into
+        // buffers we own, tracked in st->photo_dscs and freed by free_photo_dscs.
+        char photo_path[160];
+        std::snprintf(photo_path, sizeof(photo_path), "A:/guides/photos/%s/%d.jpg",
+                      st->photo_stem.c_str(), idx + 1);
+        lv_obj_t* img = lv_image_create(st->body);
+        lv_image_decoder_dsc_t dsc;
+        std::memset(&dsc, 0, sizeof(dsc));
+        lv_result_t r = lv_image_decoder_open(&dsc, photo_path, NULL);
+        bool owned_set = false;
+        if (r == LV_RESULT_OK && dsc.decoded != NULL)
         {
-            uint8_t* data = (uint8_t*)lv_malloc(decoded->data_size);
-            if (data != nullptr)
+            const lv_draw_buf_t* decoded = dsc.decoded;
+            lv_image_dsc_t* owned = (lv_image_dsc_t*)lv_malloc(sizeof(lv_image_dsc_t));
+            if (owned != nullptr)
             {
-                std::memcpy(data, decoded->data, decoded->data_size);
-                owned->header = decoded->header; // w/h/cf/stride/flags/magic
-                owned->data_size = decoded->data_size;
-                owned->data = data;
-                st->photo_dscs.push_back(owned);
-                lv_image_set_src(img, owned); // VARIABLE src -> PPA-eligible
-                owned_set = true;
-            }
-            else
-            {
-                lv_free(owned);
+                uint8_t* data = (uint8_t*)lv_malloc(decoded->data_size);
+                if (data != nullptr)
+                {
+                    std::memcpy(data, decoded->data, decoded->data_size);
+                    owned->header = decoded->header; // w/h/cf/stride/flags/magic
+                    owned->data_size = decoded->data_size;
+                    owned->data = data;
+                    st->photo_dscs.push_back(owned);
+                    lv_image_set_src(img, owned); // VARIABLE src -> PPA-eligible
+                    owned_set = true;
+                }
+                else
+                {
+                    lv_free(owned);
+                }
             }
         }
+        lv_image_decoder_close(&dsc); // safe after a failed open (dsc memset to 0)
+        if (!owned_set)
+        {
+            // Decode/alloc failed: fall back to the file src (software render, but the
+            // photo is never lost). lv_image copies the path via lv_strdup.
+            lv_image_set_src(img, photo_path);
+        }
+        // Full-width box, image centered within it.
+        lv_obj_set_width(img, LV_PCT(100));
+        lv_image_set_inner_align(img, LV_IMAGE_ALIGN_CENTER);
+        lv_obj_set_style_pad_top(img, 6, 0);
     }
-    lv_image_decoder_close(&dsc); // safe after a failed open (dsc memset to 0)
-    if (!owned_set)
+    else
     {
-        // Decode/alloc failed: fall back to the file src (software render, but the
-        // photo is never lost). lv_image copies the path via lv_strdup.
-        lv_image_set_src(img, photo_path);
+        lv_obj_t* msg = lv_label_create(st->body);
+        lv_obj_set_width(msg, LV_PCT(100));
+        lv_label_set_long_mode(msg, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_font(msg, &lv_font_montserrat_20, 0);
+        lv_label_set_text(msg, "Photo unavailable: identification information is missing.");
     }
-    // Full-width box, image centered within it.
-    lv_obj_set_width(img, LV_PCT(100));
-    lv_image_set_inner_align(img, LV_IMAGE_ALIGN_CENTER);
-    lv_obj_set_style_pad_top(img, 6, 0);
 
     // Prev / Next controls. Prev is disabled on the first photo, Next on the last.
     lv_obj_t* nav = lv_obj_create(st->body);
@@ -952,7 +991,10 @@ void show_photo_viewer_screen(FieldGuideAppState* st)
     }
 
     // CC attribution for the photo currently on screen.
-    append_photo_credits(st, st->photo_stem, idx + 1);
+    if (caption_valid)
+    {
+        append_photo_credits(st, st->photo_stem, idx + 1);
+    }
 }
 
 void go_back(FieldGuideAppState* st)
