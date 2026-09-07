@@ -207,6 +207,7 @@ if(BUILD_TESTING)
         "${TRAIL_MATE_REPO_ROOT}/modules/core_phone/src/meshtastic/meshtastic_phone_session.cpp"
         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_packet_wire.cpp"
         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_protocol_helpers.cpp"
+        "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/domain/channel_hash.cpp"
         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_radio_config.cpp"
         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_region.cpp"
         "${TRAIL_MATE_REPO_ROOT}/modules/core_sys/src/platform/ui/timezone_profile.cpp"
@@ -726,6 +727,18 @@ if(BUILD_TESTING)
         PRIVATE cxx_std_17)
     add_test(NAME trailmate_team_action_types_smoke
              COMMAND trailmate_team_action_types_smoke)
+
+    foreach(gps_test IN ITEMS nmea_parser nmea_coordinate_validation)
+        add_executable(trailmate_${gps_test}_smoke
+            "${TRAIL_MATE_REPO_ROOT}/modules/core_gps/tests/test_${gps_test}.cpp"
+            "${TRAIL_MATE_REPO_ROOT}/modules/core_gps/src/protocol/nmea/nmea_parser.cpp"
+            "${TRAIL_MATE_REPO_ROOT}/modules/core_gps/src/protocol/nmea/nmea_sentence.cpp")
+        target_include_directories(trailmate_${gps_test}_smoke
+            PRIVATE "${TRAIL_MATE_REPO_ROOT}/modules/core_gps/include")
+        target_compile_features(trailmate_${gps_test}_smoke PRIVATE cxx_std_17)
+        add_test(NAME trailmate_${gps_test}_smoke
+                 COMMAND trailmate_${gps_test}_smoke)
+    endforeach()
 
     foreach(ux_pack_test IN ITEMS
         screen_registry

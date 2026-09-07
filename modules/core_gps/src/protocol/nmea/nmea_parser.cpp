@@ -1,5 +1,6 @@
 #include "gps/protocol/nmea/nmea_parser.h"
 
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 
@@ -41,16 +42,62 @@ double parseDoubleField(const char* text, double fallback = 0.0)
     return end == text ? fallback : value;
 }
 
-bool parseNmeaCoordinate(const char* value, const char* hemisphere, double& out)
+bool parseNmeaCoordinate(const char* value, const char* hemisphere, bool is_lat, double& out)
 {
-    if (!value || !hemisphere || value[0] == '\0' || hemisphere[0] == '\0')
+    if (!value || !hemisphere || value[0] == '\0' || hemisphere[0] == '\0' || hemisphere[1] != '\0')
     {
         return false;
     }
 
-    const double raw = parseDoubleField(value);
+    const char* allowed = is_lat ? "NS" : "EW";
+    if (hemisphere[0] != allowed[0] && hemisphere[0] != allowed[1])
+    {
+        return false;
+    }
+
+    const double axis_limit = is_lat ? 90.0 : 180.0;
+
+    int digits = 0;
+    int dots = 0;
+    for (const char* p = value; *p != '\0'; ++p)
+    {
+        const char c = *p;
+        if (c >= '0' && c <= '9')
+        {
+            ++digits;
+        }
+        else if (c == '.')
+        {
+            ++dots;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    if (dots > 1 || digits == 0)
+    {
+        return false;
+    }
+
+    char* end = nullptr;
+    const double raw = std::strtod(value, &end);
+    if (end == value || !std::isfinite(raw) || raw < 0.0 || raw > axis_limit * 100.0)
+    {
+        return false;
+    }
+
     const int degrees = static_cast<int>(raw / 100.0);
     const double minutes = raw - static_cast<double>(degrees * 100);
+    if (minutes >= 60.0 || minutes < 0.0)
+    {
+        return false;
+    }
+    if (degrees == static_cast<int>(axis_limit) && minutes > 0.0)
+    {
+        return false;
+    }
+
     double decimal = static_cast<double>(degrees) + minutes / 60.0;
     if (hemisphere[0] == 'S' || hemisphere[0] == 'W')
     {
@@ -272,8 +319,8 @@ void NmeaParser::processRmc(char** fields, int field_count)
 
     double lat = 0.0;
     double lon = 0.0;
-    if (!parseNmeaCoordinate(fields[3], fields[4], lat) ||
-        !parseNmeaCoordinate(fields[5], fields[6], lon))
+    if (!parseNmeaCoordinate(fields[3], fields[4], true, lat) ||
+        !parseNmeaCoordinate(fields[5], fields[6], false, lon))
     {
         return;
     }
@@ -309,8 +356,8 @@ void NmeaParser::processGga(char** fields, int field_count)
 
     double lat = 0.0;
     double lon = 0.0;
-    if (!parseNmeaCoordinate(fields[2], fields[3], lat) ||
-        !parseNmeaCoordinate(fields[4], fields[5], lon))
+    if (!parseNmeaCoordinate(fields[2], fields[3], true, lat) ||
+        !parseNmeaCoordinate(fields[4], fields[5], false, lon))
     {
         return;
     }
