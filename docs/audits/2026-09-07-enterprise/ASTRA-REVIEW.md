@@ -1,0 +1,17 @@
+# Astra final review — local NMEA task and integrated fixes
+
+Authority: user explicitly requests local Spark workers and Astra main orchestration/review, replacing unavailable Anthropic gates. No new Anthropic call was made.
+
+Accepted implementation: Spark Tiel, task20260907-135408-2f8ca3/attempt-02. Attempt01 timed out308.5s/13770generated tokens after include-only edit. Correction1completed104.6s/4674generated tokens with the actual3-function change. Aggregate413.1helper seconds/18444local generated tokens, excluding conductor/setup/verification; not a cloud-cost estimate or first-pass success.
+
+Native sandbox default linker is unavailable through /etc/alternatives/ld. Worker honestly reported full-test failure and successful compilation. Astra's independent native immutable-snapshot verifier used existing -fuse-ld=bfd, with identical test sources and flags otherwise, no network or sandbox changes. Original test and50coordinate cases passed (attempt-02/verify-80781de2). Changed-file audit confirms only authorized source changed; frozen tests/harness byte-identical. User-requested code is now reviewed and accepted, not merely completed by model.
+
+Risk inspection: syntax excludes non-NMEA numeric forms; exact axis hemisphere and nonempty field checks precede conversion; finite/range checks bound raw before int cast, degree*100 cannot overflow with max180degrees; minute/geographic limits enforced; S/W preserved; output assigned only on success. RMC/GGA call axes checked individually. Actual byte-level function comparison shows only parseNmeaCoordinate/processRmc/processGga changed, despite stale-index line-shift artifacts in first detect_changes output. No other parser logic or tests weakened. Public header unchanged. Current P4 use of this core parser remains unestablished, so no P4 crash fix claimed.
+
+Integration: source snapshot copied only after original-repo hash check. Parent's frozen regression test added (mechanically clang-format14formatted); original and regression tests wired into simulator CMake; core_gps workflow path triggers added for push/PR. Parent CMake/CI integration is disclosed coordination work, not attributed to Spark. Actual full integrated simulator build71/71PASS. Both changed C++ files pass clang-format14--dry-run--Werror. Four workflow token defaults independently checked, release writes preserved. No hosted Actions run, ASan or TFT/AMOLED/hardware pass claimed.
+
+CMake missing-channel_hash fix and CI token-default hardening were independently authored/reviewed by Astra earlier and are applied. NMEA implementation is Spark-authored. Raw subscription usage/charges and active conductor time unknown. Spark actual coding runtime/model evidence retained; no cloud fallback.
+
+Open high-priority firmware items: unauthorized Team key replacement, raw-PSK retry/recovery path, counter reset/CTR nonce reuse, missing safety caption fail-open. These remain recommendations/candidates; no unsupported claim that firmware security is fixed. TFT/AMOLED builds and hardware checks unavailable here; no commit/push/flash performed.
+
+Final scope: refreshed GitNexus detect_changes reports6tracked files/3changed symbols (parseNmeaCoordinate, processRmc, processGga),LOW,no enumerated affected processes. New untracked regression test inspected separately and executed in integrated suite. Final YAML structure equality verifies only token defaults and both intended core_gps triggers changed.

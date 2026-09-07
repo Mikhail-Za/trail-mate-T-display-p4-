@@ -1,0 +1,43 @@
+diff --git a/README.md b/README.md
+index 38bf7cb..912184e 100644
+--- a/README.md
++++ b/README.md
+@@ -99,3 +99,5 @@ python3 -m unittest -v test_worker.py test_fleet_control.py test_shared_control.
+ The current approved helper files are identified by `installed-files.sha256`; `candidate-files.sha256` identifies the approved integration files across both repositories. The prior stage-one manifest is preserved in `runs/fleet-implementation-20260906/stage-one-installed-files.sha256` and commit `3ab2acf`.
+ 
+ Read AGENTS.md and PLAN.md before changing the implementation. Review history is in REVIEW-LOG.md. Source files are versioned locally; no remote repository has been configured.
++
++September 7 output allowance update: per user preference for longer local execution, generated OpenCode configuration now allows 16,384 output tokens per response within the unchanged 32,768-token Tiel context. The prior 8,192 allowance truncated reasoning before edits in Trail Mate tasks. The existing 900-second maximum task deadline remains available; use it for these longer tasks. Only that configuration value changed; no provider, model, permissions, server context or lifecycle behavior changed. Twelve worker/shared-control tests pass; exact configuration comparison confirms only output changed. This is capacity tuning, not evidence of improved task success. Private evidence: /home/zaidm/reviews/spark-output-20260907.
+diff --git a/candidate-files.sha256 b/candidate-files.sha256
+index 66fd6bb..e0e0c48 100644
+--- a/candidate-files.sha256
++++ b/candidate-files.sha256
+@@ -1,4 +1,4 @@
+-0b9a5c7d5978e688822b60b3600ec094856454e3036405ceee97595962fe6e7c  /home/zaidm/projects/spark-worker/worker.py
++35f6a9843cb06a346a912fae83ea86c74a79f9dd433c021219429897c2761ec2  /home/zaidm/projects/spark-worker/worker.py
+ 0381b70b44288a13155cc4d7f1781713264cc8c01b4f3dfea8cd59b78bb163bd  /home/zaidm/projects/spark-worker/fleet_control.py
+ c107754d169b675d8aad13f01bfef56909f2f0fe147984daf9ef6023eef379cd  /home/zaidm/projects/spark-worker/bridge.py
+ 7663c465f37d95a6397ac17e63451b9866e492f677b95c3d45c1991dfcd04bd0  /home/zaidm/projects/spark-worker/test_worker.py
+diff --git a/installed-files.sha256 b/installed-files.sha256
+index 2d2b65a..77e37fc 100644
+--- a/installed-files.sha256
++++ b/installed-files.sha256
+@@ -1,4 +1,4 @@
+-0b9a5c7d5978e688822b60b3600ec094856454e3036405ceee97595962fe6e7c  worker.py
++35f6a9843cb06a346a912fae83ea86c74a79f9dd433c021219429897c2761ec2  worker.py
+ 0381b70b44288a13155cc4d7f1781713264cc8c01b4f3dfea8cd59b78bb163bd  fleet_control.py
+ c107754d169b675d8aad13f01bfef56909f2f0fe147984daf9ef6023eef379cd  bridge.py
+ 7663c465f37d95a6397ac17e63451b9866e492f677b95c3d45c1991dfcd04bd0  test_worker.py
+diff --git a/worker.py b/worker.py
+index ee747cc..23f3f36 100644
+--- a/worker.py
++++ b/worker.py
+@@ -409,7 +409,7 @@ def config():
+             'provider': {'spark': {'npm': '@ai-sdk/openai-compatible', 'name': 'Spark local',
+                 'options': {'baseURL': URL + '/v1', 'apiKey': 'local-only'},
+                 'models': {'spark-worker': {'name': 'Tiel-Coder', 'tool_call': True,
+-                    'limit': {'context': 32768, 'output': 8192}}}}},
++                    'limit': {'context': 32768, 'output': 16384}}}}},
+             'default_agent': 'worker', 'agent': {'worker': {'mode': 'primary', 'steps': 20,
+                 'permission': {'*': 'allow', 'external_directory': 'deny', 'webfetch': 'deny',
+                                'websearch': 'deny', 'task': 'deny', 'question': 'deny'}}}}

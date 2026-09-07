@@ -1,0 +1,12 @@
+diff --git a/apps/linux_sim_shell/CMakeLists.txt b/apps/linux_sim_shell/CMakeLists.txt
+index f144be6..9d24724 100644
+--- a/apps/linux_sim_shell/CMakeLists.txt
++++ b/apps/linux_sim_shell/CMakeLists.txt
+@@ -207,6 +207,7 @@ if(BUILD_TESTING)
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_phone/src/meshtastic/meshtastic_phone_session.cpp"
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_packet_wire.cpp"
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_protocol_helpers.cpp"
++        "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/domain/channel_hash.cpp"
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_radio_config.cpp"
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_region.cpp"
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_sys/src/platform/ui/timezone_profile.cpp"

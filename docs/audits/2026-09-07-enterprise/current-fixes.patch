@@ -1,0 +1,1062 @@
+diff --git a/.github/workflows/cardputer-zero-linux.yml b/.github/workflows/cardputer-zero-linux.yml
+index 50c20a7..811af00 100644
+--- a/.github/workflows/cardputer-zero-linux.yml
++++ b/.github/workflows/cardputer-zero-linux.yml
+@@ -18,6 +18,9 @@ on:
+       - "platform/linux/**"
+       - ".github/workflows/cardputer-zero-linux.yml"
+ 
++permissions:
++  contents: read
++
+ jobs:
+   cardputer-zero:
+     name: Cardputer Zero shell
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index fd8916c..18c165e 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -7,6 +7,9 @@ on:
+       - "v*"
+   pull_request:
+ 
++permissions:
++  contents: read
++
+ jobs:
+   boundary:
+     name: Boundary Check
+diff --git a/.github/workflows/linux-simulator.yml b/.github/workflows/linux-simulator.yml
+index 1c1eab9..b0dd2e8 100644
+--- a/.github/workflows/linux-simulator.yml
++++ b/.github/workflows/linux-simulator.yml
+@@ -4,9 +4,14 @@ on:
+   push:
+     paths:
+       - "apps/linux_sim_shell/**"
++      - "apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp"
++      - "scripts/check_field_guide_photo_safety.py"
++      - "scripts/check_field_guide_photo_staging.py"
++      - "tools/offline_content/build_sd_content.py"
+       - "builds/linux_cmake/**"
+       - "cmake/**"
+       - "modules/core_chat/**"
++      - "modules/core_gps/**"
+       - "modules/core_sys/**"
+       - "modules/product_composition/**"
+       - "modules/ui_ascii_runtime/**"
+@@ -20,9 +25,14 @@ on:
+   pull_request:
+     paths:
+       - "apps/linux_sim_shell/**"
++      - "apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp"
++      - "scripts/check_field_guide_photo_safety.py"
++      - "scripts/check_field_guide_photo_staging.py"
++      - "tools/offline_content/build_sd_content.py"
+       - "builds/linux_cmake/**"
+       - "cmake/**"
+       - "modules/core_chat/**"
++      - "modules/core_gps/**"
+       - "modules/core_sys/**"
+       - "modules/product_composition/**"
+       - "modules/ui_ascii_runtime/**"
+@@ -34,6 +44,9 @@ on:
+       - "platform/linux/**"
+       - ".github/workflows/linux-simulator.yml"
+ 
++permissions:
++  contents: read
++
+ jobs:
+   simulator:
+     name: Linux simulator shell
+@@ -45,6 +58,11 @@ jobs:
+       - name: Verify shared/platform UI boundaries
+         run: python3 scripts/check_platform_ui_boundaries.py
+ 
++      - name: Verify field guide photo safety
++        run: |
++          python3 scripts/check_field_guide_photo_safety.py
++          python3 scripts/check_field_guide_photo_staging.py
++
+       - name: Install simulator build dependencies
+         run: |
+           sudo apt-get update
+diff --git a/.github/workflows/uconsole-linux.yml b/.github/workflows/uconsole-linux.yml
+index d9a94c1..10d6e37 100644
+--- a/.github/workflows/uconsole-linux.yml
++++ b/.github/workflows/uconsole-linux.yml
+@@ -18,6 +18,9 @@ on:
+       - "platform/linux/**"
+       - ".github/workflows/uconsole-linux.yml"
+ 
++permissions:
++  contents: read
++
+ jobs:
+   uconsole:
+     name: uConsole GTK shell
+diff --git a/BENCH_TEST_CHECKLIST.md b/BENCH_TEST_CHECKLIST.md
+index cb5b798..b92d65a 100644
+--- a/BENCH_TEST_CHECKLIST.md
++++ b/BENCH_TEST_CHECKLIST.md
+@@ -79,16 +79,20 @@ pinch_out / two_finger_tap / double_tap`.
+       First Aid, Edible Plants, Plant Hazards, Wildlife & Nature, Preparedness) with
+       counts; open an article: title + scrollable body render, Back walks list ->
+       categories -> launcher.
+-- [ ] **Field Guide plant photos** (JPEG decoder path): open an Edible Plants article
+-      (e.g. Cattail) -> 2-3 real photos render inline above the text, sharp, full
+-      screen width, with a small grey "Photos: <artist> (<license>) / Wikimedia Commons"
+-      attribution line under them (required by the CC-BY licenses). Open a Plant Hazards
+-      article (e.g. poison ivy) -> its photos show. Article body text has NO stray boxes
+-      at line ends (the CRLF->tofu fix). Text-only sections have no photos by design.
+-- [ ] **Photo scrolling** (known perf caveat): scrolling a photo-heavy article may
+-      stutter because LVGL's image cache is OFF (CONFIG_LV_CACHE_DEF_SIZE=0), so photos
+-      re-decode on repaint. Deferred, not applied blind: if the jank is bad, the fix is
+-      to set an image cache (~2-4MB, PSRAM) and re-verify map memory. Note the severity.
++- [ ] **Field Guide photo viewer**: open an Edible Plants article (e.g. Cattail),
++      choose View Photos, and use Prev/Next. One sharp photo appears at a time with
++      its exact species caption and attribution. Back returns to the same article.
++      Check a deliberate lookalike (Yarrow/poison hemlock): its identifying warning
++      remains visible in red. Article text has no stray CRLF boxes.
++- [ ] **Missing photo identification** — use a copied test card: test an absent or
++      unreadable guides/photos/CREDITS.tsv, a missing photo row, blank species,
++      truncated row, and duplicate matching rows. Each affected photo must be
++      withheld with a missing-identification message. Prev/Next/Back still work.
++      Switch valid -> invalid -> valid photos; no prior caption/image may carry
++      over. Restore the valid test metadata and confirm normal display returns.
++- [ ] **Photo navigation/lifetime**: repeatedly use Prev/Next/Back and reopen the
++      viewer. It must remain responsive, without accumulating images or crashing.
++
+ - [ ] **Translate, forward**: pick Spanish -> categories appear + native name
+       "Español" renders with accents; open Emergency -> "Help!" -> card shows
+       "¡Auxilio!" LARGE. Latin fonts prove the SD binfont path.
+diff --git a/apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp b/apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp
+index dfd865c..d88529e 100644
+--- a/apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp
++++ b/apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp
+@@ -623,47 +623,74 @@ void append_photo_credits(FieldGuideAppState* st, const std::string& stem, int p
+ // counter so it is seen with the image; hazard wording is tinted red to draw the
+ // eye. CREDITS.tsv is a few KB and this runs only on a human-paced screen build,
+ // so scanning it a second time (the attribution does its own scan) is negligible.
+-void append_photo_caption(FieldGuideAppState* st, const std::string& stem, int photo_num)
++bool append_photo_caption(FieldGuideAppState* st, const std::string& stem, int photo_num)
+ {
+     std::string text;
+     if (!read_text_file("A:/guides/photos/CREDITS.tsv", text))
+     {
+-        return;
++        return false;
+     }
+-    char want[24];
+-    std::snprintf(want, sizeof(want), "%d.jpg", photo_num);
++    const std::string want = std::to_string(photo_num) + ".jpg";
+     std::string species;
++    bool matched = false;
+     size_t pos = 0;
+     while (pos < text.size())
+     {
+-        size_t eol = text.find('\n', pos);
++        const size_t eol = text.find('\n', pos);
+         const size_t line_end = (eol == std::string::npos) ? text.size() : eol;
+-        const std::string line = text.substr(pos, line_end - pos);
++        std::string line = text.substr(pos, line_end - pos);
+         pos = line_end + 1;
+-        // Fields: stem, n.jpg, species, artist, license, url
+-        size_t t0 = line.find('\t');
++        if (!line.empty() && line.back() == '\r')
++        {
++            line.pop_back();
++        }
++        const size_t t0 = line.find('\t');
+         if (t0 == std::string::npos || line.compare(0, t0, stem) != 0)
+         {
+             continue;
+         }
+-        size_t t1 = line.find('\t', t0 + 1); // end of n.jpg
+-        if (t1 == std::string::npos)
++        const size_t t1 = line.find('\t', t0 + 1);
++        if (line.substr(t0 + 1, t1 == std::string::npos ? t1 : t1 - t0 - 1) != want)
+         {
+             continue;
+         }
+-        const std::string photo_field = line.substr(t0 + 1, t1 - t0 - 1);
+-        if (photo_field != want)
++        // Never choose between conflicting rows or accept a truncated identity.
++        if (matched || t1 == std::string::npos)
+         {
+-            continue;
++            return false;
++        }
++        matched = true;
++        size_t field_start = t1 + 1;
++        for (int field = 2; field < 6; ++field)
++        {
++            const size_t tab = line.find('\t', field_start);
++            if ((field < 5 && tab == std::string::npos) ||
++                (field == 5 && tab != std::string::npos))
++            {
++                return false;
++            }
++            const std::string value = line.substr(field_start, tab == std::string::npos ? tab : tab - field_start);
++            if (value.find_first_not_of(" ") == std::string::npos)
++            {
++                return false;
++            }
++            for (unsigned char c : value)
++            {
++                if (c < 0x20 || c == 0x7F)
++                {
++                    return false;
++                }
++            }
++            if (field == 2)
++            {
++                species = value;
++            }
++            field_start = tab == std::string::npos ? line.size() : tab + 1;
+         }
+-        size_t t2 = line.find('\t', t1 + 1); // end of species
+-        const size_t species_end = (t2 == std::string::npos) ? line.size() : t2;
+-        species = line.substr(t1 + 1, species_end - t1 - 1);
+-        break;
+     }
+-    if (species.empty())
++    if (!matched)
+     {
+-        return;
++        return false;
+     }
+     // Tint hazard captions red. The species text itself carries the wording; we
+     // only fold to lowercase (ASCII) and look for the danger cues so the color
+@@ -690,6 +717,7 @@ void append_photo_caption(FieldGuideAppState* st, const std::string& stem, int p
+         cap, hazard ? lv_color_hex(0xE04030) : lv_color_hex(0xFFFFFF), 0);
+     lv_obj_set_style_pad_top(cap, 2, 0);
+     lv_label_set_text(cap, species.c_str());
++    return true;
+ }
+ 
+ // Count the article's photos: probe A:/guides/photos/<stem>/1.jpg .. N.jpg (baseline
+@@ -843,56 +871,67 @@ void show_photo_viewer_screen(FieldGuideAppState* st)
+ 
+     // Species label for THIS photo, directly under the counter. Safety-critical for
+     // decks that include a deadly lookalike as a contrast shot (see append_photo_caption).
+-    append_photo_caption(st, st->photo_stem, idx + 1);
++    const bool caption_valid = append_photo_caption(st, st->photo_stem, idx + 1);
+ 
+-    // Decode ONLY the current photo into an app-owned descriptor so the image source
+-    // is LV_IMAGE_SRC_VARIABLE (in-memory) rather than LV_IMAGE_SRC_FILE. Only the
+-    // VARIABLE path is eligible for the P4 hardware PPA blit; a file src stays on the
+-    // software renderer. Same decode-to-owned code the article used inline, mirroring
+-    // map_tiles.cpp: copy the header (w/h/cf/stride/flags/magic) and pixel bytes into
+-    // buffers we own, tracked in st->photo_dscs and freed by free_photo_dscs.
+-    char photo_path[160];
+-    std::snprintf(photo_path, sizeof(photo_path), "A:/guides/photos/%s/%d.jpg",
+-                  st->photo_stem.c_str(), idx + 1);
+-    lv_obj_t* img = lv_image_create(st->body);
+-    lv_image_decoder_dsc_t dsc;
+-    std::memset(&dsc, 0, sizeof(dsc));
+-    lv_result_t r = lv_image_decoder_open(&dsc, photo_path, NULL);
+-    bool owned_set = false;
+-    if (r == LV_RESULT_OK && dsc.decoded != NULL)
++    if (caption_valid)
+     {
+-        const lv_draw_buf_t* decoded = dsc.decoded;
+-        lv_image_dsc_t* owned = (lv_image_dsc_t*)lv_malloc(sizeof(lv_image_dsc_t));
+-        if (owned != nullptr)
++        // Decode ONLY the current photo into an app-owned descriptor so the image source
++        // is LV_IMAGE_SRC_VARIABLE (in-memory) rather than LV_IMAGE_SRC_FILE. Only the
++        // VARIABLE path is eligible for the P4 hardware PPA blit; a file src stays on the
++        // software renderer. Same decode-to-owned code the article used inline, mirroring
++        // map_tiles.cpp: copy the header (w/h/cf/stride/flags/magic) and pixel bytes into
++        // buffers we own, tracked in st->photo_dscs and freed by free_photo_dscs.
++        char photo_path[160];
++        std::snprintf(photo_path, sizeof(photo_path), "A:/guides/photos/%s/%d.jpg",
++                      st->photo_stem.c_str(), idx + 1);
++        lv_obj_t* img = lv_image_create(st->body);
++        lv_image_decoder_dsc_t dsc;
++        std::memset(&dsc, 0, sizeof(dsc));
++        lv_result_t r = lv_image_decoder_open(&dsc, photo_path, NULL);
++        bool owned_set = false;
++        if (r == LV_RESULT_OK && dsc.decoded != NULL)
+         {
+-            uint8_t* data = (uint8_t*)lv_malloc(decoded->data_size);
+-            if (data != nullptr)
+-            {
+-                std::memcpy(data, decoded->data, decoded->data_size);
+-                owned->header = decoded->header; // w/h/cf/stride/flags/magic
+-                owned->data_size = decoded->data_size;
+-                owned->data = data;
+-                st->photo_dscs.push_back(owned);
+-                lv_image_set_src(img, owned); // VARIABLE src -> PPA-eligible
+-                owned_set = true;
+-            }
+-            else
++            const lv_draw_buf_t* decoded = dsc.decoded;
++            lv_image_dsc_t* owned = (lv_image_dsc_t*)lv_malloc(sizeof(lv_image_dsc_t));
++            if (owned != nullptr)
+             {
+-                lv_free(owned);
++                uint8_t* data = (uint8_t*)lv_malloc(decoded->data_size);
++                if (data != nullptr)
++                {
++                    std::memcpy(data, decoded->data, decoded->data_size);
++                    owned->header = decoded->header; // w/h/cf/stride/flags/magic
++                    owned->data_size = decoded->data_size;
++                    owned->data = data;
++                    st->photo_dscs.push_back(owned);
++                    lv_image_set_src(img, owned); // VARIABLE src -> PPA-eligible
++                    owned_set = true;
++                }
++                else
++                {
++                    lv_free(owned);
++                }
+             }
+         }
++        lv_image_decoder_close(&dsc); // safe after a failed open (dsc memset to 0)
++        if (!owned_set)
++        {
++            // Decode/alloc failed: fall back to the file src (software render, but the
++            // photo is never lost). lv_image copies the path via lv_strdup.
++            lv_image_set_src(img, photo_path);
++        }
++        // Full-width box, image centered within it.
++        lv_obj_set_width(img, LV_PCT(100));
++        lv_image_set_inner_align(img, LV_IMAGE_ALIGN_CENTER);
++        lv_obj_set_style_pad_top(img, 6, 0);
+     }
+-    lv_image_decoder_close(&dsc); // safe after a failed open (dsc memset to 0)
+-    if (!owned_set)
++    else
+     {
+-        // Decode/alloc failed: fall back to the file src (software render, but the
+-        // photo is never lost). lv_image copies the path via lv_strdup.
+-        lv_image_set_src(img, photo_path);
++        lv_obj_t* msg = lv_label_create(st->body);
++        lv_obj_set_width(msg, LV_PCT(100));
++        lv_label_set_long_mode(msg, LV_LABEL_LONG_WRAP);
++        lv_obj_set_style_text_font(msg, &lv_font_montserrat_20, 0);
++        lv_label_set_text(msg, "Photo unavailable: identification information is missing.");
+     }
+-    // Full-width box, image centered within it.
+-    lv_obj_set_width(img, LV_PCT(100));
+-    lv_image_set_inner_align(img, LV_IMAGE_ALIGN_CENTER);
+-    lv_obj_set_style_pad_top(img, 6, 0);
+ 
+     // Prev / Next controls. Prev is disabled on the first photo, Next on the last.
+     lv_obj_t* nav = lv_obj_create(st->body);
+@@ -952,7 +991,10 @@ void show_photo_viewer_screen(FieldGuideAppState* st)
+     }
+ 
+     // CC attribution for the photo currently on screen.
+-    append_photo_credits(st, st->photo_stem, idx + 1);
++    if (caption_valid)
++    {
++        append_photo_credits(st, st->photo_stem, idx + 1);
++    }
+ }
+ 
+ void go_back(FieldGuideAppState* st)
+diff --git a/apps/linux_sim_shell/CMakeLists.txt b/apps/linux_sim_shell/CMakeLists.txt
+index f144be6..5acb84f 100644
+--- a/apps/linux_sim_shell/CMakeLists.txt
++++ b/apps/linux_sim_shell/CMakeLists.txt
+@@ -207,6 +207,7 @@ if(BUILD_TESTING)
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_phone/src/meshtastic/meshtastic_phone_session.cpp"
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_packet_wire.cpp"
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_protocol_helpers.cpp"
++        "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/domain/channel_hash.cpp"
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_radio_config.cpp"
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/src/infra/meshtastic/mt_region.cpp"
+         "${TRAIL_MATE_REPO_ROOT}/modules/core_sys/src/platform/ui/timezone_profile.cpp"
+@@ -727,6 +728,18 @@ if(BUILD_TESTING)
+     add_test(NAME trailmate_team_action_types_smoke
+              COMMAND trailmate_team_action_types_smoke)
+ 
++    foreach(gps_test IN ITEMS nmea_parser nmea_coordinate_validation)
++        add_executable(trailmate_${gps_test}_smoke
++            "${TRAIL_MATE_REPO_ROOT}/modules/core_gps/tests/test_${gps_test}.cpp"
++            "${TRAIL_MATE_REPO_ROOT}/modules/core_gps/src/protocol/nmea/nmea_parser.cpp"
++            "${TRAIL_MATE_REPO_ROOT}/modules/core_gps/src/protocol/nmea/nmea_sentence.cpp")
++        target_include_directories(trailmate_${gps_test}_smoke
++            PRIVATE "${TRAIL_MATE_REPO_ROOT}/modules/core_gps/include")
++        target_compile_features(trailmate_${gps_test}_smoke PRIVATE cxx_std_17)
++        add_test(NAME trailmate_${gps_test}_smoke
++                 COMMAND trailmate_${gps_test}_smoke)
++    endforeach()
++
+     foreach(ux_pack_test IN ITEMS
+         screen_registry
+         input_binding_set
+diff --git a/modules/core_gps/src/protocol/nmea/nmea_parser.cpp b/modules/core_gps/src/protocol/nmea/nmea_parser.cpp
+index 6efba67..c964a62 100644
+--- a/modules/core_gps/src/protocol/nmea/nmea_parser.cpp
++++ b/modules/core_gps/src/protocol/nmea/nmea_parser.cpp
+@@ -1,5 +1,6 @@
+ #include "gps/protocol/nmea/nmea_parser.h"
+ 
++#include <cmath>
+ #include <cstdlib>
+ #include <cstring>
+ 
+@@ -41,16 +42,62 @@ double parseDoubleField(const char* text, double fallback = 0.0)
+     return end == text ? fallback : value;
+ }
+ 
+-bool parseNmeaCoordinate(const char* value, const char* hemisphere, double& out)
++bool parseNmeaCoordinate(const char* value, const char* hemisphere, bool is_lat, double& out)
+ {
+-    if (!value || !hemisphere || value[0] == '\0' || hemisphere[0] == '\0')
++    if (!value || !hemisphere || value[0] == '\0' || hemisphere[0] == '\0' || hemisphere[1] != '\0')
++    {
++        return false;
++    }
++
++    const char* allowed = is_lat ? "NS" : "EW";
++    if (hemisphere[0] != allowed[0] && hemisphere[0] != allowed[1])
++    {
++        return false;
++    }
++
++    const double axis_limit = is_lat ? 90.0 : 180.0;
++
++    int digits = 0;
++    int dots = 0;
++    for (const char* p = value; *p != '\0'; ++p)
++    {
++        const char c = *p;
++        if (c >= '0' && c <= '9')
++        {
++            ++digits;
++        }
++        else if (c == '.')
++        {
++            ++dots;
++        }
++        else
++        {
++            return false;
++        }
++    }
++    if (dots > 1 || digits == 0)
++    {
++        return false;
++    }
++
++    char* end = nullptr;
++    const double raw = std::strtod(value, &end);
++    if (end == value || !std::isfinite(raw) || raw < 0.0 || raw > axis_limit * 100.0)
+     {
+         return false;
+     }
+ 
+-    const double raw = parseDoubleField(value);
+     const int degrees = static_cast<int>(raw / 100.0);
+     const double minutes = raw - static_cast<double>(degrees * 100);
++    if (minutes >= 60.0 || minutes < 0.0)
++    {
++        return false;
++    }
++    if (degrees == static_cast<int>(axis_limit) && minutes > 0.0)
++    {
++        return false;
++    }
++
+     double decimal = static_cast<double>(degrees) + minutes / 60.0;
+     if (hemisphere[0] == 'S' || hemisphere[0] == 'W')
+     {
+@@ -272,8 +319,8 @@ void NmeaParser::processRmc(char** fields, int field_count)
+ 
+     double lat = 0.0;
+     double lon = 0.0;
+-    if (!parseNmeaCoordinate(fields[3], fields[4], lat) ||
+-        !parseNmeaCoordinate(fields[5], fields[6], lon))
++    if (!parseNmeaCoordinate(fields[3], fields[4], true, lat) ||
++        !parseNmeaCoordinate(fields[5], fields[6], false, lon))
+     {
+         return;
+     }
+@@ -309,8 +356,8 @@ void NmeaParser::processGga(char** fields, int field_count)
+ 
+     double lat = 0.0;
+     double lon = 0.0;
+-    if (!parseNmeaCoordinate(fields[2], fields[3], lat) ||
+-        !parseNmeaCoordinate(fields[4], fields[5], lon))
++    if (!parseNmeaCoordinate(fields[2], fields[3], true, lat) ||
++        !parseNmeaCoordinate(fields[4], fields[5], false, lon))
+     {
+         return;
+     }
+diff --git a/tools/offline_content/build_sd_content.py b/tools/offline_content/build_sd_content.py
+index 54627d9..8f8ad83 100644
+--- a/tools/offline_content/build_sd_content.py
++++ b/tools/offline_content/build_sd_content.py
+@@ -92,6 +92,89 @@ def read_tsv(path, min_fields):
+     return rows
+ 
+ 
++def stage_photos(raw_root, photos_dir):
++    """Validate photo identities before writing, then renumber images and credits together."""
++    if os.path.islink(raw_root):
++        raise ValueError("Photo source must not be a symlink")
++    if not os.path.isdir(raw_root):
++        print("photos: photos_raw/ not present, skipped")
++        return
++    for directory, dirs, files in os.walk(raw_root):
++        for name in dirs + files:
++            if os.path.islink(os.path.join(directory, name)):
++                raise ValueError("Symlink in photo source: " + os.path.join(directory, name))
++
++    # Preflight every deck before any output changes. Credits use the source
++    # number, including the documented JPG credit name for a PNG source.
++    plan = []
++    for section in sorted(os.listdir(raw_root)):
++        sdir = os.path.join(raw_root, section)
++        if not os.path.isdir(sdir):
++            continue
++        for stem in sorted(os.listdir(sdir)):
++            adir = os.path.join(sdir, stem)
++            if not os.path.isdir(adir):
++                continue
++            if any(ord(c) < 32 or ord(c) == 127 for c in section + stem):
++                raise ValueError("Control character in photo directory name")
++            sources = {}
++            for name in os.listdir(adir):
++                base, ext = os.path.splitext(name)
++                if ext.lower() not in (".jpg", ".jpeg", ".png") or not base.isascii() or not base.isdigit():
++                    continue
++                if not os.path.isfile(os.path.join(adir, name)):
++                    raise ValueError("Photo source is not a regular file: " + name)
++                number = int(base)
++                if number in sources:
++                    raise ValueError("Duplicate photo number in " + adir)
++                sources[number] = name
++            if not sources:
++                continue
++            if len(sources) > 6:
++                raise ValueError("Photo viewer supports at most six images per article: " + adir)
++            credits = {}
++            with open(os.path.join(adir, "credits.tsv"), encoding="utf-8") as f:
++                for line in f:
++                    line = line.rstrip("\r\n")
++                    if not line.strip():
++                        continue
++                    fields = line.split("\t")
++                    if len(fields) != 5 or any(not value.strip() for value in fields):
++                        raise ValueError("Incomplete photo credit in " + adir)
++                    if any(ord(c) < 32 or ord(c) == 127 for value in fields for c in value):
++                        raise ValueError("Control character in photo credit: " + adir)
++                    base, ext = os.path.splitext(fields[0])
++                    if ext.lower() not in (".jpg", ".jpeg", ".png") or not base.isascii() or not base.isdigit():
++                        raise ValueError("Invalid photo credit filename in " + adir)
++                    number = int(base)
++                    if number in credits:
++                        raise ValueError("Duplicate photo credit in " + adir)
++                    credits[number] = fields[1:]
++            if sources.keys() != credits.keys():
++                raise ValueError("Photo/credit mapping mismatch in " + adir)
++            for out_n, number in enumerate(sorted(sources), start=1):
++                rel_dir = section + "/" + stem
++                out_name = "%d.jpg" % out_n
++                plan.append((os.path.join(adir, sources[number]), rel_dir, out_name, credits[number]))
++
++    from PIL import Image, ImageOps
++    credit_lines = []
++    for source, rel_dir, out_name, fields in plan:
++        with Image.open(source) as original:
++            img = ImageOps.exif_transpose(original).convert("RGB")
++            if img.width > 500:
++                img = img.resize((500, max(1, round(img.height * 500 / img.width))), Image.LANCZOS)
++            out_dir = os.path.join(photos_dir, rel_dir)
++            os.makedirs(out_dir, exist_ok=True)
++            img.save(os.path.join(out_dir, out_name), "JPEG", quality=80,
++                     progressive=False, optimize=True)
++        credit_lines.append("\t".join([rel_dir, out_name] + fields))
++    os.makedirs(photos_dir, exist_ok=True)
++    with open(os.path.join(photos_dir, "CREDITS.tsv"), "w", encoding="utf-8", newline="\n") as f:
++        f.write("\n".join(credit_lines) + ("\n" if credit_lines else ""))
++    print("photos: %d staged (500px baseline JPEG q80)" % len(plan))
++
++
+ def main():
+     master = read_tsv(os.path.join(HERE, "phrases_master.tsv"), 3)
+     master_ids = [r[1] for r in master]
+@@ -235,68 +318,7 @@ def main():
+     else:
+         print("regions: guides_regions.tsv not present, skipped")
+ 
+-    # --- plant photos ------------------------------------------------------------
+-    # photos_raw/<section>/<article-stem>/{N.jpg|N.png, credits.tsv} -> staged as
+-    # guides/photos/<section>/<stem>/N.jpg, re-encoded to 500px-wide BASELINE JPEG
+-    # (TJPGD on-device cannot decode progressive). Credits merge into one file.
+-    raw_root = os.path.join(HERE, "photos_raw")
+-    if os.path.isdir(raw_root):
+-        from PIL import Image, ImageOps
+-        photo_total = 0
+-        credit_lines = []
+-        for section in sorted(os.listdir(raw_root)):
+-            sdir = os.path.join(raw_root, section)
+-            if not os.path.isdir(sdir):
+-                continue
+-            for stem in sorted(os.listdir(sdir)):
+-                adir = os.path.join(sdir, stem)
+-                if not os.path.isdir(adir):
+-                    continue
+-                out_dir = os.path.join(gdir, "photos", section, stem)
+-                n_out = 0
+-                # Collect numeric-stemmed image files sorted by numeric value (so 10
+-                # sorts after 2), then emit them as a CONTIGUOUS 1..N run. The device
+-                # probes 1.jpg, 2.jpg, ... and stops at the first gap, so a source gap
+-                # or zero-padded/0-based name would otherwise silently drop photos
+-                # (including the safety-critical deadly-lookalike contrast shots).
+-                srcs = []
+-                for fn in os.listdir(adir):
+-                    base, ext = os.path.splitext(fn)
+-                    if ext.lower() in (".jpg", ".jpeg", ".png") and base.isdigit():
+-                        srcs.append((int(base), fn))
+-                srcs.sort()
+-                for out_n, (_src_num, fn) in enumerate(srcs, start=1):
+-                    img = Image.open(os.path.join(adir, fn))
+-                    img = ImageOps.exif_transpose(img).convert("RGB")
+-                    # 500px-wide baseline JPEG. Photos are viewed ONE-AT-A-TIME on a
+-                    # dedicated page now (not scrolled inline in the article), so the
+-                    # scroll-perf shrink to 360x480 is no longer needed -- restore the
+-                    # larger size for nicer detail on the ~540px-wide screen.
+-                    if img.width > 500:
+-                        img = img.resize((500, max(1, round(img.height * 500 / img.width))),
+-                                         Image.LANCZOS)
+-                    os.makedirs(out_dir, exist_ok=True)
+-                    out_path = os.path.join(out_dir, "%d.jpg" % out_n)
+-                    img.save(out_path, "JPEG", quality=80, progressive=False,
+-                             optimize=True)
+-                    n_out += 1
+-                    photo_total += 1
+-                cred = os.path.join(adir, "credits.tsv")
+-                if os.path.exists(cred):
+-                    with open(cred, encoding="utf-8") as f:
+-                        for line in f:
+-                            line = line.strip()
+-                            if line:
+-                                credit_lines.append("%s/%s\t%s" % (section, stem, line))
+-                if n_out:
+-                    print("  photos %s/%s: %d" % (section, stem, n_out))
+-        if credit_lines:
+-            with open(os.path.join(gdir, "photos", "CREDITS.tsv"), "w",
+-                      encoding="utf-8", newline="\n") as f:
+-                f.write("\n".join(credit_lines) + "\n")
+-        print("photos: %d staged (500px baseline JPEG q80)" % photo_total)
+-    else:
+-        print("photos: photos_raw/ not present, skipped")
++    stage_photos(os.path.join(HERE, "photos_raw"), os.path.join(gdir, "photos"))
+ 
+     print("STAGING_DONE %s" % STAGING)
+ 
+diff --git a/tools/offline_content/photo_assignments.md b/tools/offline_content/photo_assignments.md
+index 858d39a..6c369da 100644
+--- a/tools/offline_content/photo_assignments.md
++++ b/tools/offline_content/photo_assignments.md
+@@ -22,6 +22,11 @@ Shared rules for every group (read fully before starting):
+   If a Commons file is PNG, save it as .png with the same number; the pipeline converts.
+ - CREDITS: in each article folder also write `credits.tsv`, one row per kept photo:
+   `<n>.jpg <TAB> <species shown> <TAB> <artist> <TAB> <license> <TAB> <commons file page URL>`
++  Use the SOURCE photo number; PNG sources may use that same number with either
++  `.png` or `.jpg` in credits. The builder renumbers photos and credits together.
++  Every photo needs one complete credit row; duplicate numbers, extra/missing
++  rows, empty fields, symlinks, and decks over six photos fail validation.
++  Copy generated content to a card only after the builder reports STAGING_DONE.
+ - Shot lists say what each numbered photo should show. 2 photos minimum, 3-4 when the
+   shot list has more entries and good candidates exist.
+ - Final message: "DONE <group> <total photos> photos across <n> articles" plus any
+diff --git a/modules/core_gps/tests/test_nmea_coordinate_validation.cpp b/modules/core_gps/tests/test_nmea_coordinate_validation.cpp
+new file mode 100644
+index 0000000..3e0edca
+--- /dev/null
++++ b/modules/core_gps/tests/test_nmea_coordinate_validation.cpp
+@@ -0,0 +1,72 @@
++#include "gps/protocol/nmea/nmea_parser.h"
++#include <cassert>
++#include <cmath>
++#include <cstdint>
++#include <cstdio>
++#include <string>
++
++std::string sentence(const std::string& body)
++{
++    uint8_t sum = 0;
++    for (unsigned char c : body) sum ^= c;
++    const char* hex = "0123456789ABCDEF";
++    return "$" + body + "*" + hex[sum >> 4] + hex[sum & 15] + "\r\n";
++}
++std::string body(bool gga, const std::string& lat, const std::string& ns,
++                 const std::string& lon, const std::string& ew)
++{
++    return gga ? "GPGGA,123520," + lat + "," + ns + "," + lon + "," + ew + ",1,08,0.9,545.4,M,46.9,M,,"
++               : "GPRMC,123519,A," + lat + "," + ns + "," + lon + "," + ew + ",0.0,0.0,231123,,,A";
++}
++void feed(gps::nmea::NmeaParser& parser, const std::string& text)
++{
++    auto wire = sentence(text);
++    parser.feed(reinterpret_cast<const uint8_t*>(wire.data()), wire.size());
++}
++int main()
++{
++    struct Bad
++    {
++        const char* lat;
++        const char* ns;
++        const char* lon;
++        const char* ew;
++    };
++    const Bad invalid[] = {
++        {"NAN", "N", "01131.000", "E"}, {"4807.038", "N", "INF", "E"}, {"1e300", "N", "01131.000", "E"}, {"4807.038", "N", "1e300", "E"}, {"junk", "N", "01131.000", "E"}, {"4807.038x", "N", "01131.000", "E"}, {"-4807.038", "N", "01131.000", "E"}, {"4860.000", "N", "01131.000", "E"}, {"9100.000", "N", "01131.000", "E"}, {"9000.001", "N", "01131.000", "E"}, {"4807.038", "N", "18000.001", "E"}, {"4807.038", "N", "18100.000", "E"}, {"4807.038", "X", "01131.000", "E"}, {"4807.038", "NN", "01131.000", "E"}, {"4807.038", "E", "01131.000", "N"}, {"", "N", "01131.000", "E"}, {"4807.038", "N", "", "E"}, {"4807.038", "N", "01131.000", ""}, {"+4807.038", "N", "01131.000", "E"}, {" 4807.038", "N", "01131.000", "E"}, {"4807.038 ", "N", "01131.000", "E"}, {"48e2", "N", "01131.000", "E"}};
++    int checks = 0;
++    for (bool gga : {false, true})
++    {
++        for (const auto& bad : invalid)
++        {
++            gps::nmea::NmeaParser parser;
++            feed(parser, body(gga, "4807.038", "N", "01131.000", "E"));
++            gps::LocationFix before{}, after{};
++            assert(parser.latestFix(before) && before.valid);
++            const auto revision = parser.fixRevision();
++            feed(parser, body(gga, bad.lat, bad.ns, bad.lon, bad.ew));
++            assert(parser.fixRevision() == revision);
++            assert(parser.latestFix(after) && after.valid);
++            assert(after.latitude == before.latitude && after.longitude == before.longitude);
++            ++checks;
++        }
++        for (const auto& coord : {std::string("0000.000"), std::string("9000.000")})
++        {
++            gps::nmea::NmeaParser parser;
++            feed(parser, body(gga, coord, "S", "18000.000", "W"));
++            gps::LocationFix fix{};
++            assert(parser.latestFix(fix) && fix.valid);
++            assert(std::isfinite(fix.latitude) && std::isfinite(fix.longitude));
++            assert(fix.longitude == -180.0);
++            assert(fix.latitude == (coord == "9000.000" ? -90.0 : 0.0));
++            ++checks;
++        }
++        gps::nmea::NmeaParser parser;
++        feed(parser, body(gga, "8959.999", "N", "17959.999", "E"));
++        gps::LocationFix fix{};
++        assert(parser.latestFix(fix) && fix.valid);
++        assert(fix.latitude > 89.99 && fix.latitude < 90.0 && fix.longitude > 179.99 && fix.longitude < 180.0);
++        ++checks;
++    }
++    std::printf("PASS: %d coordinate validation cases across RMC/GGA\n", checks);
++}
+diff --git a/scripts/check_field_guide_photo_safety.py b/scripts/check_field_guide_photo_safety.py
+new file mode 100644
+index 0000000..6aec9f1
+--- /dev/null
++++ b/scripts/check_field_guide_photo_safety.py
+@@ -0,0 +1,111 @@
++"""Execute production caption/viewer bodies against observable LVGL/SD substitutes."""
++
++from pathlib import Path
++import subprocess
++import tempfile
++import resource
++
++resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
++source = Path("apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp").read_text()
++start = source.index("append_photo_caption(FieldGuideAppState*")
++start = source.rfind("\n", 0, start) + 1
++caption = source[start : source.index("// Count the article", start)]
++start = source.index("void show_photo_viewer_screen(FieldGuideAppState* st)\n{")
++viewer = source[start : source.index("void go_back(", start)]
++stubs = r"""
++#include <cstdint>
++#include <string>
++#include <vector>
++#include <cstdio>
++#include <cstring>
++#include <cstdlib>
++#include <cassert>
++#include <iostream>
++#include <algorithm>
++struct lv_obj_t {std::string text; unsigned color=0;};
++struct lv_event_t {};
++struct lv_image_dsc_t {int header; unsigned data_size; const unsigned char* data;};
++struct lv_draw_buf_t {int header; unsigned data_size; const unsigned char* data;};
++struct lv_image_decoder_dsc_t {const lv_draw_buf_t* decoded;};
++using lv_result_t=int;
++struct GuideEntry {std::string title="Edible article";};
++struct FieldGuideAppState {lv_obj_t* body=nullptr; int entry_idx=0,photo_count=2,photo_idx=0; std::string photo_stem="plants/yarrow"; std::vector<GuideEntry> entries{GuideEntry{}};std::vector<lv_image_dsc_t*> photo_dscs;};
++FieldGuideAppState s_state;
++std::vector<lv_obj_t*> objects;
++std::string credits;
++bool readable=true;
++int images=0,opens=0,attributions=0;
++constexpr int lv_font_montserrat_14=14,lv_font_montserrat_20=20;
++constexpr int LV_LABEL_LONG_WRAP=0,LV_TEXT_ALIGN_CENTER=0,LV_RESULT_OK=0,LV_IMAGE_ALIGN_CENTER=0,LV_SIZE_CONTENT=0,LV_FLEX_FLOW_ROW=0,LV_FLEX_ALIGN_SPACE_BETWEEN=0,LV_FLEX_ALIGN_CENTER=0,LV_OBJ_FLAG_SCROLLABLE=0,LV_EVENT_CLICKED=0,LV_STATE_DISABLED=0;
++#define LV_PCT(x) x
++#define LV_SYMBOL_LEFT "<"
++#define LV_SYMBOL_RIGHT ">"
++bool read_text_file(const char*,std::string& out){out=credits; return readable;}
++unsigned lv_color_hex(unsigned c){return c;}
++lv_obj_t* lv_obj_create(lv_obj_t*){auto* p=new lv_obj_t;objects.push_back(p);return p;}
++lv_obj_t* lv_label_create(lv_obj_t* p){return lv_obj_create(p);}
++lv_obj_t* lv_button_create(lv_obj_t* p){return lv_obj_create(p);}
++lv_obj_t* lv_image_create(lv_obj_t* p){++images;return lv_obj_create(p);}
++void lv_label_set_text(lv_obj_t* p,const char* s){p->text=s;}
++template<class... A> void lv_label_set_text_fmt(lv_obj_t* p,const char* f,A... a){char b[256];std::snprintf(b,sizeof b,f,a...);p->text=b;}
++void lv_obj_set_style_text_color(lv_obj_t* p,unsigned c,int){p->color=c;}
++#define NOOP(name) template<class... A> void name(A...){ }
++NOOP(lv_obj_set_width) NOOP(lv_label_set_long_mode) NOOP(lv_obj_set_style_text_font)
++NOOP(lv_obj_set_style_text_align) NOOP(lv_obj_set_style_pad_top) NOOP(lv_image_set_src)
++NOOP(lv_image_set_inner_align) NOOP(lv_obj_set_height) NOOP(lv_obj_set_style_border_width)
++NOOP(lv_obj_set_style_radius) NOOP(lv_obj_set_style_pad_all) NOOP(lv_obj_set_flex_flow)
++NOOP(lv_obj_set_flex_align) NOOP(lv_obj_clear_flag) NOOP(lv_obj_center) NOOP(lv_obj_add_event_cb)
++NOOP(lv_obj_add_state) NOOP(set_title) NOOP(show_article_screen)
++void* lv_malloc(size_t n){return std::malloc(n);} void lv_free(void* p){std::free(p);}
++lv_result_t lv_image_decoder_open(lv_image_decoder_dsc_t*,const char*,void*){++opens;return 1;}
++NOOP(lv_image_decoder_close)
++void clear_body(FieldGuideAppState* st){for(auto p:objects)delete p;objects.clear();for(auto p:st->photo_dscs){std::free((void*)p->data);std::free(p);}st->photo_dscs.clear();images=opens=attributions=0;}
++void append_photo_credits(FieldGuideAppState*,const std::string&,int){++attributions;}
++"""
++tests = r"""
++std::string row(std::string species,std::string photo="1.jpg"){return "plants/yarrow\t"+photo+"\t"+species+"\tArtist\tCC-BY\thttps://example.test/photo\n";}
++bool label(std::string text,unsigned color=0){for(auto p:objects)if(p->text==text && (!color || p->color==color))return true;return false;}
++void check(bool display){show_photo_viewer_screen(&s_state);assert(images==(display?1:0));assert(opens==(display?1:0));assert(label("< Prev"));assert(label("Next >"));if(!display){bool message=false;for(auto p:objects)if(p->text.find("identification")!=std::string::npos)message=true;assert(message);}}
++int main(){
++ credits=row("Yarrow"); check(true); assert(label("Yarrow",0xFFFFFF));assert(attributions==1);
++ credits=row("Poison hemlock - DEADLY lookalike");check(true);assert(label("Poison hemlock - DEADLY lookalike",0xE04030));
++ readable=false;check(false);assert(!label("Poison hemlock - DEADLY lookalike"));readable=true;
++ credits="";check(false);
++ credits=row("Yarrow","2.jpg");check(false);
++ credits=row("");check(false);
++ credits=row("   ");check(false);
++ credits="plants/yarrow\t1.jpg\tPoison hem";check(false);
++ credits=row("Yarrow")+"plants/yarrow\t1.jpg\tPoison hem";check(false);
++ credits="plants/yarrow\t1.jpg";check(false);
++ credits=row("Yarrow")+"plants/yarrow\t1.jpg";check(false);
++ credits=row(std::string("Yarrow\0Poison",13));check(false);
++ credits=row("Yarrow\v");check(false);
++ credits=row("Yarrow");credits.back()='\t';credits+="extra\n";check(false);
++ credits=row("Yarrow");credits.pop_back();check(true);assert(label("Yarrow"));
++ credits="plants/yarrow\t1.jpg\tYarrow\tArtist\tCC-BY\t";check(false);
++ credits=row("Yarrow")+row("Poison hemlock");check(false);
++ credits=row("Yarrow");s_state.photo_idx=0;check(true);s_state.photo_idx=1;check(false);assert(!label("Yarrow"));s_state.photo_idx=0;check(true);
++ credits=row("Yarrow")+row("Poison hemlock","2.jpg");s_state.photo_idx=1;check(true);assert(label("Poison hemlock",0xE04030));assert(!label("Yarrow"));
++ credits="plants/yarrow\t2.jpg\tPoison hemlock\tArtist\tCC-BY\thttps://example.test/photo\r\n";check(true);assert(label("Poison hemlock"));
++ clear_body(&s_state);std::cout<<"photo safety scenarios PASS\n";
++}
++"""
++with tempfile.TemporaryDirectory() as tmp:
++    cpp = Path(tmp) / "photo.cpp"
++    exe = Path(tmp) / "photo"
++    cpp.write_text(stubs + caption + viewer + tests)
++    subprocess.run(
++        [
++            "g++",
++            "-std=c++17",
++            "-Wall",
++            "-Wextra",
++            "-Werror",
++            "-fuse-ld=bfd",
++            str(cpp),
++            "-o",
++            str(exe),
++        ],
++        check=True,
++    )
++    subprocess.run([str(exe)], check=True)
+diff --git a/scripts/check_field_guide_photo_staging.py b/scripts/check_field_guide_photo_staging.py
+new file mode 100644
+index 0000000..85eb21d
+--- /dev/null
++++ b/scripts/check_field_guide_photo_staging.py
+@@ -0,0 +1,191 @@
++"""Photo-to-caption mapping and preflight failure tests, no network or Pillow needed."""
++
++import importlib.util
++import pathlib
++import sys
++import tempfile
++import types
++import unittest
++from unittest.mock import patch
++
++spec = importlib.util.spec_from_file_location(
++    "builder", "tools/offline_content/build_sd_content.py"
++)
++builder = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(builder)
++
++
++class FakeImage:
++    width = 100
++    height = 100
++
++    def __init__(self, path):
++        self.source = pathlib.Path(path).read_text()
++
++    def convert(self, *args):
++        return self
++
++    def save(self, path, *args, **kwargs):
++        pathlib.Path(path).write_text(self.source)
++
++    def __enter__(self):
++        return self
++
++    def __exit__(self, *args):
++        pass
++
++
++pil = types.ModuleType("PIL")
++pil.Image = types.SimpleNamespace(open=FakeImage, LANCZOS=1)
++pil.ImageOps = types.SimpleNamespace(exif_transpose=lambda im: im)
++
++
++class PhotoStaging(unittest.TestCase):
++    def setUp(self):
++        self.tmp = tempfile.TemporaryDirectory()
++        self.addCleanup(self.tmp.cleanup)
++        self.root = pathlib.Path(self.tmp.name)
++        self.raw = self.root / "raw"
++        self.out = self.root / "photos"
++        self.deck = self.raw / "plants" / "yarrow"
++        self.deck.mkdir(parents=True)
++        self.patch = patch.dict(sys.modules, {"PIL": pil})
++        self.patch.start()
++        self.addCleanup(self.patch.stop)
++
++    def row(self, fn, species):
++        return f"{fn}\t{species}\tArtist\tCC-BY\thttps://example.test/{fn}\n"
++
++    def run_stage(self):
++        builder.stage_photos(str(self.raw), str(self.out))
++
++    def prepare(self):
++        (self.deck / "0.png").write_text("EDIBLE")
++        (self.deck / "3.jpg").write_text("POISON")
++        (self.deck / "credits.tsv").write_text(
++            self.row("3.jpg", "Poison hemlock - deadly lookalike")
++            + self.row("0.png", "Yarrow")
++        )
++
++    def test_remapping(self):
++        self.prepare()
++        self.run_stage()
++        self.assertEqual((self.out / "plants/yarrow/1.jpg").read_text(), "EDIBLE")
++        self.assertEqual((self.out / "plants/yarrow/2.jpg").read_text(), "POISON")
++        lines = (self.out / "CREDITS.tsv").read_text().splitlines()
++        self.assertEqual(
++            lines,
++            [
++                "plants/yarrow\t"
++                + self.row("1.jpg", "Yarrow").strip().replace("/1.jpg", "/0.png"),
++                "plants/yarrow\t"
++                + self.row("2.jpg", "Poison hemlock - deadly lookalike")
++                .strip()
++                .replace("/2.jpg", "/3.jpg"),
++            ],
++        )
++
++    def test_legacy_jpg_credit_for_png(self):
++        self.prepare()
++        p = self.deck / "credits.tsv"
++        p.write_text(p.read_text().replace("0.png\t", "0.jpg\t"))
++        self.run_stage()
++        self.assertEqual((self.out / "plants/yarrow/1.jpg").read_text(), "EDIBLE")
++        self.assertIn(
++            "plants/yarrow\t1.jpg\tYarrow\t", (self.out / "CREDITS.tsv").read_text()
++        )
++
++    def test_bad_metadata_fails_before_photo_writes(self):
++        self.prepare()
++        self.out.mkdir()
++        sentinel = self.out / "CREDITS.tsv"
++        sentinel.write_text("old credits")
++        for bad in [
++            "",
++            self.row("0.png", "Yarrow"),
++            self.row("0.png", "Yarrow")
++            + self.row("0.png", "Other")
++            + self.row("3.jpg", "Poison"),
++            self.row("0.png", "   ") + self.row("3.jpg", "Poison"),
++            "0.png\tYarrow\tArtist\n",
++            self.row("0.png", "Yarrow")
++            + self.row("3.jpg", "Poison")
++            + self.row("9.jpg", "Other"),
++        ]:
++            with self.subTest(bad=bad):
++                (self.deck / "credits.tsv").write_text(bad)
++                with self.assertRaises((ValueError, SystemExit)):
++                    self.run_stage()
++                self.assertEqual(sentinel.read_text(), "old credits")
++                self.assertFalse((self.out / "plants").exists())
++
++    def test_missing_credits(self):
++        self.prepare()
++        (self.deck / "credits.tsv").unlink()
++        with self.assertRaises((ValueError, SystemExit, FileNotFoundError)):
++            self.run_stage()
++        self.assertFalse(self.out.exists())
++
++    def test_ambiguous_number(self):
++        self.prepare()
++        (self.deck / "00.jpg").write_text("OTHER")
++        with self.assertRaises((ValueError, SystemExit)):
++            self.run_stage()
++        self.assertFalse(self.out.exists())
++
++    def test_too_many_photos(self):
++        for n in range(7):
++            (self.deck / f"{n}.jpg").write_text(str(n))
++        (self.deck / "credits.tsv").write_text(
++            "".join(self.row(f"{n}.jpg", f"Species {n}") for n in range(7))
++        )
++        with self.assertRaises((ValueError, SystemExit)):
++            self.run_stage()
++        self.assertFalse(self.out.exists())
++
++    def test_all_decks_preflight(self):
++        self.prepare()
++        bad = self.raw / "z" / "bad"
++        bad.mkdir(parents=True)
++        (bad / "1.jpg").write_text("bad")
++        with self.assertRaises((ValueError, SystemExit, FileNotFoundError)):
++            self.run_stage()
++        self.assertFalse(self.out.exists())
++
++    def test_symlinks_rejected(self):
++        self.prepare()
++        outside = self.root / "outside"
++        outside.write_text("outside")
++        (self.deck / "unexpected-link").symlink_to(outside)
++        with self.assertRaises(ValueError):
++            self.run_stage()
++        self.assertFalse(self.out.exists())
++        self.assertEqual(outside.read_text(), "outside")
++
++    def test_image_directory_rejected_before_writes(self):
++        self.prepare()
++        (self.deck / "4.jpg").mkdir()
++        with self.assertRaises(ValueError):
++            self.run_stage()
++        self.assertFalse(self.out.exists())
++
++    def test_main_calls_validated_staging(self):
++        self.prepare()
++        (self.root / "photos_raw").symlink_to(self.raw, target_is_directory=True)
++        (self.root / "phrases_master.tsv").write_text("")
++        with patch.multiple(
++            builder,
++            HERE=str(self.root),
++            STAGING=str(self.root / "staged"),
++            FONT_CACHE=str(self.root / "fonts"),
++            LANGS=[],
++            FONT_SOURCES={},
++            GUIDE_SECTIONS=[],
++        ):
++            with self.assertRaises(ValueError):
++                builder.main()
++        self.assertFalse((self.root / "staged/guides/photos").exists())
++
++
++if __name__ == "__main__":
++    unittest.main()

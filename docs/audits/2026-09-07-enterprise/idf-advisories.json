@@ -1,0 +1,2915 @@
+[
+  {
+    "ghsa_id": "GHSA-xcpr-5mqp-9qvv",
+    "cve_id": "CVE-2026-81508",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-xcpr-5mqp-9qvv",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-xcpr-5mqp-9qvv",
+    "summary": "Heap Out-of-Bounds Read in Bluedroid A2DP Sink Media Packet Processing",
+    "description": "### description\r\n\r\n## Description\r\nAn out-of-bounds read exists in the BlueDroid A2DP sink media-packet handler (`btc_a2dp_sink_handle_inc_media()`). The handler accessed a timestamp field from the received media buffer before the packet layout had been validated, so a malformed A2DP media packet could cause a read past the valid packet boundary into adjacent heap memory.\r\n\r\n### Impact\r\nA paired BR/EDR peer that already has an A2DP connection can deliver a malformed media packet to this path. The primary consequence is limited disclosure of heap contents adjacent to the received media buffer; arbitrary memory is not directly exposed, and code execution has not been indicated. The issue is reachable only on builds with BlueDroid Classic Bluetooth and A2DP sink support enabled. The attacker must be a paired Bluetooth audio source within radio range.\r\n\r\n### Resolution\r\nThe A2DP sink handler now validates the packet layout before reading the timestamp field. Packets with an invalid layout are rejected on the normal error path, so the timestamp access cannot read past the received buffer.\r\n\r\n### Fix Commit Records\r\n| Branch | Commits |\r\n|--------------|---------------|\r\n| master | [6cb20db](https://github.com/espressif/esp-idf/commit/6cb20db4dfeee81314d0c55acb82f3f0e7679abe) |\r\n| release/v6.1 | [85d56bc](https://github.com/espressif/esp-idf/commit/85d56bcd266117e0fe6a6b75511c8e122fda29ad) |\r\n| release/v6.0 | [0d11813](https://github.com/espressif/esp-idf/commit/0d118139ff8b7aa87b656c2f4a6421ecaa1f5939) |\r\n| release/v5.5 | [ca55d63](https://github.com/espressif/esp-idf/commit/ca55d63de82e41e2c672bfd2b707fc80911f30ce) |\r\n\r\n### Workarounds\r\nNone \u2014 upgrade required. The fix is on `master` and on the `release/v6.1`, `release/v6.0`, and `release/v5.5` branches listed above. Disable A2DP sink / Classic Bluetooth if the product does not need them.\r\n\r\n### Credits\r\nWe would like to thank Epenetus Matias Putra for reporting this vulnerability and following up on responsible disclosure.",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "ESP-Mars",
+      "id": 85924095,
+      "node_id": "MDQ6VXNlcjg1OTI0MDk1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/85924095?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/ESP-Mars",
+      "html_url": "https://github.com/ESP-Mars",
+      "followers_url": "https://api.github.com/users/ESP-Mars/followers",
+      "following_url": "https://api.github.com/users/ESP-Mars/following{/other_user}",
+      "gists_url": "https://api.github.com/users/ESP-Mars/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/ESP-Mars/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/ESP-Mars/subscriptions",
+      "organizations_url": "https://api.github.com/users/ESP-Mars/orgs",
+      "repos_url": "https://api.github.com/users/ESP-Mars/repos",
+      "events_url": "https://api.github.com/users/ESP-Mars/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/ESP-Mars/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-xcpr-5mqp-9qvv",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-81508",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-09-03T11:01:53Z",
+    "published_at": "2026-09-03T11:01:53Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "6.1",
+        "patched_versions": "6.1.1 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "6.0.1",
+        "patched_versions": "6.0.2",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "5.5.5",
+        "patched_versions": "5.5.6 (yet-to-release)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+        "score": 4.3
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-125",
+        "name": "Out-of-bounds Read"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-125"
+    ],
+    "credits": [
+      {
+        "login": "ZeroX-404",
+        "type": "reporter"
+      }
+    ],
+    "credits_detailed": [
+      {
+        "user": {
+          "login": "ZeroX-404",
+          "id": 114817051,
+          "node_id": "U_kgDOBtf4Gw",
+          "avatar_url": "https://avatars.githubusercontent.com/u/114817051?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/ZeroX-404",
+          "html_url": "https://github.com/ZeroX-404",
+          "followers_url": "https://api.github.com/users/ZeroX-404/followers",
+          "following_url": "https://api.github.com/users/ZeroX-404/following{/other_user}",
+          "gists_url": "https://api.github.com/users/ZeroX-404/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/ZeroX-404/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/ZeroX-404/subscriptions",
+          "organizations_url": "https://api.github.com/users/ZeroX-404/orgs",
+          "repos_url": "https://api.github.com/users/ZeroX-404/repos",
+          "events_url": "https://api.github.com/users/ZeroX-404/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/ZeroX-404/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "type": "reporter",
+        "state": "accepted"
+      }
+    ],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+      "score": 4.3
+    }
+  },
+  {
+    "ghsa_id": "GHSA-v335-fxwc-rc44",
+    "cve_id": "CVE-2026-81507",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-v335-fxwc-rc44",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-v335-fxwc-rc44",
+    "summary": "Bluetooth Classic L2CAP Heap Memory Disclosure Allowing Unauthorized Access to Sensitive Data",
+    "description": "### Description\r\nAn out-of-bounds read exists in BlueDroid L2CAP configuration-option processing (`l2c_main.c` / `l2c_utils.c`). Option lengths were not consistently checked against the remaining bytes of the received configuration packet, so a malformed L2CAP configuration request from a remote BR/EDR peer could cause the parser to read past the end of the packet buffer.\r\n\r\n### Impact\r\nA remote Bluetooth device within radio range can reach this path during L2CAP channel configuration, without authentication or encryption. Under some runtime conditions, data read beyond the received packet may be included in an outbound L2CAP Configuration Response, disclosing limited adjacent memory (for example fragments of Bluetooth stack state). The issue affects ESP32-class products that use the BlueDroid host stack with Classic Bluetooth (BR/EDR) enabled.\r\n\r\n### Resolution\r\nThe L2CAP configuration parser now validates option boundaries and protocol-defined lengths before use. Truncated, malformed, or inconsistent option fields are rejected on the normal protocol path, so configuration processing cannot read past the received packet.\r\n\r\n### Fix Commit Records\r\n| Branch | Commits |\r\n|--------------|---------------|\r\n| master | [c8cd8f4](https://github.com/espressif/esp-idf/commit/c8cd8f4f3019ae2f912c8cbe9974445e8d9b8749) |\r\n| release/v6.1 | [14c9955](https://github.com/espressif/esp-idf/commit/14c99559b4337cabcf0f09c21d16b93c4cd7a6fe) |\r\n| release/v6.0 | [9a6d04f](https://github.com/espressif/esp-idf/commit/9a6d04f65e0e341e7d72bd417c9f31b8a04ce846) |\r\n| release/v5.5 | [1e07f6d](https://github.com/espressif/esp-idf/commit/1e07f6d83ca892630a7210df2958455f7ca77b4a) |\r\n| release/v5.4 | [5731c63](https://github.com/espressif/esp-idf/commit/5731c63ece128f156939b9f734256e2227c1442a) |\r\n| release/v5.3 | [8de265d](https://github.com/espressif/esp-idf/commit/8de265dc44b1b22c749ea44ee7c609b3da4162f0) |\r\n| release/v5.2 | [c261025](https://github.com/espressif/esp-idf/commit/c2610255a5adce651ca582bb82368c3dd0ee2834) |\r\n\r\n### Workarounds\r\nNone \u2014 upgrade required. The fix is on `master` and on the `release/v6.1`, `release/v6.0`, `release/v5.5`, `release/v5.4`, `release/v5.3`, and `release/v5.2` branches listed above. Disable Classic Bluetooth (BR/EDR) / BlueDroid if the product does not need it.\r\n\r\n### Credits\r\nWe would like to thank DatanoiseTV / Sylwester Sosnowski for reporting this vulnerability and following up on responsible disclosure.\r\n",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "ESP-Mars",
+      "id": 85924095,
+      "node_id": "MDQ6VXNlcjg1OTI0MDk1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/85924095?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/ESP-Mars",
+      "html_url": "https://github.com/ESP-Mars",
+      "followers_url": "https://api.github.com/users/ESP-Mars/followers",
+      "following_url": "https://api.github.com/users/ESP-Mars/following{/other_user}",
+      "gists_url": "https://api.github.com/users/ESP-Mars/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/ESP-Mars/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/ESP-Mars/subscriptions",
+      "organizations_url": "https://api.github.com/users/ESP-Mars/orgs",
+      "repos_url": "https://api.github.com/users/ESP-Mars/repos",
+      "events_url": "https://api.github.com/users/ESP-Mars/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/ESP-Mars/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-v335-fxwc-rc44",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-81507",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-09-03T11:01:50Z",
+    "published_at": "2026-09-03T11:01:49Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "6.1",
+        "patched_versions": "6.1.1 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "6.0.1",
+        "patched_versions": "6.0.2",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "5.5.4",
+        "patched_versions": "5.5.5",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "5.4.4",
+        "patched_versions": "5.4.5 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "5.3.5",
+        "patched_versions": "5.3.6 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "5.2.7",
+        "patched_versions": "5.2.8 (yet-to-release)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        "score": 6.5
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-125",
+        "name": "Out-of-bounds Read"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-125"
+    ],
+    "credits": [
+      {
+        "login": "DatanoiseTV",
+        "type": "reporter"
+      }
+    ],
+    "credits_detailed": [
+      {
+        "user": {
+          "login": "DatanoiseTV",
+          "id": 6614616,
+          "node_id": "MDQ6VXNlcjY2MTQ2MTY=",
+          "avatar_url": "https://avatars.githubusercontent.com/u/6614616?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/DatanoiseTV",
+          "html_url": "https://github.com/DatanoiseTV",
+          "followers_url": "https://api.github.com/users/DatanoiseTV/followers",
+          "following_url": "https://api.github.com/users/DatanoiseTV/following{/other_user}",
+          "gists_url": "https://api.github.com/users/DatanoiseTV/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/DatanoiseTV/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/DatanoiseTV/subscriptions",
+          "organizations_url": "https://api.github.com/users/DatanoiseTV/orgs",
+          "repos_url": "https://api.github.com/users/DatanoiseTV/repos",
+          "events_url": "https://api.github.com/users/DatanoiseTV/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/DatanoiseTV/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "type": "reporter",
+        "state": "accepted"
+      }
+    ],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "score": 6.5
+    }
+  },
+  {
+    "ghsa_id": "GHSA-v6r2-f6p2-88cj",
+    "cve_id": "CVE-2026-55687",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-v6r2-f6p2-88cj",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-v6r2-f6p2-88cj",
+    "summary": "Stack-Based Out-of-Bounds Write in JPEG Decoder DQT Marker Parsing",
+    "description": "## Description\r\n\r\nAn out-of-bounds write exists in the ESP-IDF JPEG decoder header parser (`jpeg_parse_dqt_marker()` in `components/esp_driver_jpeg/jpeg_parse_marker.c`). When parsing a Define Quantization Table (DQT) segment, the parser reads the `PqTq` byte and extracts the quantization-table destination identifier `Tq` from the low nibble:\r\n\r\n```\r\nn = jpeg_get_bytes(header_info, 1);\r\nn &= 0x0F;                                  // Tq, attacker-controlled, unchecked\r\nheader_info->qt_tbl[n][zigzag_arr[i]] = temp;\r\n```\r\n\r\n`qt_tbl` is statically declared as `uint32_t[4][64]`, so valid first-dimension indices are `0..3`. Because `Tq` is taken directly from untrusted input without a range check, a `Tq` value of 4 or greater causes a write past the end of the array into adjacent stack memory.\r\n\r\n## Impact\r\n\r\nAny code path that feeds attacker-controlled JPEG data into the hardware decoder is exposed \u2014 for example image data received over the network (HTTP / MJPEG streams) or decoded from removable media (SD, USB).\r\n\r\nThe primary, reliably demonstrated consequence is **denial of service**: a single malformed JPEG triggers a `Stack smashing protect failure` panic on ESP32-family parts that ship the JPEG hardware decoder. The crash is deterministic on ESP32-P4. Because the attacker controls the JPEG input, the crash can be re-triggered at will, resulting in a repeatable denial of service.\r\n\r\nBecause the write is attacker-controlled in content and deterministic in offset, it also constitutes stack memory corruption. Depending on build hardening, this **may be leveraged toward code execution** \u2014 for instance on builds compiled without `-fstack-protector-strong`, where the affected frame is not covered by a stack canary. Exploitation beyond DoS has not been demonstrated and is bounded by the target's compiler hardening configuration.\r\n\r\n## Resolution\r\n\r\n`jpeg_parse_dqt_marker()` now validates the `Tq` nibble against the size of the destination quantization-table array before any write. A `Tq` value outside `0..3` is rejected through the normal JPEG marker error path (the decode session aborts with an `ESP_ERR_INVALID_ARG` JPEG error code) before any out-of-bounds access can occur. The symmetric `Th` field in the DHT marker parser was audited at the same time and the same bound check was added there as a defense-in-depth measure.\r\n\r\n## Fix Commit Records\r\n\r\n| Branch | Commits |\r\n| --- | --- |\r\n| master | [6ffaffe](https://github.com/espressif/esp-idf/commit/6ffafe8e93142ef8ffe51a6311d4abfc0f10fe77) |\r\n| release/v6.0 | [f2df45b](https://github.com/espressif/esp-idf/commit/f2df45bcedef11354e83c31a9718d680a68422c4) |\r\n| release/v5.5 | [82c5c2d](https://github.com/espressif/esp-idf/commit/82c5c2dad45313786fb7e973059bc9094d95c3b2) |\r\n| release/v5.4 | [7ccfc00](https://github.com/espressif/esp-idf/commit/7ccfc00f39faf1b7e5919f45b56fe44ba699d7c1) |\r\n| release/v5.3 | [303c013](https://github.com/espressif/esp-idf/commit/303c01305acb8ae5c4eb24a1786300681b4822a4) |\r\n\r\n## Workarounds\r\n\r\nNone \u2014 upgrade to a patched release. As an interim mitigation, avoid passing untrusted or unvalidated JPEG data to the hardware decoder. The fix is included in v6.0.2 / v5.5.5 / v5.4.5 / v5.3.6 (yet to be released).\r\n\r\n## Credits\r\n\r\nWe would like to thank Hayden Steele for reporting this vulnerability and following up on responsible disclosure.\r\n",
+    "severity": "high",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-v6r2-f6p2-88cj",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-55687",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-06-22T16:00:51Z",
+    "published_at": "2026-06-22T16:00:51Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "esp_driver_jpeg (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v6.0.1",
+        "patched_versions": "v6.0.2 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "esp_driver_jpeg (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.4",
+        "patched_versions": "v5.5.5 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "esp_driver_jpeg (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.4",
+        "patched_versions": "v5.4.5 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "esp_driver_jpeg (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.5",
+        "patched_versions": "v5.3.6 (yet to be released)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "score": 7.5
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-121",
+        "name": "Stack-based Buffer Overflow"
+      },
+      {
+        "cwe_id": "CWE-787",
+        "name": "Out-of-bounds Write"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-121",
+      "CWE-787"
+    ],
+    "credits": [
+      {
+        "login": "HCS921",
+        "type": "reporter"
+      }
+    ],
+    "credits_detailed": [
+      {
+        "user": {
+          "login": "HCS921",
+          "id": 239920225,
+          "node_id": "U_kgDODkzkYQ",
+          "avatar_url": "https://avatars.githubusercontent.com/u/239920225?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/HCS921",
+          "html_url": "https://github.com/HCS921",
+          "followers_url": "https://api.github.com/users/HCS921/followers",
+          "following_url": "https://api.github.com/users/HCS921/following{/other_user}",
+          "gists_url": "https://api.github.com/users/HCS921/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/HCS921/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/HCS921/subscriptions",
+          "organizations_url": "https://api.github.com/users/HCS921/orgs",
+          "repos_url": "https://api.github.com/users/HCS921/repos",
+          "events_url": "https://api.github.com/users/HCS921/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/HCS921/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "type": "reporter",
+        "state": "accepted"
+      }
+    ],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "score": 7.5
+    }
+  },
+  {
+    "ghsa_id": "GHSA-3pp8-42fh-3j3c",
+    "cve_id": "CVE-2026-46532",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-3pp8-42fh-3j3c",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-3pp8-42fh-3j3c",
+    "summary": "Heap Out-of-Bounds Read in Bluedroid AVRCP Target Parser",
+    "description": "### Description\r\n\r\nAn out-of-bounds read exists in the BlueDroid AVRCP vendor-command parser (`avrc_pars_vendor_cmd()` in `components/bt/host/bluedroid/stack/avrc/avrc_pars_tg.c`). Two PDU handlers \u2014 `AVRC_PDU_GET_CAPABILITIES` and `AVRC_PDU_LIST_PLAYER_APP_VALUES` \u2014 dereferenced the first payload byte before verifying that the payload length was at least one. A peer that sends a malformed AVRCP vendor command with a zero-length payload causes the parser to read one byte past the end of the received message buffer.\r\n\r\nThe out-of-bounds byte is then passed through an `AVRC_IS_VALID_*` predicate whose outcome selects one of two AVRCP status codes. The status code is included in the AVRCP error response sent back to the peer, which yields a limited oracle for whether the adjacent heap byte matches one of a small set of valid AVRCP identifiers. The byte's actual value is not transmitted; only the result of the validity check is observable.\r\n\r\n### Impact\r\n\r\nA paired BR/EDR peer with an established A2DP/AVRCP connection can issue a single malformed AVRCP vendor command and, by observing which error status the device returns, infer whether the byte adjacent to the inbound AVRCP message buffer falls within the set of valid AVRCP capability/attribute identifiers. Repeated probes against successive sessions can build up a low-bandwidth signal about heap contents adjacent to the AVRCP receive buffer. Arbitrary memory contents are not directly disclosed, and code execution has not been demonstrated.\r\n\r\nThe flaw is reachable only on builds with BlueDroid Classic Bluetooth and AVRCP target support enabled (gated by `CONFIG_BT_AVRCP_ENABLED`, which is selected automatically by A2DP). It affects all Espressif chip families that support BR/EDR. The BlueDroid A2DP/AVRCP stack registers the AVCTP L2CAP service with `BTA_SEC_AUTHENTICATE`, so the peer must hold a valid BR/EDR link key from prior pairing \u2014 a paired Bluetooth speaker, headset, or similar audio peer \u2014 in order to reach the vulnerable parser.\r\n\r\nAttacker position: **adjacent (Bluetooth radio range), authenticated peer**. Consequence: **limited information disclosure** about heap memory adjacent to the AVRCP receive buffer or device crash (DoS) in rare case due to out-of-bound memory access.\r\n\r\n### Resolution\r\n\r\n`avrc_pars_vendor_cmd()` now validates the payload length before dereferencing the payload pointer for both affected PDU handlers. Zero-length payloads are rejected through the normal AVRCP error path before the validity check is reached, so the out-of-bounds read is no longer reachable and the status-code oracle is closed.\r\n\r\n ### Fix Commit Records\r\n\r\n| Branch       | Commits       |\r\n|--------------|---------------|\r\n| master       | [60f9362f](https://github.com/espressif/esp-idf/commit/60f9362f83a05942069532f357c234cd5e5d4302) |\r\n| release/v6.0 | [8746e5f7](https://github.com/espressif/esp-idf/commit/8746e5f7e762ead84d2902edec34d84cdd701b2b) |\r\n| release/v5.5 | [b0959b5a](https://github.com/espressif/esp-idf/commit/b0959b5ab1dc60398a916c80f14b1816780c801e)|\r\n| release/v5.4 | [56053c4d](https://github.com/espressif/esp-idf/commit/56053c4d1f37955ccf296cf2f6dfd0f7ebd4fae6)|\r\n| release/v5.3 | [7c004d3](https://github.com/espressif/esp-idf/commit/7c004d3fe3022f5f0db98dd1b2d0648a3a9cfb3f)|\r\n| release/v5.2 | [c53d05ae](https://github.com/espressif/esp-idf/commit/c53d05ae526607ca5eae9ffedaf57775eec33a4f)|\r\n\r\n### Credits\r\nWe would like to thank Eun0us / Espilon Worker for reporting this vulnerability and following up on responsible disclosure.",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "ESP-Mars",
+      "id": 85924095,
+      "node_id": "MDQ6VXNlcjg1OTI0MDk1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/85924095?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/ESP-Mars",
+      "html_url": "https://github.com/ESP-Mars",
+      "followers_url": "https://api.github.com/users/ESP-Mars/followers",
+      "following_url": "https://api.github.com/users/ESP-Mars/following{/other_user}",
+      "gists_url": "https://api.github.com/users/ESP-Mars/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/ESP-Mars/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/ESP-Mars/subscriptions",
+      "organizations_url": "https://api.github.com/users/ESP-Mars/orgs",
+      "repos_url": "https://api.github.com/users/ESP-Mars/repos",
+      "events_url": "https://api.github.com/users/ESP-Mars/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/ESP-Mars/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-3pp8-42fh-3j3c",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-46532",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-05-19T07:09:04Z",
+    "published_at": "2026-05-19T07:09:04Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "6.0",
+        "patched_versions": "6.0.1",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "5.5.3",
+        "patched_versions": "5.5.4",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "5.4.4",
+        "patched_versions": "5.4.5 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "5.3.5",
+        "patched_versions": "5.3.6 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "5.2.6",
+        "patched_versions": "5.2.7 (yet-to-release)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:L",
+        "score": 4.6
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [],
+    "cwe_ids": [],
+    "credits": [
+      {
+        "login": "Eun0us",
+        "type": "reporter"
+      }
+    ],
+    "credits_detailed": [
+      {
+        "user": {
+          "login": "Eun0us",
+          "id": 106373581,
+          "node_id": "U_kgDOBlchzQ",
+          "avatar_url": "https://avatars.githubusercontent.com/u/106373581?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/Eun0us",
+          "html_url": "https://github.com/Eun0us",
+          "followers_url": "https://api.github.com/users/Eun0us/followers",
+          "following_url": "https://api.github.com/users/Eun0us/following{/other_user}",
+          "gists_url": "https://api.github.com/users/Eun0us/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/Eun0us/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/Eun0us/subscriptions",
+          "organizations_url": "https://api.github.com/users/Eun0us/orgs",
+          "repos_url": "https://api.github.com/users/Eun0us/repos",
+          "events_url": "https://api.github.com/users/Eun0us/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/Eun0us/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "type": "reporter",
+        "state": "accepted"
+      }
+    ],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:L",
+      "score": 4.6
+    }
+  },
+  {
+    "ghsa_id": "GHSA-w82j-7q63-7pqm",
+    "cve_id": "CVE-2026-45329",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-w82j-7q63-7pqm",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-w82j-7q63-7pqm",
+    "summary": "Out-of-Bounds Read in ESP-TEE Secure Service Wrappers",
+    "description": "## Description\r\nSeveral ESP-TEE secure-service wrappers in `esp_secure_services.c` and `esp_secure_services_iram.c` validated only some of the caller-supplied pointer arguments, leaving input pointer arguments unchecked. Because the underlying TEE-protected hardware peripherals (e.g., ECC, SHA, SPI) run in RISC-V machine mode (M-mode) with full address-space access, a caller could supply pointers into TEE-exclusive memory as inputs, causing the peripheral to read TEE memory and return results derived from it to the REE. Depending on the wrapper, the result contains raw bytes from TEE memory, a computed function of TEE memory recoverable through repeated calls, or a single bit per call that forms an oracle for incremental disclosure of TEE-resident sensitive data.\r\n\r\n## Impact\r\nAn unprivileged REE application can read TEE-resident sensitive data across the REE/TEE isolation boundary. This discloses TEE code and data, including cryptographic keys and other application secrets held in the TEE. It also exposes code and data addresses and internal pointers, defeating the exploit mitigations that protect the TEE and making subsequent memory-corruption attacks far more reliable. The attacker only needs local code execution in the REE; no TEE privileges are required.\r\n\r\nThis issue affects Espressif SoCs with ESP-TEE support (ESP32-C5, ESP32-C6, ESP32-C61, ESP32-H2).\r\n\r\n## Resolution\r\nAll ESP-TEE secure-service wrappers now validate every input pointer argument through the overflow-safe `esp_tee_buf_in_ree()` helper with `ESP_FAULT_ASSERT()` enforcement, including pointers within struct contexts and buffer end addresses. Pointer ranges that include any TEE-resident address are rejected before being passed to the underlying peripheral.\r\n\r\n## Fix Commit Records\r\n| Branch       | Commits |\r\n|--------------|---------|\r\n| master       | [`145ba4c`](https://github.com/espressif/esp-idf/commit/145ba4c42dc8283054cfde9a1c3470db7399192f)|\r\n| release/v6.0 | [`7867f4a`](https://github.com/espressif/esp-idf/commit/7867f4a57560bf9fc4a931e37ba02b7a3e9f406b) |\r\n| release/v5.5 | [`eebabaf`](https://github.com/espressif/esp-idf/commit/eebabaff2fdc273b1530fe66e55fb3bcd181dfd6)|\r\n\r\n## Workarounds\r\nThere is no runtime workaround for this issue. Users are kindly advised to either update to a release that carries the fix or to cherry-pick the commit listed in the **Fix Commit Records** table above onto their downstream branch.\r\n\r\n## Credits\r\nWe would like to thank Eun0us / Espilon Worker for reporting this vulnerability and following up on responsible disclosure.",
+    "severity": "high",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-w82j-7q63-7pqm",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-45329",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-05-13T05:16:20Z",
+    "published_at": "2026-05-13T05:16:20Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "esp_tee (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v6.0",
+        "patched_versions": "v6.0.1",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "esp_tee (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.4",
+        "patched_versions": "v5.5.5",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:H/I:N/A:N",
+        "score": 7.1
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-20",
+        "name": "Improper Input Validation"
+      },
+      {
+        "cwe_id": "CWE-125",
+        "name": "Out-of-bounds Read"
+      },
+      {
+        "cwe_id": "CWE-200",
+        "name": "Exposure of Sensitive Information to an Unauthorized Actor"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-20",
+      "CWE-125",
+      "CWE-200"
+    ],
+    "credits": [
+      {
+        "login": "Eun0us",
+        "type": "reporter"
+      }
+    ],
+    "credits_detailed": [
+      {
+        "user": {
+          "login": "Eun0us",
+          "id": 106373581,
+          "node_id": "U_kgDOBlchzQ",
+          "avatar_url": "https://avatars.githubusercontent.com/u/106373581?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/Eun0us",
+          "html_url": "https://github.com/Eun0us",
+          "followers_url": "https://api.github.com/users/Eun0us/followers",
+          "following_url": "https://api.github.com/users/Eun0us/following{/other_user}",
+          "gists_url": "https://api.github.com/users/Eun0us/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/Eun0us/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/Eun0us/subscriptions",
+          "organizations_url": "https://api.github.com/users/Eun0us/orgs",
+          "repos_url": "https://api.github.com/users/Eun0us/repos",
+          "events_url": "https://api.github.com/users/Eun0us/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/Eun0us/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "type": "reporter",
+        "state": "accepted"
+      }
+    ],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:H/I:N/A:N",
+      "score": 7.1
+    }
+  },
+  {
+    "ghsa_id": "GHSA-mmgp-73p4-92xp",
+    "cve_id": "CVE-2026-45328",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-mmgp-73p4-92xp",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-mmgp-73p4-92xp",
+    "summary": "Out-of-Bounds Write in ESP-TEE Secure Service Wrappers",
+    "description": "## Description\r\nThe `esp_tee` component exposes secure-service wrappers in `esp_secure_services.c` and `esp_secure_services_iram.c` that bridge calls from the user application (i.e. the REE) to TEE-protected hardware peripherals (AES, SHA, ECC, HMAC, SPI, MMU, WDT) and to the security feature like attestation, OTA updates, secure storage. \r\n\r\nSeveral wrappers validated only some of the caller-supplied pointer arguments with `esp_tee_ptr_in_ree()`, leaving output data pointers, pointers within struct contexts, and the end addresses of length-bounded buffers unchecked. Existing range checks also did not account for 32-bit address-space overflow, so a buffer wrapping past the top of memory could pass validation while still spanning TEE-resident regions. Because the underlying peripherals run in RISC-V machine mode (M-mode) with full address-space access, a caller could supply pointers into TEE-exclusive memory and cause the peripheral to write there on the caller's behalf.\r\n\r\n## Impact\r\nAn unprivileged REE application can direct ESP-TEE hardware peripherals to write attacker-influenced content into TEE-resident DRAM, breaking the REE/TEE isolation boundary. When the corrupted region contains control-flow data such as the secure service call dispatch table (`esp_secure_service_table.c`), this can be escalated to arbitrary code execution within the TEE, effectively elevating the attacker from the REE to the TEE. Other outcomes include TEE memory corruption, denial of service, and system crashes. The attacker only needs local code execution in the REE; no TEE privileges are required.\r\n\r\nThis issue affects Espressif SoCs with ESP-TEE support (ESP32-C5, ESP32-C6, ESP32-C61, ESP32-H2).\r\n\r\n## Resolution\r\nA new helper `esp_tee_buf_in_ree()` performs overflow-safe range checks on caller-supplied pointer ranges. All ESP-TEE secure-service wrappers now validate every pointer argument through this helper with `ESP_FAULT_ASSERT()` enforcement, including output pointers, pointers within struct contexts, and buffer end addresses. Pointer ranges that include any TEE-resident address are rejected before being passed to the underlying peripheral. \r\n\r\nAs an additional hardening step, the secure service call dispatch table has been relocated from TEE DRAM (R/W) to TEE IRAM (R/X under PMA), making it immutable at runtime and removing it as a corruption target.\r\n\r\n## Fix Commit Records\r\n| Branch       | Commits |\r\n|--------------|---------|\r\n| master       | [`145ba4c`](https://github.com/espressif/esp-idf/commit/145ba4c42dc8283054cfde9a1c3470db7399192f) + [`764626a`](https://github.com/espressif/esp-idf/commit/764626a1b7c85b943d207da08a2f8f7d7f3def4d) + [`2de0ed6`](https://github.com/espressif/esp-idf/commit/2de0ed6a2be85d78222cec790aefcf3e5790c3a4) |\r\n| release/v6.0 | [`7867f4a`](https://github.com/espressif/esp-idf/commit/7867f4a57560bf9fc4a931e37ba02b7a3e9f406b) + [`440a5d1`](https://github.com/espressif/esp-idf/commit/440a5d1906502023f2a0fb0aecbdf0602d14acbf) + [`0e1e1e7`](https://github.com/espressif/esp-idf/commit/0e1e1e79aaf98a37a6e6f28d19bd833c54dc50ea) |\r\n| release/v5.5 | [`eebabaf`](https://github.com/espressif/esp-idf/commit/eebabaff2fdc273b1530fe66e55fb3bcd181dfd6) + [`afd14ab`](https://github.com/espressif/esp-idf/commit/afd14ab113acd0ca369965404c99ac42e74d4fcd) + [`dcb758a`](https://github.com/espressif/esp-idf/commit/dcb758a30b325f6a272572fa627679992cf3b1eb) |\r\n\r\n\r\n## Workarounds\r\nThere is no runtime workaround for this issue. Users are kindly advised to either update to a release that carries the fix or to cherry-pick the commits listed in the **Fix Commit Records** table above onto their downstream branch.\r\n\r\n## Credits\r\nWe would like to thank @Eun0us / @EspilonOrg for reporting this vulnerability and following up on responsible disclosure.",
+    "severity": "critical",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-mmgp-73p4-92xp",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-45328",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-08-26T10:45:54Z",
+    "published_at": "2026-05-13T05:15:30Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "esp_tee (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v6.0.1",
+        "patched_versions": "v6.0.2",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "other",
+          "name": "esp_tee (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.4",
+        "patched_versions": "v5.5.5",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+        "score": 9.3
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-20",
+        "name": "Improper Input Validation"
+      },
+      {
+        "cwe_id": "CWE-787",
+        "name": "Out-of-bounds Write"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-20",
+      "CWE-787"
+    ],
+    "credits": [
+      {
+        "login": "Eun0us",
+        "type": "reporter"
+      }
+    ],
+    "credits_detailed": [
+      {
+        "user": {
+          "login": "Eun0us",
+          "id": 106373581,
+          "node_id": "U_kgDOBlchzQ",
+          "avatar_url": "https://avatars.githubusercontent.com/u/106373581?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/Eun0us",
+          "html_url": "https://github.com/Eun0us",
+          "followers_url": "https://api.github.com/users/Eun0us/followers",
+          "following_url": "https://api.github.com/users/Eun0us/following{/other_user}",
+          "gists_url": "https://api.github.com/users/Eun0us/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/Eun0us/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/Eun0us/subscriptions",
+          "organizations_url": "https://api.github.com/users/Eun0us/orgs",
+          "repos_url": "https://api.github.com/users/Eun0us/repos",
+          "events_url": "https://api.github.com/users/Eun0us/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/Eun0us/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "type": "reporter",
+        "state": "accepted"
+      }
+    ],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+      "score": 9.3
+    }
+  },
+  {
+    "ghsa_id": "GHSA-9r76-858f-v6jh",
+    "cve_id": "CVE-2026-45542",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-9r76-858f-v6jh",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-9r76-858f-v6jh",
+    "summary": "Heap buffer overflow in protocomm Security2 over Bluetooth",
+    "description": "### Description\r\n\r\nA heap buffer overflow exists in the Security Scheme 2 (SRP6a) session-setup path of the `protocomm` component. The first-phase handler (`handle_session_command0()` in `components/protocomm/src/security/security2.c`) trusts the length of a client-supplied protobuf field for the SRP6a username and copies it into a buffer whose size is derived from a narrower destination type. The resulting truncation-versus-copy asymmetry corrupts the heap when an oversized value is supplied.\r\n\r\n### Impact\r\n\r\nAn unauthenticated attacker within Bluetooth Low Energy range can crash the device and corrupt heap data belonging to other tasks sharing the same heap by initiating a provisioning session with an oversized SRP6a username field. The vulnerable handler runs before any SRP6a credential check, so no proof of possession is required.\r\n\r\nThe flaw is reachable only when the application performs Wi-Fi provisioning (or another `protocomm` service) over the NimBLE BLE transport with Security Scheme 2 (`PROTOCOM_SEC_VER_2` / `WIFI_PROV_SECURITY_2`). The other `protocomm` transports (HTTP/SoftAP, Bluedroid BLE, console) bound inbound payload size at the transport layer and cannot reach the truncation threshold.\r\n\r\nAttacker position: **adjacent (BLE radio range)**. Consequence: **denial of service via heap corruption**. Code execution has not been demonstrated; the realistic worst case is loss of availability of the provisioning service and of any tasks sharing the corrupted heap region.\r\n\r\n### Resolution\r\n\r\n`handle_session_command0()` now validates the protobuf-supplied username length against the range of the destination type before any allocation or copy; out-of-range and zero-length values are rejected before reaching the heap path. As defence in depth, the subsequent copy uses the validated length rather than the raw protobuf length, so a future regression in the upstream check cannot reintroduce the truncation-versus-copy asymmetry.\r\n\r\nThe same commit also adds protobuf-input validation across both Security Scheme 1 and Security Scheme 2 handlers. These hardening changes are unrelated to the heap overflow described above and are documented here for completeness.\r\n\r\n### Fix Commit Records\r\n\r\n| Branch       | Commits |\r\n|--------------|---------|\r\n| master       | [a2f4554](https://github.com/espressif/esp-idf/commit/a2f4554f10ba075c98cbc67464db096ba32497cf) |\r\n| release/v6.0 | [9b4cacf](https://github.com/espressif/esp-idf/commit/9b4cacf9cbc69379972de6a2247fcf5af9240961) |\r\n| release/v5.5 | [71eb2db](https://github.com/espressif/esp-idf/commit/71eb2dbe6aaef830719ecac8edf409e2992b64b2) |\r\n| release/v5.4 | [f5d24a7](https://github.com/espressif/esp-idf/commit/f5d24a7e919bc5f447091479656b86da6762a103) |\r\n| release/v5.3 | [0ea58d7](https://github.com/espressif/esp-idf/commit/0ea58d79845ad674d0358d5de246015a68c4cb4f) |\r\n| release/v5.2 | [56c3e38](https://github.com/espressif/esp-idf/commit/56c3e385611e63162d0f2f8504ac4ae2ccfccef0) |\r\n\r\n### Workarounds\r\n\r\nThe recommended mitigation is to upgrade to a patched release. Where an upgrade is not immediately possible, exposure can be reduced by:\r\n\r\n- **Provision over SoftAP/HTTP instead of BLE**, where the device hardware and product use case allow it. The HTTP `protocomm` transport bounds request size at the transport layer.\r\n- **Restrict the provisioning window.** Enable BLE provisioning only during onboarding and tear it down (e.g. `wifi_prov_mgr_deinit()` / stop the protocomm BLE transport) immediately after the device is provisioned, so the vulnerable handshake is not exposed during normal operation.\r\n\r\n### Credits\r\n\r\nWe would like to thank Eun0us / Espilon Worker for reporting this vulnerability and following up on responsible disclosure.",
+    "severity": "high",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-9r76-858f-v6jh",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-45542",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-05-18T16:13:03Z",
+    "published_at": "2026-05-18T16:13:03Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v6.0",
+        "patched_versions": "v6.0.1",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.4",
+        "patched_versions": "v5.5.5 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.4",
+        "patched_versions": "v5.4.5 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.5",
+        "patched_versions": "v5.3.6 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.6",
+        "patched_versions": "v5.2.7 (yet to be released)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:H",
+        "score": 7.1
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-122",
+        "name": "Heap-based Buffer Overflow"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-122"
+    ],
+    "credits": [
+      {
+        "login": "Eun0us",
+        "type": "reporter"
+      }
+    ],
+    "credits_detailed": [
+      {
+        "user": {
+          "login": "Eun0us",
+          "id": 106373581,
+          "node_id": "U_kgDOBlchzQ",
+          "avatar_url": "https://avatars.githubusercontent.com/u/106373581?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/Eun0us",
+          "html_url": "https://github.com/Eun0us",
+          "followers_url": "https://api.github.com/users/Eun0us/followers",
+          "following_url": "https://api.github.com/users/Eun0us/following{/other_user}",
+          "gists_url": "https://api.github.com/users/Eun0us/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/Eun0us/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/Eun0us/subscriptions",
+          "organizations_url": "https://api.github.com/users/Eun0us/orgs",
+          "repos_url": "https://api.github.com/users/Eun0us/repos",
+          "events_url": "https://api.github.com/users/Eun0us/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/Eun0us/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "type": "reporter",
+        "state": "accepted"
+      }
+    ],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:H",
+      "score": 7.1
+    }
+  },
+  {
+    "ghsa_id": "GHSA-3j8v-xgrq-5vg8",
+    "cve_id": "CVE-2026-45541",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-3j8v-xgrq-5vg8",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-3j8v-xgrq-5vg8",
+    "summary": "Remote Null Pointer Dereference in WebSocket Server",
+    "description": "### Description\r\n\r\nA NULL-pointer dereference exists in the WebSocket subprotocol-negotiation path of the `esp_http_server` component. While parsing the client-supplied `Sec-WebSocket-Protocol` request header during the WebSocket handshake, the tokenisation result is dereferenced without a NULL check, so a malformed header value can crash the server before any application-level authentication runs.\r\n\r\n### Impact\r\n\r\nA remote network attacker who can reach the HTTP(S) server endpoint can crash the device without authentication or user interaction. Server-side TLS (`esp_https_server`) does not mitigate the issue, because the vulnerable parser executes during the WebSocket handshake, before any application-level authentication.\r\n\r\nThe flaw is reachable only when the application is built with WebSocket support enabled and registers at least one WebSocket URI handler that performs subprotocol negotiation (i.e. supplies a non-NULL `supported_subprotocol`).\r\n\r\nAttacker position: **network**. Consequence: **denial of service** \u2014 target faults; no information disclosure and no write side-effects.\r\n\r\n### Resolution\r\n\r\nThe parsing loop in `httpd_ws_get_response_subprotocol()`  (`components/esp_http_server/src/httpd_ws.c`) is restructured so the tokenisation result is NULL-checked before every dereference. A header that yields no tokens is handled identically to a request for an unsupported subprotocol: the handshake completes without a `Sec-WebSocket-Protocol` response header. The same change also tightens subprotocol matching from a prefix comparison to an exact-length comparison, an unrelated functional correctness improvement. No public API or behavioural change for compliant clients.\r\n\r\n### Fix Commit Records\r\n\r\n| Branch       | Commits |\r\n|--------------|---------|\r\n| master       | [9fc0ca1](https://github.com/espressif/esp-idf/commit/9fc0ca13b3b85b98d32b98cd9dc8ff9d82642b7b) |\r\n| release/v6.0 | [0dc4ee7](https://github.com/espressif/esp-idf/commit/0dc4ee7537f3b12350f5966cecacd59bba840ec6) |\r\n| release/v5.5 | [00a2f7f](https://github.com/espressif/esp-idf/commit/00a2f7fbbbd8fe6d04729022e1d5c9a49435bfe8) |\r\n| release/v5.4 | [37508ab](https://github.com/espressif/esp-idf/commit/37508ab91124ef426a7396d30f79eba1162700c7) |\r\n| release/v5.3 | [f88a47e](https://github.com/espressif/esp-idf/commit/f88a47e4f37fb11ae4b0908cd5c80059d83198c6) |\r\n| release/v5.2 | [dc46dc5](https://github.com/espressif/esp-idf/commit/dc46dc51359749e50617eb70d6f9ae298adc4fff) |\r\n\r\n### Workarounds\r\n\r\nThe recommended mitigation is to upgrade to a patched release. Where an upgrade is not immediately possible, exposure can be reduced by one of:\r\n\r\n- Registering WebSocket URI handlers without subprotocol negotiation (leave `supported_subprotocol` as `NULL`). The     vulnerable code path is only entered when an application-supplied subprotocol is present, so applications that do not require a specific subprotocol can drop this field as an interim measure.\r\n- Enabling mutual TLS authentication on the HTTPS server, so untrusted clients are rejected during the TLS handshake before the WebSocket parser is reached.\r\n\r\n### Credits\r\n\r\nWe would like to thank Eun0us / Espilon Worker for reporting this vulnerability and following up on responsible disclosure.",
+    "severity": "high",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-3j8v-xgrq-5vg8",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-45541",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-05-15T05:23:12Z",
+    "published_at": "2026-05-15T05:23:12Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP HTTP Server (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v6.0",
+        "patched_versions": "v6.0.1",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP HTTP Server (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.4",
+        "patched_versions": "v5.5.5 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP HTTP Server (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.4",
+        "patched_versions": "v5.4.5 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP HTTP Server (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.5",
+        "patched_versions": "v5.3.6 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP HTTP Server (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.6",
+        "patched_versions": "v5.2.7 (yet to be released)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "score": 7.5
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-476",
+        "name": "NULL Pointer Dereference"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-476"
+    ],
+    "credits": [
+      {
+        "login": "Eun0us",
+        "type": "reporter"
+      }
+    ],
+    "credits_detailed": [
+      {
+        "user": {
+          "login": "Eun0us",
+          "id": 106373581,
+          "node_id": "U_kgDOBlchzQ",
+          "avatar_url": "https://avatars.githubusercontent.com/u/106373581?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/Eun0us",
+          "html_url": "https://github.com/Eun0us",
+          "followers_url": "https://api.github.com/users/Eun0us/followers",
+          "following_url": "https://api.github.com/users/Eun0us/following{/other_user}",
+          "gists_url": "https://api.github.com/users/Eun0us/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/Eun0us/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/Eun0us/subscriptions",
+          "organizations_url": "https://api.github.com/users/Eun0us/orgs",
+          "repos_url": "https://api.github.com/users/Eun0us/repos",
+          "events_url": "https://api.github.com/users/Eun0us/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/Eun0us/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "type": "reporter",
+        "state": "accepted"
+      }
+    ],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "score": 7.5
+    }
+  },
+  {
+    "ghsa_id": "GHSA-g764-gwc3-75m5",
+    "cve_id": "CVE-2026-45160",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-g764-gwc3-75m5",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-g764-gwc3-75m5",
+    "summary": "Out-of-bounds Read in lwIP DHCP Server Option Parser",
+    "description": "## Description\r\nAn out-of-bounds read flaw exists in the DHCP server option parser (`parse_options()` in `components/lwip/apps/dhcpserver/dhcpserver.c`) shipped with ESP-IDF's lwIP component. The parser walks the BOOTP/DHCP options field without validating that each option's length byte and declared payload length stay within the received packet buffer. A crafted DHCP request can cause the parser to read past the end of the options buffer into adjacent heap memory.\r\n\r\nThe issue affects the DHCP server used by ESP-IDF's SoftAP and any configuration where the device runs as a DHCP server on a local network.\r\n                                                                                       \r\n## Impact                                              \r\nAn attacker on the same Layer-2 network as a device running the ESP-IDF DHCP server (typically a station associated to the device's SoftAP) can send a single unauthenticated DHCP broadcast that triggers an out-of-bounds read of adjacent heap   memory.                                                                              \r\n                                                         \r\nThe OOB read does not return data to the attacker \u2014 the read bytes are consumed by the parser as option metadata (length, type) and never echoed in DHCP responses. The attacker-observable consequence is **denial of service**: the malformed read can crash the lwIP/DHCP server task or corrupt parser state, denying address assignment to all clients on the SoftAP.\r\n                                                               \r\nThe vulnerability is unauthenticated and pre-association to the SoftAP is the only precondition; on open or PSK-protected SoftAPs, any joined client is in position to exploit it.                                                                          \r\n                                                         \r\n## Resolution\r\nThe option parser was hardened to validate each option's bounds before dereferencing the length byte or its payload. The new invariants are:                              \r\n  \r\n  - `DHCP_OPTION_PAD` (0) is skipped explicitly.                                       \r\n  - `DHCP_OPTION_END` (255) terminates parsing.          \r\n  - The option length byte is read only after confirming it lies inside the buffer.    \r\n  - The option payload is consumed only after confirming the full declared length lies inside the buffer.                                                                   \r\n  - Per-option handlers (message type, requested IP address, etc.) now check that the declared length is large enough for the field they consume before accessing it.      \r\n                                                         \r\nThese checks ensure the parser cannot read beyond the options buffer regardless of attacker-supplied option codes or lengths.             \r\n                                                                                       \r\n  ## Fix Commit Records                                  \r\n\r\n  | Branch       | Commits              |\r\n  |--------------|-----------------------------|\r\n  | master       | [8b4b5d53](https://github.com/espressif/esp-idf/commit/8b4b5d5301815198d177974ffc24848f47748248)   |                 \r\n  | release/v6.0 | [fba5f995](https://github.com/espressif/esp-idf/commit/fba5f995436a3e3139f768b6d8f1a74d5ce1d318)  |\r\n  | release/v5.5 | [d51b1076](https://github.com/espressif/esp-idf/commit/d51b1076092487e533eadf8b48c9c8579d3a6712)  |\r\n  | release/v5.4 | [2bf4dd12](https://github.com/espressif/esp-idf/commit/2bf4dd12002dbae60a4b21abff010ecb2b8ee82b)  |\r\n  | release/v5.3 | [9f713dbc](https://github.com/espressif/esp-idf/commit/9f713dbc94982d917f2d12964b233cd9efa4aeba)  |\r\n  | release/v5.2 | [2da2db43](https://github.com/espressif/esp-idf/commit/2da2db43fd7e0bcff9e7b95f54f388296bb6f911)  |\r\n                                                                     \r\n## Workarounds                                                                       \r\nNo reliable workaround exists short of disabling the lwIP DHCP server. Devices that do not act as a DHCP server (station-only deployments) are not affected. Restricting Wi-Fi association \u2014 for example by enabling WPA2/WPA3 with a strong PSK and limiting which devices can associate \u2014 raises the bar for exploitation but does not eliminate the underlying flaw.                                   \r\n\r\nPlease consider upgrade to a release that carries the fix as highlighted above.\r\n                                                                                       \r\n## Credits                                             \r\nWe would like to thank Eun0us / Espilon Worker for reporting this vulnerability and following up on responsible disclosure.",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "ESP-Mars",
+      "id": 85924095,
+      "node_id": "MDQ6VXNlcjg1OTI0MDk1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/85924095?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/ESP-Mars",
+      "html_url": "https://github.com/ESP-Mars",
+      "followers_url": "https://api.github.com/users/ESP-Mars/followers",
+      "following_url": "https://api.github.com/users/ESP-Mars/following{/other_user}",
+      "gists_url": "https://api.github.com/users/ESP-Mars/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/ESP-Mars/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/ESP-Mars/subscriptions",
+      "organizations_url": "https://api.github.com/users/ESP-Mars/orgs",
+      "repos_url": "https://api.github.com/users/ESP-Mars/repos",
+      "events_url": "https://api.github.com/users/ESP-Mars/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/ESP-Mars/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-g764-gwc3-75m5",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-45160",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-05-21T14:17:07Z",
+    "published_at": "2026-05-21T14:17:07Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "lwIP DHCP Server (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.7",
+        "patched_versions": "v5.2.8 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "lwIP DHCP Server (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.5",
+        "patched_versions": "v5.3.6 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "lwIP DHCP Server (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.4",
+        "patched_versions": "v5.4.5 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "lwIP DHCP Server (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.4",
+        "patched_versions": "v5.5.5 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "lwIP DHCP Server (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v6.0.1",
+        "patched_versions": "v6.0.2 (yet-to-release)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "score": 6.5
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-125",
+        "name": "Out-of-bounds Read"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-125"
+    ],
+    "credits": [
+      {
+        "login": "Eun0us",
+        "type": "reporter"
+      }
+    ],
+    "credits_detailed": [
+      {
+        "user": {
+          "login": "Eun0us",
+          "id": 106373581,
+          "node_id": "U_kgDOBlchzQ",
+          "avatar_url": "https://avatars.githubusercontent.com/u/106373581?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/Eun0us",
+          "html_url": "https://github.com/Eun0us",
+          "followers_url": "https://api.github.com/users/Eun0us/followers",
+          "following_url": "https://api.github.com/users/Eun0us/following{/other_user}",
+          "gists_url": "https://api.github.com/users/Eun0us/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/Eun0us/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/Eun0us/subscriptions",
+          "organizations_url": "https://api.github.com/users/Eun0us/orgs",
+          "repos_url": "https://api.github.com/users/Eun0us/repos",
+          "events_url": "https://api.github.com/users/Eun0us/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/Eun0us/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "type": "reporter",
+        "state": "accepted"
+      }
+    ],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "score": 6.5
+    }
+  },
+  {
+    "ghsa_id": "GHSA-h7r3-gmg9-xjmg",
+    "cve_id": "CVE-2026-25507",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-h7r3-gmg9-xjmg",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-h7r3-gmg9-xjmg",
+    "summary": "Use-after-free Vulnerability in BLE Provisioning",
+    "description": "## Description\r\n\r\nA use-after-free vulnerability was reported in the BLE provisioning transport (`protocomm_ble`) layer. The issue can be triggered by a remote BLE client while the device is in provisioning mode.\r\n\r\nThe vulnerability occurred when provisioning was stopped with `keep_ble_on = true`. In this configuration, internal `protocomm_ble` state and GATT metadata were freed while the BLE stack and GATT services remained active. Subsequent BLE read or write callbacks dereferenced freed memory, allowing a connected or newly connected client to trigger invalid memory access.\r\n\r\n## Impact\r\n\r\nA remote BLE client within radio range can exploit this vulnerability without authentication while the device is in provisioning mode, potentially causing a denial of service or heap corruption or control flow hijack in advanced cases.\r\n\r\n## Resolution\r\n\r\nThe provisioning transport was updated to avoid freeing live GATT metadata when BLE was intentionally kept enabled after provisioning, preventing use-after-free conditions in active GATT callbacks.\r\n\r\n## Fix Commit Records\r\n\r\n| Branch       | Commits       |\r\n|--------------|---------------|\r\n| master       |   47552ff4fd824caf38215468ebd2f31fb5f36d70  |\r\n| release/v6.0 |  1ff264abf2504cade46f0ce3a03f821310bcf6d7    |\r\n| release/v5.5 | 0540c85140c2c06c0cbecc8843277ea676d5c4a9  |\r\n| release/v5.4 | 894c28afe3f2f8f31ff25b64191883517dddb5cf  |\r\n| release/v5.3 | dba9a7dc01e4dab14c77d328f6a6f46369aeee63  |\r\n| release/v5.2 | cde7b7362adc15638c141c249681cbe5d23de663 |\r\n| release/v5.1 | 4c3fdcd316f780bab4ae5aa73c9626ea9fe24ac6  |\r\n\r\n\r\n## Workarounds\r\n\r\nUpgrade to a patched ESP-IDF release to ensure correct GATT metadata lifetime when BLE is kept on after provisioning.\r\n\r\nIf upgrading is not feasible, disable `keep_ble_on` so provisioning teardown stops BLE services, and avoid exposing provisioning characteristics after Wi-Fi credentials are applied.\r\n\r\n## Credits\r\n\r\nWe would like to thank Maxime Rossi Bellom and Ramtine Tofighi Shirazi from [SecMate](https://secmate.dev/) for reporting this vulnerability and following up on responsible disclosure.\r\n",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-h7r3-gmg9-xjmg",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-25507",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-02-03T04:59:17Z",
+    "published_at": "2026-02-03T04:59:17Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.2",
+        "patched_versions": "v5.5.3 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.3",
+        "patched_versions": "v5.4.4 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.4",
+        "patched_versions": "v5.3.5 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.6",
+        "patched_versions": "v5.2.7 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.1.6",
+        "patched_versions": "v5.1.7",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:H",
+        "score": 6.3
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-416",
+        "name": "Use After Free"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-416"
+    ],
+    "credits": [],
+    "credits_detailed": [],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:H",
+      "score": 6.3
+    }
+  },
+  {
+    "ghsa_id": "GHSA-9j5x-rf36-54x9",
+    "cve_id": "CVE-2026-25508",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-9j5x-rf36-54x9",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-9j5x-rf36-54x9",
+    "summary": "Out-of-Bounds Read Vulnerability in BLE Provisioning",
+    "description": "## Description\r\n\r\nAn out-of-bounds read vulnerability was reported in the BLE ATT Prepare Write handling of the BLE provisioning transport (`protocomm_ble`). The issue can be triggered by a remote BLE client while the device is in provisioning mode.\r\n\r\nThe transport accumulated prepared-write fragments in a fixed-size buffer but incorrectly tracked the cumulative length. By sending repeated prepare write requests with overlapping offsets, a remote client could cause the reported length to exceed the allocated buffer size. This inflated length was then passed to provisioning handlers during execute-write processing, resulting in an out-of-bounds read and potential memory corruption.\r\n\r\n## Impact\r\nA remote BLE client within radio range can exploit this vulnerability without authentication while the device is in provisioning mode, potentially causing a denial of service, heap corruption, or system instability.\r\n\r\n## Resolution\r\n\r\nThe prepare-write length handling was corrected to ensure the reported length never exceeded the allocated buffer size, preventing out-of-bounds reads during execute-write processing.\r\n\r\n## Fix Commit Records\r\n\r\n| Branch       | Commits       |\r\n|--------------|---------------|\r\n| master       |   47552ff4fd824caf38215468ebd2f31fb5f36d70  |\r\n| release/v6.0 |  1ff264abf2504cade46f0ce3a03f821310bcf6d7    |\r\n| release/v5.5 | 0540c85140c2c06c0cbecc8843277ea676d5c4a9  |\r\n| release/v5.4 | 894c28afe3f2f8f31ff25b64191883517dddb5cf  |\r\n| release/v5.3 | dba9a7dc01e4dab14c77d328f6a6f46369aeee63  |\r\n| release/v5.2 | cde7b7362adc15638c141c249681cbe5d23de663 |\r\n| release/v5.1 | 4c3fdcd316f780bab4ae5aa73c9626ea9fe24ac6  |\r\n\r\n## Workarounds\r\n\r\nUpgrade to a patched ESP-IDF release to ensure correct prepare-write length handling.\r\n\r\n\r\n## Credits\r\n\r\nWe would like to thank Maxime Rossi Bellom and Ramtine Tofighi Shirazi from [SecMate](https://secmate.dev/) for reporting this vulnerability and following up on responsible disclosure.",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-9j5x-rf36-54x9",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-25508",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-02-03T04:59:04Z",
+    "published_at": "2026-02-03T04:59:04Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.2",
+        "patched_versions": "v5.5.3 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.3",
+        "patched_versions": "v5.4.4 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.4",
+        "patched_versions": "v5.3.5 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.6",
+        "patched_versions": "v5.2.7 (yet to be released)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Protocomm BLE (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.1.6",
+        "patched_versions": "v5.1.7",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:H",
+        "score": 6.3
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-125",
+        "name": "Out-of-bounds Read"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-125"
+    ],
+    "credits": [],
+    "credits_detailed": [],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:H",
+      "score": 6.3
+    }
+  },
+  {
+    "ghsa_id": "GHSA-m2h2-683f-9mw7",
+    "cve_id": "CVE-2026-25532",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-m2h2-683f-9mw7",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-m2h2-683f-9mw7",
+    "summary": "WPS Enrollee Fragment Integer Underflow Vulnerability",
+    "description": "# Issue Description\r\n A vulnerability exists in the WPS (Wi-Fi Protected Setup) Enrollee implementation where malformed EAP-WSC packets with truncated payloads can cause integer underflow during fragment length calculation. When processing EAP-Expanded (WSC) messages, the code computes `frag_len` by subtracting header sizes from the total packet length. If an attacker sends a packet where the EAP Length field covers only the header and flags but omits the expected payload (such as the 2-byte Message Length field when `WPS_MSG_FLAG_LEN` is set), `frag_len` becomes negative. This negative value is then implicitly cast to `size_t` when passed to `wpabuf_put_data()`, resulting in a very large unsigned value.\r\n \r\n# Impact\r\nOut-of-Bounds Write: The oversized length causes `wpabuf_put_data()` to perform a massive memory copy, leading to heap buffer overflow and memory corruption. This can result in device crash or potentially arbitrary code execution.\r\nDenial of Service: In the non-fragmented code path, a negative `tlen` value cast to size_t triggers an extremely large memory allocation via `wpabuf_alloc_copy()`, causing memory exhaustion and device reset.\r\n\r\n# Prerequisites\r\nThe attack requires the victim device to initiate WPS pairing (PBC or PIN mode), and the attacker must be within Wi-Fi range to act as a rogue Access Point.\r\n\r\n# Resolution\r\nAdded input validation to verify packet lengths before computing `frag_len` and `tlen`, ensuring these values are non-negative before use in memory operations. The fix rejects malformed packets early in the processing flow, preventing the integer underflow condition.\r\n \r\n# Fix Commit Records\r\n \r\n| Branch       | Commits       |\r\n|--------------|---------------|\r\n| master       |   https://github.com/espressif/esp-idf/commit/b88befde6b5addcdd8d7373ce55c8052dea1e855   |\r\n| release/v6.0 |   https://github.com/espressif/esp-idf/commit/de28801e8ea6a736b6f0db6fc0c682739363bb41   |\r\n| release/v5.5 |   https://github.com/espressif/esp-idf/commit/b209fae993d795255827ce6b2b0d6942a377f5d4   |\r\n| release/v5.4 | https://github.com/espressif/esp-idf/commit/73a587d42a57ece1962b6a4c530b574600650f63   |\r\n| release/v5.3 |  https://github.com/espressif/esp-idf/commit/6f6766f917bc940ffbcc97eac4765a6ab15d5f79  |\r\n| release/v5.2 |  https://github.com/espressif/esp-idf/commit/60f992a26de17bb5406f2149a2f8282dd7ad1c59  |\r\n| release/v5.1 |  https://github.com/espressif/esp-idf/commit/cad36beb4cde27abcf316cd90d8d8dddbc6f213a  |\r\n\r\n \r\n# Credits\r\n \r\nWe would like to thank Pavel Kohout from [Aisle Research](www.aisle.com) for reporting this vulnerability and following up on responsible disclosure.",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "ESP-Mars",
+      "id": 85924095,
+      "node_id": "MDQ6VXNlcjg1OTI0MDk1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/85924095?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/ESP-Mars",
+      "html_url": "https://github.com/ESP-Mars",
+      "followers_url": "https://api.github.com/users/ESP-Mars/followers",
+      "following_url": "https://api.github.com/users/ESP-Mars/following{/other_user}",
+      "gists_url": "https://api.github.com/users/ESP-Mars/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/ESP-Mars/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/ESP-Mars/subscriptions",
+      "organizations_url": "https://api.github.com/users/ESP-Mars/orgs",
+      "repos_url": "https://api.github.com/users/ESP-Mars/repos",
+      "events_url": "https://api.github.com/users/ESP-Mars/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/ESP-Mars/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-m2h2-683f-9mw7",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2026-25532",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2026-02-04T02:22:47Z",
+    "published_at": "2026-02-04T02:22:47Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "wpa_supplicant (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.2",
+        "patched_versions": "v5.5.3 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "wpa_supplicant (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.3",
+        "patched_versions": "v5.4.4 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "wpa_supplicant (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.4",
+        "patched_versions": "v5.3.5 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "wpa_supplicant (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.5",
+        "patched_versions": "v5.2.6",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "wpa_supplicant (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.1.6",
+        "patched_versions": "v5.1.7",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:H",
+        "score": 6.3
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-191",
+        "name": "Integer Underflow (Wrap or Wraparound)"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-191"
+    ],
+    "credits": [],
+    "credits_detailed": [],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:H",
+      "score": 6.3
+    }
+  },
+  {
+    "ghsa_id": "GHSA-hmjj-rjvv-w8pq",
+    "cve_id": "CVE-2025-68473",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-hmjj-rjvv-w8pq",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-hmjj-rjvv-w8pq",
+    "summary": "Out-of-Bounds Write in ESP32 Bluetooth SDP Result Handling",
+    "description": "# Issue Description\r\n \r\nIn the ESP-IDF Bluetooth host stack (BlueDroid), the function `bta_dm_sdp_result()` used a fixed-size array `uuid_list[32][MAX_UUID_SIZE]` to store discovered service UUIDs during the SDP (Service Discovery Protocol) process.\r\n \r\nOn modern Bluetooth devices, it is possible for the number of available services to exceed this fixed limit (32). In such cases, if more than 32 services are discovered, subsequent writes to `uuid_list` could exceed the bounds of the array, resulting in a potential out-of-bounds write condition.\r\n \r\n# Impact\r\n \r\nIn affected versions of the ESP32 Bluetooth stack, when performing SDP service discovery against a peer device that exposes more than 32 services, the Bluetooth host stack may write data beyond the allocated `uuid_list` buffer.\r\n \r\nThis could lead to memory corruption, undefined behavior, or, in rare cases, system crashes.\r\n \r\nThe issue affects all Espressif chip families using the BlueDroid Bluetooth host stack for Classic Bluetooth operations (BR/EDR mode).\r\n \r\n# Resolution\r\n \r\nThe issue has been resolved by replacing the hardcoded array size (32) with a configurable constant MAX_UUID_NUM and by adding boundary checks before writing to the `uuid_list` array.\r\n \r\nIf the number of discovered services exceeds `MAX_UUID_NUM`, the stack will now stop adding new entries and log a warning:\r\n \r\n```c\r\nAPPL_TRACE_WARNING(\"only process the first %d records\\n\", MAX_UUID_NUM);\r\n```\r\n \r\nThis ensures that no memory writes occur beyond the buffer limit.\r\n \r\n# Fix Commit Records\r\n \r\n| Branch       | Commits       |\r\n|--------------|---------------|\r\n| master       | [6ca6f422](https://github.com/espressif/esp-idf/commit/6ca6f422dafaffcb88fa56cc458ce92d96be3b2e) |\r\n| release/v6.0 | [5b318516](https://github.com/espressif/esp-idf/commit/5b3185168dae83d42aa0852689422fffd931f16c) |\r\n| release/v5.5 | [9889edd7](https://github.com/espressif/esp-idf/commit/9889edd799cf369e082df9d01adba961d64693ed)|\r\n| release/v5.4 | [3286e453](https://github.com/espressif/esp-idf/commit/3286e45349b0b5c2b1422ef7e8d088b95eef895d) |\r\n| release/v5.3 | [4d928f22](https://github.com/espressif/esp-idf/commit/4d928f2265c394d2abc85024228e920a5b26bcab)|\r\n| release/v5.2 | [ecb86d35](https://github.com/espressif/esp-idf/commit/ecb86d353640cf1375bf97db32e702ba59c551b6)|\r\n| release/v5.1 | [6453f57a](https://github.com/espressif/esp-idf/commit/6453f57a954458ad8ffd6e4bf2d9e76b73fac0f1) |\r\n \r\n# Credits\r\n \r\nWe would like to thank Luigino Camastra and Pavel Kohut from Aisle Research for reporting this vulnerability and for following up on its responsible disclosure.",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-hmjj-rjvv-w8pq",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2025-68473",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2025-12-25T04:58:25Z",
+    "published_at": "2025-12-25T04:58:25Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.1",
+        "patched_versions": "v5.5.2 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.3",
+        "patched_versions": "v5.4.4 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.4",
+        "patched_versions": "v5.3.5 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.6",
+        "patched_versions": "v5.2.7 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.1.6",
+        "patched_versions": "v5.1.7 (yet-to-release)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": null,
+        "score": null
+      },
+      "cvss_v4": {
+        "vector_string": "CVSS:4.0/AV:A/AC:L/AT:P/PR:N/UI:N/VC:L/VI:L/VA:H/SC:L/SI:L/SA:L",
+        "score": 6.1
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-787",
+        "name": "Out-of-bounds Write"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-787"
+    ],
+    "credits": [],
+    "credits_detailed": [],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": null,
+      "score": null
+    }
+  },
+  {
+    "ghsa_id": "GHSA-43gh-7r4f-qp57",
+    "cve_id": "CVE-2025-68474",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-43gh-7r4f-qp57",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-43gh-7r4f-qp57",
+    "summary": "Out-of-Bounds Write in ESP32 Bluetooth AVRCP Vendor Command Handling",
+    "description": "# Issue Description\r\n\r\nIn the `avrc_vendor_msg()` function of the ESP-IDF BlueDroid AVRCP stack, the allocated buffer size was validated using `AVRC_MIN_CMD_LEN` (20 bytes). However, the actual fixed header data written before the vendor payload exceeds this value.\r\n\r\nSpecifically, the fixed header includes:\r\n\r\n* BT_HDR structure: 8 bytes\r\n* AVCT_MSG_OFFSET: 15 bytes\r\n* Vendor header fields: 3 bytes\r\n* Company ID: 3 bytes\r\n\r\nThis totals 29 bytes written before `p_msg->p_vendor_data` is copied. Using the old `AVRC_MIN_CMD_LEN` could allow an out-of-bounds write if `vendor_len` approaches the buffer limit.\r\n\r\n# Impact\r\n\r\nFor commands where `vendor_len` is large, the original buffer allocation may be insufficient, causing writes beyond the allocated memory. This can lead to memory corruption, crashes, or other undefined behavior. The overflow could be larger when assertions are disabled.\r\n\r\nAffected platforms include ESP devices and other products using the BlueDroid AVRCP stack with Classic Bluetooth and AVRCP target/metadata support enabled.\r\n\r\n# Resolution\r\n\r\nThe issue is fixed by introducing a new macro that accurately reflects the minimum fixed header size:\r\n\r\n```c\r\n#define AVRC_MIN_VENDOR_CMD_LEN (BT_HDR_SIZE + AVCT_MSG_OFFSET + AVRC_VENDOR_HDR_SIZE)\r\n```\r\n\r\nBuffer allocations and length checks now use this value, and the original assert-based length check has been replaced with a runtime check to ensure safe allocation, thereby preventing any buffer overflow.\r\n\r\n# Fix Commit Records\r\n\r\n| Branch  |\tCommits |\r\n|----------|-------------|\r\n| master \t| 565fa98d |\r\n| release/v6.0 \t| 565fa98d |\r\n| release/v5.5 \t| b9ba1e29 |\r\n| release/v5.4 \t| a6c1bc5e | \r\n| release/v5.3 \t| 0b0b59f2 |\r\n| release/v5.2 \t| 8262ee80 |\r\n| release/v5.1 \t| aa0e3d75 |\r\n\r\n# Credits\r\n\r\nWe would like to thank Pavel Kohout and Stanislav Fort from Aisle Research for reporting this vulnerability and for following up on its responsible disclosure.\r\n",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-43gh-7r4f-qp57",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2025-68474",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2025-12-25T04:57:13Z",
+    "published_at": "2025-12-25T04:57:13Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.1",
+        "patched_versions": "v5.5.2 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.3",
+        "patched_versions": "v5.4.4 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.4",
+        "patched_versions": "v5.3.5 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.6",
+        "patched_versions": "v5.2.7 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.1.6",
+        "patched_versions": "v5.1.7 (yet-to-release)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": null,
+        "score": null
+      },
+      "cvss_v4": {
+        "vector_string": "CVSS:4.0/AV:A/AC:L/AT:P/PR:N/UI:N/VC:L/VI:L/VA:H/SC:L/SI:L/SA:L",
+        "score": 6.1
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-787",
+        "name": "Out-of-bounds Write"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-787"
+    ],
+    "credits": [],
+    "credits_detailed": [],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": null,
+      "score": null
+    }
+  },
+  {
+    "ghsa_id": "GHSA-vcw6-jc3p-4gj8",
+    "cve_id": "CVE-2025-65092",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-vcw6-jc3p-4gj8",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-vcw6-jc3p-4gj8",
+    "summary": "ESP32-P4 JPEG Decoder Header Parsing Vulnerability",
+    "description": "## Issue \r\n\r\nWhen the ESP32-P4 uses its hardware JPEG decoder, the software parser lacks necessary validation checks. A specially crafted (malicious) JPEG image could exploit the parsing routine and trigger an out-of-bounds array access.\r\n \r\n \r\n## Impact\r\n \r\nDuring software-based parsing of a JPEG image header, multiple array operations are performed. For example, according to the JPEG specification, the quantization table length should not exceed 64 entries. However, the software allocates a fixed-size array of 64 elements without sufficient boundary checks. A specially crafted image containing an overlong quantization table can trigger an out-of-bounds array access, potentially causing a crash or other undefined behavior.\r\n \r\n \r\n## Resolution\r\n \r\nThe solution is to implement additional validation during JPEG header parsing. When an invalid or malformed image is detected, the decoder should return an error and abort processing to prevent out-of-bounds access.\r\n \r\n \r\n## Fix Commit Records\r\n \r\n| Branch       | Commits       |\r\n|--------------|---------------|\r\n| master       | c38a6691b9845ac6ee0d0f6713783114770cdc17      |\r\n| release/v5.5 | 4b8f5859dbe05d15372558f8a950b49f6ee44e42      |\r\n| release/v5.4 | c79cb4de468854937a0cbf82629fd65d04bffb27      |\r\n| release/v5.3 | 34e2726254201988e6e2752b2db4b70d73964d4c    |\r\n\r\n \r\n## Credits\r\n \r\nWe would like to thank Pavel Kohout and Luigino Camastra from Aisle Research for reporting this vulnerability and following up on responsible disclosure.\r\n \r\n",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-vcw6-jc3p-4gj8",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2025-65092",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2025-11-20T04:34:19Z",
+    "published_at": "2025-11-20T04:34:19Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP_DRIVER_JPEG (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.1",
+        "patched_versions": "v5.5.2 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP_DRIVER_JPEG (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.3",
+        "patched_versions": "v5.4.4 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP_DRIVER_JPEG (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.4",
+        "patched_versions": "v5.3.5 (yet-to-release)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": null,
+        "score": null
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-125",
+        "name": "Out-of-bounds Read"
+      },
+      {
+        "cwe_id": "CWE-191",
+        "name": "Integer Underflow (Wrap or Wraparound)"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-125",
+      "CWE-191"
+    ],
+    "credits": [],
+    "credits_detailed": [],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": null,
+      "score": null
+    }
+  },
+  {
+    "ghsa_id": "GHSA-qhf9-vr2h-jh96",
+    "cve_id": "CVE-2025-66409",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-qhf9-vr2h-jh96",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-qhf9-vr2h-jh96",
+    "summary": "Out-of-Bounds Read in ESP32 Bluetooth AVRCP Command Handling",
+    "description": "## Issue Description\r\n \r\nWhen AVRCP is enabled on ESP32, receiving a malformed VENDOR DEPENDENT command from a peer device can cause the Bluetooth stack to access memory before validating the command buffer length. This may lead to an out-of-bounds read, potentially exposing unintended memory content or causing unexpected behavior.\r\n \r\n## Impact\r\n \r\nIn affected ESP32 software versions, if an attacker sends a specially crafted VENDOR DEPENDENT command with a buffer shorter than required by the AVRCP protocol, the Bluetooth stack BlueDroid may read beyond the end of the provided buffer. \r\n\r\nOut-of-bounds reads may cause undefined behavior, potentially leading to program crashes or system instability. \r\n\r\nAmong Espressif's chip families, only ESP32 devices supporting Bluetooth Classic are affected. In addition, any project using ESP-IDF Bluetooth stack BlueDroid together with a third-party Bluetooth controller may also be impacted.\r\n \r\n## Resolution\r\n \r\nThe issue has been resolved by adding length verification before processing AVRCP VENDOR DEPENDENT commands.\r\n \r\nIf the buffer length is shorter than the minimum required for the specific command, the command will now be safely rejected.\r\n \r\n## Fix Commit Records\r\n \r\n| Branch       | Commits  |\r\n|--------------|-----------|\r\n| master       | [075ed218](https://github.com/espressif/esp-idf/commit/075ed218cadb8088155521cd8a795d8a626519fb) |\r\n| release/v5.5 | [999710fc](https://github.com/espressif/esp-idf/commit/999710fccf95ae128fe51b5679d6b7c75c50d902) |\r\n| release/v5.4 | [2f788e59](https://github.com/espressif/esp-idf/commit/2f788e59ee361eee230879ae2ec9cf5c893fe372) |\r\n| release/v5.3 | [daeeba23](https://github.com/espressif/esp-idf/commit/daeeba230327176b9627b1caa94acdc54065c4b7) |\r\n| release/v5.2 | [d5db5f60](https://github.com/espressif/esp-idf/commit/d5db5f60fc1dcfdd8cd3ee898fdefaa272988ace) |\r\n| release/v5.1 | [79802912](https://github.com/espressif/esp-idf/commit/798029129a71c802cff0e75eb59f902bca8f1946) |\r\n \r\n## Credits\r\n \r\nWe would like to thank Titan Team from Singapore Management University for reporting this vulnerability and following up on responsible disclosure.\r\n",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "ESP-Mars",
+      "id": 85924095,
+      "node_id": "MDQ6VXNlcjg1OTI0MDk1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/85924095?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/ESP-Mars",
+      "html_url": "https://github.com/ESP-Mars",
+      "followers_url": "https://api.github.com/users/ESP-Mars/followers",
+      "following_url": "https://api.github.com/users/ESP-Mars/following{/other_user}",
+      "gists_url": "https://api.github.com/users/ESP-Mars/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/ESP-Mars/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/ESP-Mars/subscriptions",
+      "organizations_url": "https://api.github.com/users/ESP-Mars/orgs",
+      "repos_url": "https://api.github.com/users/ESP-Mars/repos",
+      "events_url": "https://api.github.com/users/ESP-Mars/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/ESP-Mars/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-qhf9-vr2h-jh96",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2025-66409",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2025-12-02T07:32:00Z",
+    "published_at": "2025-12-02T07:32:00Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.1",
+        "patched_versions": "v5.5.2 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.3",
+        "patched_versions": "v5.4.4 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.4",
+        "patched_versions": "v5.3.5 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.6",
+        "patched_versions": "v5.2.7 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.1.6",
+        "patched_versions": "v5.1.7 (yet-to-release)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": null,
+        "score": null
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-125",
+        "name": "Out-of-bounds Read"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-125"
+    ],
+    "credits": [],
+    "credits_detailed": [],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": null,
+      "score": null
+    }
+  },
+  {
+    "ghsa_id": "GHSA-8mg7-9qpg-p92v",
+    "cve_id": "CVE-2025-64342",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-8mg7-9qpg-p92v",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-8mg7-9qpg-p92v",
+    "summary": "ESP32 Bluetooth Controller Invalid Access Address Vulnerability",
+    "description": "## Description\r\n \r\nWhen the ESP32 is in advertising mode, if it receives a connection request containing an invalid Access Address (AA) of `0x00000000` or `0xFFFFFFFF`, advertising may stop unexpectedly. In this case, the controller may incorrectly report a connection event to the host, which can cause the application layer to assume that the device has successfully established a connection.\r\n \r\n## Impact\r\n \r\nIn affected ESP32 software versions, the controller does not correctly handle invalid connection requests with `AA = 0x00000000` or `0xFFFFFFFF`:\r\n \r\n- Advertising is stopped unexpectedly.\r\n- A connection event is incorrectly reported to the host.\r\n- The invalid AA is later detected and ignored, but no error or disconnection event is propagated to the application layer.\r\n \r\nAs a result, the application layer may continue to believe that the device is connected, even though no valid connection exists. This issue affects only the ESP32 series. Other Espressif chip families, including ESP32-C, ESP32-S, and ESP32-H, are not affected.\r\n \r\n## Resolution\r\n \r\nAccording to the Bluetooth LE specification (Core Specification Vol 6, Part B), the Access Addresses `0x00000000` and `0xFFFFFFFF` are explicitly defined as invalid. Any device that uses these values to transmit packets or initiate a connection is non-compliant with the Bluetooth LE specification.\r\n \r\nWith this fix, when the ESP32 is advertising and receives a connection request using an Access Address of `0x00000000` or `0xFFFFFFFF`, The request is ignored in accordance with the Bluetooth LE specification:\r\n \r\n- Advertising continues without interruption.\r\n- No invalid connection is established.\r\n- Application layer behavior remains consistent with protocol expectations.\r\n \r\n## Fix Commit Records\r\n \r\nThe following commits resolve this issue:\r\n \r\n| Branch | Commit | \r\n|-------------|-------------|\r\n| master |  <[8ec54102](https://github.com/espressif/esp-idf/commit/8ec541023684d33b498fa21c5b4724bce748aa7b)>          |\r\n| release/v5.5 | <[3b95b507](https://github.com/espressif/esp-idf/commit/3b95b50703cd3301a370cffaa1cc299b1941fe2a)>    |\r\n| release/v5.4 | <[309f031d](https://github.com/espressif/esp-idf/commit/309f031dd6b04de30c926a256508c65b0df95dfa)>   | \r\n| release/v5.3 | <[e3d70429](https://github.com/espressif/esp-idf/commit/e3d70429566ece1ef593d36aa4ebd320e0c95925)>  |\r\n| release/v5.2 | <[bf667619](https://github.com/espressif/esp-idf/commit/bf66761962579f73aea682d1154b9c99b9d3d7dc)>  | \r\n| release/v5.1 | <[75967b57](https://github.com/espressif/esp-idf/commit/75967b578563ea7876dc215251cbb6d64bc9d768)> | \r\n\r\n## Credits\r\nWe would like to thank Dominik Schreiber from SBA Research for reporting this vulnerability and following up on responsible disclosure.",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-8mg7-9qpg-p92v",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2025-64342",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2025-11-17T11:35:56Z",
+    "published_at": "2025-11-17T11:35:56Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.5.1",
+        "patched_versions": "v5.5.2 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.2",
+        "patched_versions": "v5.4.3",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.4",
+        "patched_versions": "v5.3.5 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.5",
+        "patched_versions": "v5.2.6",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "Bluetooth Stack (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.1.6",
+        "patched_versions": "v5.1.7 (yet-to-release)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": null,
+        "score": null
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-754",
+        "name": "Improper Check for Unusual or Exceptional Conditions"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-754"
+    ],
+    "credits": [],
+    "credits_detailed": [],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": null,
+      "score": null
+    }
+  },
+  {
+    "ghsa_id": "GHSA-9w88-r2vm-qfc4",
+    "cve_id": "CVE-2025-55297",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-9w88-r2vm-qfc4",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-9w88-r2vm-qfc4",
+    "summary": "BluFi Example Memory Overflow Vulnerability",
+    "description": "### Software Component  \r\n\r\n- [BluFi (Bluetooth Wi-Fi Provisioning) Example](https://github.com/espressif/esp-idf/tree/master/examples/bluetooth/blufi)  \r\n- [Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/ble/blufi.html)  \r\n\r\nThe BluFi example bundled in ESP-IDF was vulnerable to memory overflows in two areas: Wi-Fi credential handling and Diffie\u2013Hellman key exchange.\r\n\r\n### Impact\r\n\r\nThe BluFi example in ESP-IDF contained memory overflow vulnerabilities in two areas: Wi-Fi credential handling and Diffie\u2013Hellman key exchange.\r\n\r\nIn the credential handling functions, `strncpy` was incorrectly used with the input length instead of the size of the destination buffer. This flaw allowed an attacker to overflow buffers located in global memory.\r\n\r\nDuring the Diffie\u2013Hellman key exchange, a fixed-size buffer was used to store the public key without validating its size against peer-supplied parameters. This could result in buffer overflows, leading to memory corruption or unexpected behavior.\r\n\r\n### Patches\r\n\r\nThe issues were addressed in the following commits:\r\n\r\n| Branch | Commits |\r\n| -----------| --------------|\r\n| master | [abc18e93](https://github.com/espressif/esp-idf/commit/abc18e93eb3500dbec74c3e589671ef82c8b3919) & [3fc6c939](https://github.com/espressif/esp-idf/commit/3fc6c93936077cb1659e1f0e0268e62cf6423e9d) |\r\n| v5.4   | [f77da0d5](https://github.com/espressif/esp-idf/commit/f77da0d5b5382635c99e6708551b73802ad1213d) & [5f93ec3b](https://github.com/espressif/esp-idf/commit/5f93ec3b11b6115475c34de57093b3672d594e8f) |\r\n| v5.3   | [12b7a9e6](https://github.com/espressif/esp-idf/commit/12b7a9e6d78012ab9184b7ccdb5524364bf7e345) & [f40aa9c5](https://github.com/espressif/esp-idf/commit/f40aa9c587a8e570dfde2e6330382dcd170d5a5d) |\r\n| v5.2   | [e65cf7ea](https://github.com/espressif/esp-idf/commit/e65cf7ea2a2be52219ec9d4efc44aed5e490e91c) & [bf50c0c1](https://github.com/espressif/esp-idf/commit/bf50c0c197af30990026c8f8286298d2aa5a3c99) |\r\n| v5.1   | [cb6929a2](https://github.com/espressif/esp-idf/commit/cb6929a2e6f2ff130b742332dc15eb23006c7cc9) & [b1657d9d](https://github.com/espressif/esp-idf/commit/b1657d9dd4d0e48ed25e02cb8fe8413f479a2a84) |\r\n| v5.0   | [9cb7206d](https://github.com/espressif/esp-idf/commit/9cb7206d4ae8fd8f4296cd57d6c78a1656f42efa) & [cc00e9f2](https://github.com/espressif/esp-idf/commit/cc00e9f2fc4f7e8fbaff27851b4a8b45fa483501) |\r\n\r\n### Recommendations\r\n\r\n- Upgrade to a BluFi application version that includes the fix. If you prefer not to upgrade, then you can cherry-pick the relevant fixes.\r\n- The default encryption/decryption logic in this example is intended for demonstration purposes only. If you require a higher level of security, it is recommended to implement your own encryption, decryption, authentication, and checksum algorithms by customizing the security callbacks in the BluFi framework (see [`esp_blufi_api.c`](https://github.com/espressif/esp-idf/blob/4e036983a751e4667ade94c8f6f6bf1e7f78eff0/components/bt/common/api/esp_blufi_api.c#L14)).\r\n\r\n### References\r\n\r\n- [NCC Group Technical Advisory on BluFi Example](https://www.nccgroup.com/research-blog/technical-advisory-espressif-systems-esp32-blufi-reference-application-vulnerabilities/)  \r\n\r\n### Credits\r\n\r\nWe would like to thank the NCC Group for reporting this vulnerability and following up on responsible disclosure.\r\n",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-9w88-r2vm-qfc4",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2025-55297",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2025-08-21T04:08:29Z",
+    "published_at": "2025-08-21T04:08:29Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": " BluFi Example (ESP-IDF) "
+        },
+        "vulnerable_version_range": "NA",
+        "patched_versions": "NA",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": null,
+        "score": null
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-120",
+        "name": "Buffer Copy without Checking Size of Input ('Classic Buffer Overflow')"
+      },
+      {
+        "cwe_id": "CWE-131",
+        "name": "Incorrect Calculation of Buffer Size"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-120",
+      "CWE-131"
+    ],
+    "credits": [],
+    "credits_detailed": [],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": null,
+      "score": null
+    }
+  },
+  {
+    "ghsa_id": "GHSA-hqhh-cp47-fv5g",
+    "cve_id": "CVE-2025-52471",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-hqhh-cp47-fv5g",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-hqhh-cp47-fv5g",
+    "summary": "ESP-NOW Integer Underflow Vulnerability Advisory",
+    "description": "### Software component\r\n\r\n- **Component:** [ESP Wi-Fi (esp_wifi)](https://github.com/espressif/esp-idf/tree/master/components/esp_wifi)\r\n- **Protocol:** ESP-NOW\r\n- **Functionality:** Packet reception logic\r\n\r\n### Impact\r\n\r\nAn **integer underflow vulnerability** has been identified in the ESP-NOW protocol implementation within the ESP Wi-Fi component of the **ESP-IDF framework**. This issue stems from insufficient validation of user-supplied data length in the packet receive function. Under certain conditions, this may lead to **out-of-bounds memory access** and may allow **arbitrary memory write operations**. On systems without a memory protection scheme, this behavior could potentially be used to achieve remote code execution (RCE) on the target device.\r\n\r\n### Patches\r\nTo address the aforementioned issues, ESP-NOW has added more comprehensive validation logic on user-supplied data length during packet reception to prevent integer underflow caused by negative value calculations.\r\n\r\nPatched versions of ESP-IDF Framework are listed below:\r\n\r\n| Branch | Commit          |\r\n| ------- | ------------------ |\r\n| master  |  <[edc227c](https://github.com/espressif/esp-idf/commit/edc227c5eaeced999b5212943a9434379f8aad80)> |\r\n| release/v5.5  | <[b1a379d](https://github.com/espressif/esp-idf/commit/b1a379d57430d265a53aca13d59ddfbf2e7ac409)>\r\n| release/v5.4  | <[d4dafbd](https://github.com/espressif/esp-idf/commit/d4dafbdc3572387cd4f9a62b776580bc4ac3bde7)>  |\r\n| release/v5.3   | <[d6ec5a5](https://github.com/espressif/esp-idf/commit/d6ec5a52255b17c1d6ef379e89f9de2c379042f8)> |\r\n| release/v5.2  |  <[df7757d](https://github.com/espressif/esp-idf/commit/df7757d8279871fa7a2f42ef3962c6c1ec88b8a2)> |\r\n| release/v5.1  | <[c5fc819](https://github.com/espressif/esp-idf/commit/c5fc81917805f99e687c81cc56b68dc5df7ef8b5)>  |\r\n\r\n### Workarounds\r\n\r\nThe ESP-IDF Wi-Fi library has been updated to include more robust length checks for received ESP-NOW data payloads. We recommend upgrading your ESP-IDF baseline to benefit from this fix.\r\n\r\n- For **ESP-IDF v5.3 and earlier**, if upgrading is not feasible, a workaround can be applied by validating that the `data_len` parameter received in the RX callback (registered via `esp_now_register_recv_cb()`) is a **positive value before** further processing.\r\n- For **ESP-IDF v5.4 and later**, no application-level workaround is available. Users are advised to upgrade to a patched version of ESP-IDF to take advantage of the built-in mitigation.\r\n\r\n### Credits\r\nWe would like to thank Xiaobye (@xiaobye_tw) of DEVCORE Research Team for reporting this vulnerability and following up on responsible disclosure.\r\n",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-hqhh-cp47-fv5g",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2025-52471",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2025-06-24T04:35:46Z",
+    "published_at": "2025-06-24T04:35:46Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP-NOW (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.4.1",
+        "patched_versions": "v5.4.2 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP-NOW (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.3",
+        "patched_versions": "v5.3.4 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP-NOW (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.5",
+        "patched_versions": "v5.2.6 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESP-NOW (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.1.6",
+        "patched_versions": "v5.1.7 (yet-to-release)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": null,
+        "score": null
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-191",
+        "name": "Integer Underflow (Wrap or Wraparound)"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-191"
+    ],
+    "credits": [
+      {
+        "login": "xiaobye-ctf",
+        "type": "reporter"
+      }
+    ],
+    "credits_detailed": [
+      {
+        "user": {
+          "login": "xiaobye-ctf",
+          "id": 60853091,
+          "node_id": "MDQ6VXNlcjYwODUzMDkx",
+          "avatar_url": "https://avatars.githubusercontent.com/u/60853091?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/xiaobye-ctf",
+          "html_url": "https://github.com/xiaobye-ctf",
+          "followers_url": "https://api.github.com/users/xiaobye-ctf/followers",
+          "following_url": "https://api.github.com/users/xiaobye-ctf/following{/other_user}",
+          "gists_url": "https://api.github.com/users/xiaobye-ctf/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/xiaobye-ctf/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/xiaobye-ctf/subscriptions",
+          "organizations_url": "https://api.github.com/users/xiaobye-ctf/orgs",
+          "repos_url": "https://api.github.com/users/xiaobye-ctf/repos",
+          "events_url": "https://api.github.com/users/xiaobye-ctf/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/xiaobye-ctf/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "type": "reporter",
+        "state": "accepted"
+      }
+    ],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": null,
+      "score": null
+    }
+  },
+  {
+    "ghsa_id": "GHSA-wm57-466g-mhrr",
+    "cve_id": "CVE-2024-53845",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-wm57-466g-mhrr",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-wm57-466g-mhrr",
+    "summary": "AES/CBC Constant IV Vulnerability in ESPTouch v2",
+    "description": "### Software component\r\n\r\nESP Wi-Fi Component: \r\n\r\n- https://github.com/espressif/esp-idf/tree/master/components/esp_wifi\r\n\r\nESPTouch Phone Apps Source:  \r\n\r\n- https://github.com/EspressifApp/EsptouchForAndroid/tree/master/esptouch-v2\r\n- https://github.com/EspressifApp/EsptouchForIOS/tree/master/EspTouchDemo/ESPTouchV2\r\n\r\n### Impact\r\nIn the ESPTouchV2 protocol, while there is an option to use a custom AES key, there is no option to set the IV (Initialization Vector). The IV is set to zero and remains constant throughout the product's lifetime.\r\nIn AES/CBC mode, if the IV is not properly initialized, the encrypted output becomes deterministic, leading to potential data leakage.\r\n\r\n### Patches\r\nTo address the aforementioned issues, the application generates a random IV when activating the AES key. This IV is then transmitted along with the provisioning data to the provisioning device.\r\n\r\nThe provisioning device has also been equipped with a parser for the AES IV.\r\n\r\nPatched versions of ESP-IDF Framework are listed below:\r\n\r\n| Branch | Commit          |\r\n| ------- | ------------------ |\r\n| master  |  <[8fb28dc](https://github.com/espressif/esp-idf/commit/8fb28dcedcc49916a5206456a3a61022d4302cd8)> |\r\n| release/v5.3  | <[fd224e8](https://github.com/espressif/esp-idf/commit/fd224e83bbf133833638b277c767be7f7cdd97c7)>  |\r\n| release/v5.2   | <[d47ed7d](https://github.com/espressif/esp-idf/commit/d47ed7d6f814e21c5bc8997ab0bc68e2360e5cb2)> |\r\n| release/v5.1  |  <[4f85a27](https://github.com/espressif/esp-idf/commit/4f85a2726e04b737c8646d865b44ddd837b703db)> |\r\n| release/v5.0  | <[de69895](https://github.com/espressif/esp-idf/commit/de69895f38d563e22228f5ba23fffa02feabc3a9)>  |\r\n\r\n### Workarounds\r\nThe upgrade is applicable for all applications and users of ESPTouch v2 component from ESP-IDF. As it is implemented in the ESP Wi-Fi stack, there is no workaround for the user to fix the application layer without upgrading the underlying firmware.\r\n",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-wm57-466g-mhrr",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2024-53845",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2024-12-11T09:36:08Z",
+    "published_at": "2024-12-11T09:36:08Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESPTouch v2 (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.3.1",
+        "patched_versions": "v5.3.2",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESPTouch v2 (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.2.3",
+        "patched_versions": "v5.2.4 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESPTouch v2 (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.1.5",
+        "patched_versions": "v5.1.6 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "",
+          "name": "ESPTouch v2 (ESP-IDF)"
+        },
+        "vulnerable_version_range": "v5.0.7",
+        "patched_versions": "v5.0.8 (yet-to-release)",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": null,
+        "score": null
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-1204",
+        "name": "Generation of Weak Initialization Vector (IV)"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-1204"
+    ],
+    "credits": [
+      {
+        "login": "nir-mo",
+        "type": "reporter"
+      }
+    ],
+    "credits_detailed": [
+      {
+        "user": {
+          "login": "nir-mo",
+          "id": 17596873,
+          "node_id": "MDQ6VXNlcjE3NTk2ODcz",
+          "avatar_url": "https://avatars.githubusercontent.com/u/17596873?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/nir-mo",
+          "html_url": "https://github.com/nir-mo",
+          "followers_url": "https://api.github.com/users/nir-mo/followers",
+          "following_url": "https://api.github.com/users/nir-mo/following{/other_user}",
+          "gists_url": "https://api.github.com/users/nir-mo/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/nir-mo/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/nir-mo/subscriptions",
+          "organizations_url": "https://api.github.com/users/nir-mo/orgs",
+          "repos_url": "https://api.github.com/users/nir-mo/repos",
+          "events_url": "https://api.github.com/users/nir-mo/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/nir-mo/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "type": "reporter",
+        "state": "accepted"
+      }
+    ],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": null,
+      "score": null
+    }
+  },
+  {
+    "ghsa_id": "GHSA-22x6-3756-pfp8",
+    "cve_id": "CVE-2024-28183",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-22x6-3756-pfp8",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-22x6-3756-pfp8",
+    "summary": "Bootloader TOCTOU Vulnerability in Anti-rollback Scheme",
+    "description": "### Impact\r\n\r\nA Time-of-Check to Time-of-Use (TOCTOU) vulnerability was discovered in the implementation of the ESP-IDF bootloader which could allow an attacker with physical access to flash of the device to bypass anti-rollback protection. Anti-rollback prevents rollback to application with security version lower than one programmed in eFuse of chip.\r\n\r\nThe attack requires carefully modifying the flash contents after the anti-rollback checks have been performed by the bootloader (and before loading the application). In presence of the flash encryption scheme, this attack can allow to boot only past (passive) application partition having lower security version of the same device.\r\n\r\n### Patches\r\n\r\nAdditional checks to harden the secure version verification of the application in anti-rollback case have been added to avoid any attempts to boot lower security version but valid application (e.g., passive partition image).\r\n    \r\n1. In the bootloader, now the `secure_version` is read during the application hash (SHA256) calculation stage and it is verified after application loading stage. This check happens before handling the final control to application.\r\n\r\n2. Application startup code has been updated to ensure that the currently booting app has a equal or higher security version than the one programmed in the eFuse for anti-rollback scenario. This fix can also be deployed using OTA update for the existing devices.\r\n\r\nPatched versions of ESP-IDF Framework are listed below:\r\n\r\n| Branch | Commit ID |\r\n| -- | -- |\r\n| master | < 3305cb4d235182067936f8e940e6db174e25b4b2 & c33b9e1426121ce8cccf1a94241740be9cff68de > |\r\n| release/v5.2 | < 4c95aa445d4e84f01f86b6f3a552aa299276abf3 & b2cdc0678965790f49afeb6e6b0737cd24433a05 > |\r\n| release/v5.1 | < 7003f1ef0dffc73c34eb153d1b0710babb078149 > |\r\n| release/v5.0 | < 534e3ad1fa68526a5f989fb2163856d6b7cd2c87 >| \r\n| release/v4.4 | < f327ddf6adab0c28d395975785727b2feef57803 > |\r\n\r\n### Workarounds\r\n\r\nPlease consider updating to ESP-IDF release containing the fixes mentioned above. Alternatively, the fixes can also be cherry-picked in your codebase. \r\n\r\n### References\r\n\r\nNone applicable\r\n\r\n### Credits\r\n\r\nWe would like to thank Joseph Surin, elttam for reporting this vulnerability and following up on responsible disclosure.\r\n",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-22x6-3756-pfp8",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2024-28183",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2024-03-25T07:43:42Z",
+    "published_at": "2024-03-25T07:43:42Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "esp-idf",
+          "name": "ESP-IDF"
+        },
+        "vulnerable_version_range": "v4.4.6",
+        "patched_versions": "v4.4.7",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "esp-idf",
+          "name": "ESP-IDF"
+        },
+        "vulnerable_version_range": "v5.0.6",
+        "patched_versions": "v5.0.7 (yet-to-release)",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "esp-idf",
+          "name": "ESP-IDF"
+        },
+        "vulnerable_version_range": "v5.1.3",
+        "patched_versions": "v5.1.4",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "esp-idf",
+          "name": "ESP-IDF"
+        },
+        "vulnerable_version_range": "v5.2",
+        "patched_versions": "v5.2.1",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": null,
+        "score": null
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-367",
+        "name": "Time-of-check Time-of-use (TOCTOU) Race Condition"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-367"
+    ],
+    "credits": [],
+    "credits_detailed": [],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": null,
+      "score": null
+    }
+  },
+  {
+    "ghsa_id": "GHSA-7f7f-jj2q-28wm",
+    "cve_id": "CVE-2022-24893",
+    "url": "https://api.github.com/repos/espressif/esp-idf/security-advisories/GHSA-7f7f-jj2q-28wm",
+    "html_url": "https://github.com/espressif/esp-idf/security/advisories/GHSA-7f7f-jj2q-28wm",
+    "summary": "Espressif Bluetooth Mesh Stack Vulnerability ",
+    "description": "### Software Component\r\n\r\nESP BLE Mesh: https://github.com/espressif/esp-idf/tree/master/components/bt/esp_ble_mesh\r\nDocumentation: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/bluetooth/esp-ble-mesh.html\r\n\r\n### Impact\r\n\r\nIn Espressif\u2019s Bluetooth Mesh SDK (`ESP-BLE-MESH`), a memory corruption vulnerability can be triggered during provisioning, because there is no check for the `SegN` field of the Transaction Start PDU. This can result in memory corruption related attacks and potentially attacker gaining control of the entire system. \r\n\r\nNormally there are two fields in the Transaction Start PDU that need to be checked, i.e., the `TotalLength` field and the `SegN` field. Since we only checked the `TotalLength` field, an attacker can send a Provisioning PDU with an invalid `SegN` field, which will cause the message handled by the firmware to be much larger than the current buffer could store, thus causing a memory corruption issue to global buffer. \r\n\r\n\r\n### Patches\r\nPatched versions of ESP-IDF Framework are listed below:\r\n\r\n| Branch | Commit ID |\r\n|  :----:  | :----:  |\r\n| master    | < 5a87a9c65e00fd2ffc120c56f32e9f8145e8a11c > |\r\n| release/v4.4 | < c41208550aef5f4782aa90ab3a710e53063a615b > |\r\n| release/v4.3 | < b4ef1b80a217a6e9171e9f5b1c6fab7c4c3c649b > |\r\n| release/v4.2 | < 8b422cd8b14b0a1ee6c79f37ef8ece987de367dc > |\r\n| release/v4.1 | < 3cc92c92dc72fd546d326e612604592034ae5e57 > |\r\n\r\n### Workarounds\r\nThe upgrade is applicable for all applications and users of `ESP-BLE-MESH` component from `ESP-IDF`. As it is implemented in the Bluetooth Mesh stack, there is no workaround for the user to fix the application layer without upgrading the underlying firmware.\r\n\r\n### References\r\nNone Applicable\r\n\r\n### Credits\r\nWe would like to thank Han Yan, Lewei Qu and Dongxiang Ke from Baidu AIoT Security Team for reporting this vulnerability and following up on responsible disclosure.\r\n",
+    "severity": "medium",
+    "author": null,
+    "publisher": {
+      "login": "mahavirj",
+      "id": 902446,
+      "node_id": "MDQ6VXNlcjkwMjQ0Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/902446?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/mahavirj",
+      "html_url": "https://github.com/mahavirj",
+      "followers_url": "https://api.github.com/users/mahavirj/followers",
+      "following_url": "https://api.github.com/users/mahavirj/following{/other_user}",
+      "gists_url": "https://api.github.com/users/mahavirj/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/mahavirj/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/mahavirj/subscriptions",
+      "organizations_url": "https://api.github.com/users/mahavirj/orgs",
+      "repos_url": "https://api.github.com/users/mahavirj/repos",
+      "events_url": "https://api.github.com/users/mahavirj/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/mahavirj/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "identifiers": [
+      {
+        "value": "GHSA-7f7f-jj2q-28wm",
+        "type": "GHSA"
+      },
+      {
+        "value": "CVE-2022-24893",
+        "type": "CVE"
+      }
+    ],
+    "state": "published",
+    "created_at": null,
+    "updated_at": "2022-06-23T11:43:07Z",
+    "published_at": "2022-06-23T11:43:07Z",
+    "closed_at": null,
+    "withdrawn_at": null,
+    "submission": null,
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "esp-idf",
+          "name": "ESP-BLE-MESH"
+        },
+        "vulnerable_version_range": "v4.4.1",
+        "patched_versions": "v4.4.2",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "esp-idf",
+          "name": "ESP-BLE-MESH"
+        },
+        "vulnerable_version_range": "v4.3.2",
+        "patched_versions": "v4.3.3",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "esp-idf",
+          "name": "ESP-BLE-MESH"
+        },
+        "vulnerable_version_range": "v4.2.3",
+        "patched_versions": "v4.2.4",
+        "vulnerable_functions": []
+      },
+      {
+        "package": {
+          "ecosystem": "esp-idf",
+          "name": "ESP-BLE-MESH"
+        },
+        "vulnerable_version_range": "v4.1.3",
+        "patched_versions": "v4.1.4",
+        "vulnerable_functions": []
+      }
+    ],
+    "cvss_severities": {
+      "cvss_v3": {
+        "vector_string": null,
+        "score": null
+      },
+      "cvss_v4": {
+        "vector_string": null,
+        "score": null
+      }
+    },
+    "cwes": [
+      {
+        "cwe_id": "CWE-787",
+        "name": "Out-of-bounds Write"
+      },
+      {
+        "cwe_id": "CWE-788",
+        "name": "Access of Memory Location After End of Buffer"
+      }
+    ],
+    "cwe_ids": [
+      "CWE-787",
+      "CWE-788"
+    ],
+    "credits": [],
+    "credits_detailed": [],
+    "collaborating_users": null,
+    "collaborating_teams": null,
+    "private_fork": null,
+    "cvss": {
+      "vector_string": null,
+      "score": null
+    }
+  }
+]

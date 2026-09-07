@@ -1,0 +1,14 @@
+Changes: 10 files, 9 symbols
+Affected processes: 0
+Risk level: low
+
+Changed symbols:
+  Section Flash-day bench test (for the 2026-07-01 review fixes + gesture build) → BENCH_TEST_CHECKLIST.md
+  Section 4. New apps: Translate + Field Guide (either unit, needs the SD card) → BENCH_TEST_CHECKLIST.md
+  Function append_photo_caption → apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp
+  Function parseNmeaCoordinate → modules/core_gps/src/protocol/nmea/nmea_parser.cpp
+  Method processRmc → modules/core_gps/src/protocol/nmea/nmea_parser.cpp
+  Method processGga → modules/core_gps/src/protocol/nmea/nmea_parser.cpp
+  Function stage_photos → tools/offline_content/build_sd_content.py
+  Function main → tools/offline_content/build_sd_content.py
+  Section Field Guide photo sourcing assignments → tools/offline_content/photo_assignments.md

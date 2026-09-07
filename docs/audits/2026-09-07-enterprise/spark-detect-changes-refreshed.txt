@@ -1,0 +1,8 @@
+Changes: 6 files, 3 symbols
+Affected processes: 0
+Risk level: low
+
+Changed symbols:
+  Function parseNmeaCoordinate → modules/core_gps/src/protocol/nmea/nmea_parser.cpp
+  Method processRmc → modules/core_gps/src/protocol/nmea/nmea_parser.cpp
+  Method processGga → modules/core_gps/src/protocol/nmea/nmea_parser.cpp

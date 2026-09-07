@@ -1,0 +1,16 @@
+[
+  {
+    "target": "tdisplayp4_tft",
+    "bytes": 3116160,
+    "sha256": "16f4af2c122b2fbc7d46930c82347a4bf59fc54cd43bb6ab9bf82cd7269209e8",
+    "source": "baseline HEAD plus prior Linux/CI/GPS repairs; photo work not yet applied",
+    "flashed": false
+  },
+  {
+    "target": "tdisplayp4_amoled",
+    "bytes": 3070240,
+    "sha256": "6428dafef55844a2f14ae97ccb7c4b0708d2659f8ae42e58c4595d15e8bbf69c",
+    "source": "baseline HEAD plus prior Linux/CI/GPS repairs; photo work not yet applied",
+    "flashed": false
+  }
+]

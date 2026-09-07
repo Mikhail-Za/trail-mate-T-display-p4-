@@ -1,0 +1,56 @@
+diff --git a/.github/workflows/cardputer-zero-linux.yml b/.github/workflows/cardputer-zero-linux.yml
+index 50c20a7..811af00 100644
+--- a/.github/workflows/cardputer-zero-linux.yml
++++ b/.github/workflows/cardputer-zero-linux.yml
+@@ -18,6 +18,9 @@ on:
+       - "platform/linux/**"
+       - ".github/workflows/cardputer-zero-linux.yml"
+ 
++permissions:
++  contents: read
++
+ jobs:
+   cardputer-zero:
+     name: Cardputer Zero shell
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index fd8916c..18c165e 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -7,6 +7,9 @@ on:
+       - "v*"
+   pull_request:
+ 
++permissions:
++  contents: read
++
+ jobs:
+   boundary:
+     name: Boundary Check
+diff --git a/.github/workflows/linux-simulator.yml b/.github/workflows/linux-simulator.yml
+index 1c1eab9..df9d0b5 100644
+--- a/.github/workflows/linux-simulator.yml
++++ b/.github/workflows/linux-simulator.yml
+@@ -34,6 +34,9 @@ on:
+       - "platform/linux/**"
+       - ".github/workflows/linux-simulator.yml"
+ 
++permissions:
++  contents: read
++
+ jobs:
+   simulator:
+     name: Linux simulator shell
+diff --git a/.github/workflows/uconsole-linux.yml b/.github/workflows/uconsole-linux.yml
+index d9a94c1..10d6e37 100644
+--- a/.github/workflows/uconsole-linux.yml
++++ b/.github/workflows/uconsole-linux.yml
+@@ -18,6 +18,9 @@ on:
+       - "platform/linux/**"
+       - ".github/workflows/uconsole-linux.yml"
+ 
++permissions:
++  contents: read
++
+ jobs:
+   uconsole:
+     name: uConsole GTK shell

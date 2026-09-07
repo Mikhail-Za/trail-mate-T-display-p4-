@@ -1,0 +1,11 @@
+# S2 intake
+Authority: user requests full Trail Mate audit/fixes, now explicitly local Spark implementation with Astra sole orchestrator/reviewer; Anthropic gates overridden for this work. Tiel coding-validated native route, no cloud fallback.
+Task: harden shared core_gps NMEA coordinate validation. Actual host reproduction accepts NAN with valid=true; P4 runtime use of this parser not established, so scope is the core module.
+Scope: nmea_parser.cpp coordinate helper and RMC/GGA call sites only. Preserve other parsing semantics and original tests. Failable checks: both sentence types reject malformed/nonfinite/overflow/minute/geographic/hemisphere cases before unsafe casts; valid positions, S/W sign, boundary90/180, fragmented/checksum behavior still pass.
+Status observation: canonical service inactive/not-found, tunnel false, last old task finished; lock not busy. No preexisting owned lease. Run may cold-load Tiel under current user authorization. Actual cache warmth unknown.
+S2 telemetry registered late at2026-09-07T18:49:12.456403+00:00, cohort trailmate-bounded-cpp-hardening, paid usage/active conductor time unknown. Inputs manually chosen parser/public type headers/test only, no credentials or symlinks. Minimal private Git staging repo preserves relative paths and SHA256 hashes.
+Deadline300s per attempt; at most2 corrections; independent native verifier timeout60s using python3 check_nmea.py. Before dispatch impact analysis pending; Astra plan review then integration review under user override. Shared worker health identity hive-shared-projects verified; brief returned unknown project; no shared claims to apply.
+
+Astra independent plan review: approved bounded scope after direct caller reading and LOW upstream GitNexus analysis for all3 editable functions. Regression original tests pass; new coordinate check fails baseline at fixRevision assertion. Reject invalid inputs before cast; axis-specific validation; original tests frozen. User explicitly replaced Anthropic gate with Astra review. No broader firmware/wire-protocol changes in S2.
+
+Attempt01: task20260907-135408-2f8ca3, timeout308.5s,13assistant turns,13770generated tokens; only <cmath> include added, no test execution. Rejected. Detailed algorithm supplied for correction1; no source implementation by Astra. Snapshot/patch inspected.

@@ -1,0 +1,58 @@
+{
+  "target": {
+    "id": "Method:modules/core_gps/src/protocol/nmea/nmea_parser.cpp:processRmc#2",
+    "name": "processRmc",
+    "type": "Method",
+    "filePath": "modules/core_gps/src/protocol/nmea/nmea_parser.cpp"
+  },
+  "direction": "upstream",
+  "impactedCount": 2,
+  "risk": "LOW",
+  "riskSharedAxes": "LOW",
+  "riskScale": {
+    "comparableAcrossKinds": true,
+    "unusedAxes": []
+  },
+  "epistemic": "exact",
+  "summary": {
+    "direct": 1,
+    "processes_affected": 0,
+    "modules_affected": 1
+  },
+  "byDepthCounts": {
+    "1": 1,
+    "2": 1
+  },
+  "affected_processes": [],
+  "affected_modules": [
+    {
+      "name": "Nmea",
+      "hits": 1,
+      "impact": "direct"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "Method:modules/core_gps/src/protocol/nmea/nmea_parser.cpp:processSentence#1~shape:NmeaSentence:const:lvalue-ref:0",
+        "name": "processSentence",
+        "filePath": "modules/core_gps/src/protocol/nmea/nmea_parser.cpp",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      }
+    ],
+    "2": [
+      {
+        "depth": 2,
+        "id": "Method:modules/core_gps/src/protocol/nmea/nmea_parser.cpp:feed#2",
+        "name": "feed",
+        "filePath": "modules/core_gps/src/protocol/nmea/nmea_parser.cpp",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      }
+    ]
+  }
+}

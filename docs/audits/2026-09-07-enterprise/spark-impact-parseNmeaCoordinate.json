@@ -1,0 +1,79 @@
+{
+  "target": {
+    "id": "Function:modules/core_gps/src/protocol/nmea/nmea_parser.cpp:parseNmeaCoordinate",
+    "name": "parseNmeaCoordinate",
+    "type": "Function",
+    "filePath": "modules/core_gps/src/protocol/nmea/nmea_parser.cpp"
+  },
+  "direction": "upstream",
+  "impactedCount": 4,
+  "risk": "LOW",
+  "riskSharedAxes": "LOW",
+  "riskScale": {
+    "comparableAcrossKinds": true,
+    "unusedAxes": []
+  },
+  "epistemic": "exact",
+  "summary": {
+    "direct": 2,
+    "processes_affected": 0,
+    "modules_affected": 1
+  },
+  "byDepthCounts": {
+    "1": 2,
+    "2": 1,
+    "3": 1
+  },
+  "affected_processes": [],
+  "affected_modules": [
+    {
+      "name": "Nmea",
+      "hits": 3,
+      "impact": "direct"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "Method:modules/core_gps/src/protocol/nmea/nmea_parser.cpp:processGga#2",
+        "name": "processGga",
+        "filePath": "modules/core_gps/src/protocol/nmea/nmea_parser.cpp",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      },
+      {
+        "depth": 1,
+        "id": "Method:modules/core_gps/src/protocol/nmea/nmea_parser.cpp:processRmc#2",
+        "name": "processRmc",
+        "filePath": "modules/core_gps/src/protocol/nmea/nmea_parser.cpp",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      }
+    ],
+    "2": [
+      {
+        "depth": 2,
+        "id": "Method:modules/core_gps/src/protocol/nmea/nmea_parser.cpp:processSentence#1~shape:NmeaSentence:const:lvalue-ref:0",
+        "name": "processSentence",
+        "filePath": "modules/core_gps/src/protocol/nmea/nmea_parser.cpp",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      }
+    ],
+    "3": [
+      {
+        "depth": 3,
+        "id": "Method:modules/core_gps/src/protocol/nmea/nmea_parser.cpp:feed#2",
+        "name": "feed",
+        "filePath": "modules/core_gps/src/protocol/nmea/nmea_parser.cpp",
+        "relationType": "CALLS",
+        "confidence": 0.85,
+        "processes": []
+      }
+    ]
+  }
+}

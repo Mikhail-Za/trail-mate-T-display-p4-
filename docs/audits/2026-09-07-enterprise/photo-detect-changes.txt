@@ -1,0 +1,9 @@
+Changes: 7 files, 4 symbols
+Affected processes: 0
+Risk level: low
+
+Changed symbols:
+  Function append_photo_caption → apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp
+  Function parseNmeaCoordinate → modules/core_gps/src/protocol/nmea/nmea_parser.cpp
+  Method processRmc → modules/core_gps/src/protocol/nmea/nmea_parser.cpp
+  Method processGga → modules/core_gps/src/protocol/nmea/nmea_parser.cpp
