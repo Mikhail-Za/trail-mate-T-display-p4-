@@ -18,6 +18,9 @@ on:
       - "platform/linux/**"
       - ".github/workflows/uconsole-linux.yml"
 
+permissions:
+  contents: read
+
 jobs:
   uconsole:
     name: uConsole GTK shell

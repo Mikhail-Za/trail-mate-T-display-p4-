@@ -4,9 +4,14 @@ on:
   push:
     paths:
       - "apps/linux_sim_shell/**"
+      - "apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp"
+      - "scripts/check_field_guide_photo_safety.py"
+      - "scripts/check_field_guide_photo_staging.py"
+      - "tools/offline_content/build_sd_content.py"
       - "builds/linux_cmake/**"
       - "cmake/**"
       - "modules/core_chat/**"
+      - "modules/core_gps/**"
       - "modules/core_sys/**"
       - "modules/product_composition/**"
       - "modules/ui_ascii_runtime/**"
@@ -20,9 +25,14 @@ on:
   pull_request:
     paths:
       - "apps/linux_sim_shell/**"
+      - "apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp"
+      - "scripts/check_field_guide_photo_safety.py"
+      - "scripts/check_field_guide_photo_staging.py"
+      - "tools/offline_content/build_sd_content.py"
       - "builds/linux_cmake/**"
       - "cmake/**"
       - "modules/core_chat/**"
+      - "modules/core_gps/**"
       - "modules/core_sys/**"
       - "modules/product_composition/**"
       - "modules/ui_ascii_runtime/**"
@@ -34,6 +44,9 @@ on:
       - "platform/linux/**"
       - ".github/workflows/linux-simulator.yml"
 
+permissions:
+  contents: read
+
 jobs:
   simulator:
     name: Linux simulator shell
@@ -44,6 +57,11 @@ jobs:
 
       - name: Verify shared/platform UI boundaries
         run: python3 scripts/check_platform_ui_boundaries.py
+
+      - name: Verify field guide photo safety
+        run: |
+          python3 scripts/check_field_guide_photo_safety.py
+          python3 scripts/check_field_guide_photo_staging.py
 
       - name: Install simulator build dependencies
         run: |

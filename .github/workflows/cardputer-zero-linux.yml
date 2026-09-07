@@ -18,6 +18,9 @@ on:
       - "platform/linux/**"
       - ".github/workflows/cardputer-zero-linux.yml"
 
+permissions:
+  contents: read
+
 jobs:
   cardputer-zero:
     name: Cardputer Zero shell
