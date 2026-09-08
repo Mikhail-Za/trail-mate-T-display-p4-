@@ -36,7 +36,8 @@ class TeamService
         EncodeFail,
         EncryptFail,
         MeshSendFail,
-        UnsupportedByProtocol
+        UnsupportedByProtocol,
+        SecurityUnavailable
     };
     TeamService(team::ITeamCrypto& crypto,
                 chat::IMeshAdapter& mesh,

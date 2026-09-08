@@ -23,3 +23,5 @@ Build logs and raw model transcripts are local evidence, not repository delivera
 The Spark helper allowance change is committed in its separate local repository, which has no remote configured. spark-output-allowance.patch preserves that exact change here for remote backup. Raw transcript archive: /home/zaidm/reviews/trailmate-raw-audit-971dibli. Patch files retain Git-required blank context-line spaces; whitespace validation excludes those patch artifacts.
 
 Nonce follow-up: see NONCE-STATUS.md and NONCE-CRUCIBLE-REVIEW.md. GPT workers implemented the repair; Astra verified host checks and both firmware builds. Current routing allows GPT and Anthropic, with Spark untouched during benchmarks. Fable completed-work review approved in two rounds; see NONCE-CRUCIBLE-REVIEW.md.
+
+Team continuation: TEAM-CONTAINMENT-STATUS.md records the current bounded protection; TEAM-CRUCIBLE-REVIEW.md records its independent review. Legacy key-update/removal/recovery behavior is disabled pending an authenticated replacement. See TEAM-PROTOCOL-RECON.md for source-backed next-phase requirements, including pairing derivation failure and persistence error propagation.

@@ -1,5 +1,7 @@
 # Trail Mate engineering and security audit — 2026-09-07
 
+**Team containment continuation:** Legacy management KeyDist/KeyRequest ingress and sends are disabled. Removal and recovery UI refuse without changing keys or saving a false success. The integrated simulator suite passes 72/72 tests and both native firmware targets build. Fable completed-work review approved in one round. Pairing, leader authentication, replay protection and authenticated rotation are still open; see TEAM-CONTAINMENT-STATUS.md and TEAM-PROTOCOL-RECON.md.
+
 **Current nonce continuation:** Native Meshtastic persistent allocation and fail-closed channel loading are integrated; all three host harnesses and TFT/AMOLED builds pass. Final Fable review approved in two rounds; see NONCE-STATUS.md. Team defects and physical bench checks remain open. Current routing uses GPT workers and Anthropic review; Spark is untouched.
 
 **Photo continuation (historical):** Astra completed the photo-viewer metadata gate after explicit takeover from failed Spark task S3. Runtime regression and mutation checks pass; both TFT and AMOLED IDF5.5.4 firmware builds now pass using a rootless Podman build environment. Simulator remains71/71PASS. SD photo mapping is also repaired by Astra after S4 timed out without edits; its ten regression tests pass. Team-key and nonce repairs remain open. See PHOTO-REVIEW.md, PHOTO-STAGING-REVIEW.md and SECURITY-IMPLEMENTATION-PLAN.md. Earlier toolchain-unavailable statements below are historical. Nothing flashed.
@@ -25,7 +27,7 @@ This is a risk-based engineering audit with recorded coverage and gaps, not a ce
 
 | ID | Priority | Finding | Evidence | Disposition |
 |---|---|---|---|---|
-| TM-01 | High | Plaintext foreign-team KeyDist replaces existing service keys | Host reproduced + code traced | Open; authorization fix required |
+| TM-01 | High | Plaintext foreign-team KeyDist replaces existing service keys | Host reproduced + code traced | Legacy management path contained and independently reviewed; authenticated protocol remains open |
 | TM-02 | High | Missing photo credits silently remove safety-critical species label while image remains visible | Host regression + TFT/AMOLED builds | Applied; viewer gate and staging mapping repaired; device/card checks pending |
 | TM-03 | High, mode-dependent | Legacy pairing carries raw PSK; pairing source metadata is not authentication | Code traced | Open; secure pairing design/compatibility required |
 | TM-04 | Medium | Linux phone-core smoke executable omits channel_hash.cpp | Failed-before / passed-after host build | Applied; original69tests pass |

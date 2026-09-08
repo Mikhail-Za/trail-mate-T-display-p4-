@@ -279,6 +279,11 @@ void notify_send_failed_detail(const char* action, team::TeamService::SendError 
     case team::TeamService::SendError::UnsupportedByProtocol:
         reason = "unsupported protocol";
         break;
+    case team::TeamService::SendError::SecurityUnavailable:
+        reason = action && std::string(action) == "Kick"
+                     ? "secure removal unavailable"
+                     : "secure key update unavailable";
+        break;
     default:
         break;
     }
@@ -1594,8 +1599,12 @@ void handle_kick_confirm(lv_event_t*)
         random,
         deferred,
         app::messagingFacade().getSelfNodeId());
-    apply_command_state_to_page(state);
     apply_kick_confirm_failures(effects);
+    if (!effects.accepted)
+    {
+        return;
+    }
+    apply_command_state_to_page(state);
     save_state_to_store();
     nav_reset(TeamPage::StatusInTeam);
 }

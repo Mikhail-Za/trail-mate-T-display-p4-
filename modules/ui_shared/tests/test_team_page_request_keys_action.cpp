@@ -103,7 +103,7 @@ class FakeController final : public team::ui::ITeamPageControllerPort
     chat::NodeId last_dest = 0;
 };
 
-void testEligibleMemberSendsKeyRequest()
+void testEligibleMemberRecoveryIsUnavailable()
 {
     auto state = makeEligibleMemberState();
     FakeController controller;
@@ -117,16 +117,13 @@ void testEligibleMemberSendsKeyRequest()
 
     assert(effects.accepted);
     assert(!effects.ignored);
-    assert(effects.sent_request);
-    assert(!effects.send_failed);
-    assert(controller.sent_key_request_count == 1);
-    assert(controller.last_request.team_id == testTeamId());
-    assert(controller.last_request.current_key_id == 7);
-    assert(controller.last_request.requester_id == 0x22222222);
-    assert(controller.last_dest == 0);
+    assert(!effects.sent_request);
+    assert(effects.send_failed);
+    assert(effects.error == team::TeamService::SendError::SecurityUnavailable);
+    assert(controller.sent_key_request_count == 0);
 }
 
-void testSendFailureIsReported()
+void testUnavailableDoesNotDependOnControllerResult()
 {
     auto state = makeEligibleMemberState();
     FakeController controller;
@@ -143,7 +140,8 @@ void testSendFailureIsReported()
     assert(effects.accepted);
     assert(!effects.sent_request);
     assert(effects.send_failed);
-    assert(effects.error == team::TeamService::SendError::MeshSendFail);
+    assert(effects.error == team::TeamService::SendError::SecurityUnavailable);
+    assert(controller.sent_key_request_count == 0);
 }
 
 void testMissingRuntimeIsReportedAsSendFailure()
@@ -160,11 +158,13 @@ void testMissingRuntimeIsReportedAsSendFailure()
     assert(effects.accepted);
     assert(!effects.sent_request);
     assert(effects.send_failed);
+    assert(effects.error == team::TeamService::SendError::SecurityUnavailable);
 }
 
 void testInvalidStatesAreIgnored()
 {
-    team::ui::TeamPageRuntimePort runtime(nullptr, nullptr, nullptr);
+    FakeController controller;
+    team::ui::TeamPageRuntimePort runtime(&controller, nullptr, nullptr);
 
     auto state = makeEligibleMemberState();
     state.in_team = false;
@@ -176,6 +176,7 @@ void testInvalidStatesAreIgnored()
     assert(!effects.accepted);
     assert(effects.ignored);
     assert(!effects.sent_request);
+    assert(controller.sent_key_request_count == 0);
 
     state = makeEligibleMemberState();
     state.self_is_leader = true;
@@ -211,8 +212,8 @@ void testInvalidStatesAreIgnored()
 
 int main()
 {
-    testEligibleMemberSendsKeyRequest();
-    testSendFailureIsReported();
+    testEligibleMemberRecoveryIsUnavailable();
+    testUnavailableDoesNotDependOnControllerResult();
     testMissingRuntimeIsReportedAsSendFailure();
     testInvalidStatesAreIgnored();
     return 0;

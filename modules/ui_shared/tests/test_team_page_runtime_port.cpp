@@ -214,6 +214,7 @@ void testPortDelegatesControllerAndPairing()
 
 void testPortDelegatesSendsAndErrors()
 {
+    // Fake success here verifies port wiring only; action/service tests enforce refusal.
     FakeController controller;
     team::ui::TeamPageRuntimePort port(&controller, nullptr, nullptr);
 

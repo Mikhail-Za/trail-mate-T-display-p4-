@@ -92,83 +92,30 @@ team::ui::TeamPageDeferredDispatchQueue makeQueue()
     return team::ui::TeamPageDeferredDispatchQueue(config);
 }
 
-void testKeyDistRetriesRespectDelayAndDeduplicate()
+void testKeyDistRetriesAreClearedAsUnavailable(bool runtime_present)
 {
     auto queue = makeQueue();
     FakeDispatchPort port;
     auto state = readyState();
+    port.has_controller = runtime_present;
 
     queue.enqueueKeyDist(0x22222222, 13, 100);
     queue.enqueueKeyDist(0x22222222, 13, 100);
     assert(queue.keyDistPendingCount() == 1);
 
-    auto effects = queue.processKeyDistRetries(state, port, 104);
+    const auto psk_before = state.team_psk;
+    const auto effects = queue.processKeyDistRetries(state, port, 0);
     assert(!effects.sent_keydist);
     assert(port.keydist_send_count == 0);
-
-    effects = queue.processKeyDistRetries(state, port, 105);
-    assert(effects.sent_keydist);
-    assert(port.keydist_send_count == 1);
-    assert(port.last_keydist_dest == 0x22222222);
-    assert(port.last_keydist.team_id == testTeamId());
-    assert(port.last_keydist.key_id == 13);
-    assert(port.last_keydist.channel_psk_len ==
-           team::proto::kTeamChannelPskSize);
-    assert(port.last_keydist.channel_psk[0] == 0x42);
-
-    queue.confirmKeyDist(0x22222222, 13);
     assert(queue.keyDistPendingCount() == 0);
-}
-
-void testKeyDistFailureEffects()
-{
-    auto queue = makeQueue();
-    FakeDispatchPort port;
-    auto state = readyState();
-    port.keydist_ok = false;
-    port.error = team::TeamService::SendError::MeshSendFail;
-
-    queue.enqueueKeyDist(0x33333333, 21, 0);
-    auto effects = queue.processKeyDistRetries(state, port, 5);
-
-    assert(effects.sent_keydist);
     assert(effects.failures.size() == 1);
     assert(effects.failures[0].action ==
            team::ui::TeamPageDeferredDispatchAction::KeyDist);
     assert(effects.failures[0].kind ==
            team::ui::TeamPageDeferredDispatchFailureKind::SendFailedDetail);
     assert(effects.failures[0].error ==
-           team::TeamService::SendError::MeshSendFail);
-
-    port.keydist_ok = true;
-    effects = queue.processKeyDistRetries(state, port, 10);
-    assert(effects.failures.empty());
-    effects = queue.processKeyDistRetries(state, port, 15);
-    assert(effects.failures.size() == 1);
-    assert(effects.failures[0].kind ==
-           team::ui::TeamPageDeferredDispatchFailureKind::SendFailed);
-    assert(queue.keyDistPendingCount() == 0);
-}
-
-void testKeyDistMissingRuntimeDoesNothing()
-{
-    auto queue = makeQueue();
-    FakeDispatchPort port;
-    auto state = readyState();
-    port.has_controller = false;
-
-    queue.enqueueKeyDist(0x33333333, 21, 0);
-    auto effects = queue.processKeyDistRetries(state, port, 5);
-
-    assert(!effects.sent_keydist);
-    assert(port.keydist_send_count == 0);
-    assert(queue.keyDistPendingCount() == 1);
-
-    state.has_team_psk = false;
-    port.has_controller = true;
-    effects = queue.processKeyDistRetries(state, port, 10);
-    assert(!effects.sent_keydist);
-    assert(port.keydist_send_count == 0);
+           team::TeamService::SendError::SecurityUnavailable);
+    assert(state.team_psk == psk_before);
 }
 
 void testStatusBroadcastSendsAndReschedules()
@@ -234,9 +181,8 @@ void testStatusBroadcastFailureAndInvalidLeaderState()
 
 int main()
 {
-    testKeyDistRetriesRespectDelayAndDeduplicate();
-    testKeyDistFailureEffects();
-    testKeyDistMissingRuntimeDoesNothing();
+    testKeyDistRetriesAreClearedAsUnavailable(true);
+    testKeyDistRetriesAreClearedAsUnavailable(false);
     testStatusBroadcastSendsAndReschedules();
     testStatusBroadcastFailureAndInvalidLeaderState();
     return 0;

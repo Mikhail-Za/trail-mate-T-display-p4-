@@ -370,6 +370,24 @@ if(BUILD_TESTING)
     add_test(NAME trailmate_team_app_data_poll_order_smoke
              COMMAND trailmate_team_app_data_poll_order_smoke)
 
+    add_executable(trailmate_team_key_distribution_containment_smoke
+        "${TRAIL_MATE_REPO_ROOT}/modules/core_team/tests/test_team_key_distribution_containment.cpp"
+        "${TRAIL_MATE_REPO_ROOT}/modules/core_team/src/protocol/team_chat.cpp"
+        "${TRAIL_MATE_REPO_ROOT}/modules/core_team/src/protocol/team_wire.cpp"
+        "${TRAIL_MATE_REPO_ROOT}/modules/core_team/src/protocol/team_waypoint.cpp"
+        "${TRAIL_MATE_REPO_ROOT}/modules/core_team/src/protocol/team_mgmt.cpp"
+        "${TRAIL_MATE_REPO_ROOT}/modules/core_team/src/usecase/team_service.cpp"
+        "${TRAIL_MATE_REPO_ROOT}/modules/core_sys/src/sys/clock.cpp")
+    target_include_directories(trailmate_team_key_distribution_containment_smoke
+        PRIVATE
+            "${TRAIL_MATE_REPO_ROOT}/modules/core_chat/include"
+            "${TRAIL_MATE_REPO_ROOT}/modules/core_team/include"
+            "${TRAIL_MATE_REPO_ROOT}/modules/core_sys/include")
+    target_compile_features(trailmate_team_key_distribution_containment_smoke
+        PRIVATE cxx_std_17)
+    add_test(NAME trailmate_team_key_distribution_containment_smoke
+             COMMAND trailmate_team_key_distribution_containment_smoke)
+
     add_executable(trailmate_team_page_read_model_smoke
         "${TRAIL_MATE_REPO_ROOT}/modules/ui_shared/tests/test_team_page_read_model.cpp"
         "${TRAIL_MATE_REPO_ROOT}/modules/ui_shared/src/ui/screens/team/team_page_read_model.cpp"

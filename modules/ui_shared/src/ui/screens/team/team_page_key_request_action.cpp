@@ -26,6 +26,8 @@ TeamPageKeyRequestEffects TeamPageKeyRequestAction::handleRequest(
     const team::TeamKeyRequestEvent& event,
     const TeamPageRuntimePort& runtime) const
 {
+    (void)runtime;
+
     TeamPageKeyRequestEffects effects;
     const uint32_t requester =
         event.msg.requester_id != 0 ? event.msg.requester_id : event.ctx.from;
@@ -40,28 +42,9 @@ TeamPageKeyRequestEffects TeamPageKeyRequestAction::handleRequest(
     }
 
     effects.accepted = true;
-    if (!runtime.hasController())
-    {
-        effects.failures.push_back(
-            makeFailure(TeamPageKeyRequestFailureKind::SendFailedDetail));
-        return effects;
-    }
-
-    team::proto::TeamKeyDist key_dist{};
-    key_dist.team_id = state.team_id;
-    key_dist.key_id = state.security_round;
-    key_dist.channel_psk_len =
-        static_cast<uint8_t>(state.team_psk.size());
-    key_dist.channel_psk = state.team_psk;
-
-    effects.sent_keydist =
-        runtime.sendKeyDist(key_dist, chat::ChannelId::PRIMARY, requester);
-    if (!effects.sent_keydist)
-    {
-        effects.failures.push_back(makeFailure(
-            TeamPageKeyRequestFailureKind::SendFailedDetail,
-            runtime.lastSendError()));
-    }
+    effects.failures.push_back(makeFailure(
+        TeamPageKeyRequestFailureKind::SendFailedDetail,
+        team::TeamService::SendError::SecurityUnavailable));
     return effects;
 }
 

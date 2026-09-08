@@ -117,7 +117,7 @@ class FakeController final : public team::ui::ITeamPageControllerPort
     chat::NodeId last_dest = 0;
 };
 
-void testLeaderRespondsWithKeyDist()
+void testLeaderRecoveryResponseIsUnavailable()
 {
     auto state = makeLeaderState();
     auto request = makeRequest();
@@ -130,24 +130,22 @@ void testLeaderRespondsWithKeyDist()
         runtime);
 
     assert(effects.accepted);
-    assert(effects.sent_keydist);
-    assert(effects.failures.empty());
-    assert(controller.sent_keydist_count == 1);
-    assert(controller.last_dest == 0x22222222);
-    assert(controller.last_keydist.team_id == testTeamId());
-    assert(controller.last_keydist.key_id == 9);
-    assert(controller.last_keydist.channel_psk_len ==
-           team::proto::kTeamChannelPskSize);
-    assert(controller.last_keydist.channel_psk[0] == 0xA5);
+    assert(!effects.sent_keydist);
+    assert(effects.failures.size() == 1);
+    assert(effects.failures[0].kind ==
+           team::ui::TeamPageKeyRequestFailureKind::SendFailedDetail);
+    assert(effects.failures[0].error ==
+           team::TeamService::SendError::SecurityUnavailable);
+    assert(controller.sent_keydist_count == 0);
+    assert(state.team_psk[0] == 0xA5);
 }
 
-void testRequestCanFallbackToEventSender()
+void testFallbackRequesterIsUnavailableWithoutRuntime()
 {
     auto state = makeLeaderState();
     auto request = makeRequest();
     request.msg.requester_id = 0;
-    FakeController controller;
-    team::ui::TeamPageRuntimePort runtime(&controller, nullptr, nullptr);
+    team::ui::TeamPageRuntimePort runtime(nullptr, nullptr, nullptr);
 
     const auto effects = team::ui::TeamPageKeyRequestAction().handleRequest(
         state,
@@ -155,13 +153,16 @@ void testRequestCanFallbackToEventSender()
         runtime);
 
     assert(effects.accepted);
-    assert(effects.sent_keydist);
-    assert(controller.last_dest == 0x22222222);
+    assert(!effects.sent_keydist);
+    assert(effects.failures.size() == 1);
+    assert(effects.failures[0].error ==
+           team::TeamService::SendError::SecurityUnavailable);
 }
 
 void testInvalidRequestsAreIgnored()
 {
-    team::ui::TeamPageRuntimePort runtime(nullptr, nullptr, nullptr);
+    FakeController controller;
+    team::ui::TeamPageRuntimePort runtime(&controller, nullptr, nullptr);
 
     auto state = makeLeaderState();
     state.self_is_leader = false;
@@ -171,6 +172,7 @@ void testInvalidRequestsAreIgnored()
         runtime);
     assert(!effects.accepted);
     assert(!effects.failures.empty());
+    assert(controller.sent_keydist_count == 0);
 
     state = makeLeaderState();
     state.has_team_psk = false;
@@ -192,36 +194,12 @@ void testInvalidRequestsAreIgnored()
     assert(!effects.failures.empty());
 }
 
-void testSendFailureIsReported()
-{
-    auto state = makeLeaderState();
-    auto request = makeRequest();
-    FakeController controller;
-    controller.send_ok = false;
-    controller.error = team::TeamService::SendError::MeshSendFail;
-    team::ui::TeamPageRuntimePort runtime(&controller, nullptr, nullptr);
-
-    const auto effects = team::ui::TeamPageKeyRequestAction().handleRequest(
-        state,
-        request,
-        runtime);
-
-    assert(effects.accepted);
-    assert(!effects.sent_keydist);
-    assert(effects.failures.size() == 1);
-    assert(effects.failures[0].kind ==
-           team::ui::TeamPageKeyRequestFailureKind::SendFailedDetail);
-    assert(effects.failures[0].error ==
-           team::TeamService::SendError::MeshSendFail);
-}
-
 } // namespace
 
 int main()
 {
-    testLeaderRespondsWithKeyDist();
-    testRequestCanFallbackToEventSender();
+    testLeaderRecoveryResponseIsUnavailable();
+    testFallbackRequesterIsUnavailableWithoutRuntime();
     testInvalidRequestsAreIgnored();
-    testSendFailureIsReported();
     return 0;
 }

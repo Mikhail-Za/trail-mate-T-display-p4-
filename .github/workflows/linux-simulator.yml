@@ -18,6 +18,10 @@ on:
       - "builds/linux_cmake/**"
       - "cmake/**"
       - "modules/core_chat/**"
+      - "modules/core_team/**"
+      - "modules/ui_shared/**"
+      - "scripts/check_team_containment_ui.py"
+      - "platform/esp/arduino_common/src/hostlink/hostlink_service.cpp"
       - "modules/core_gps/**"
       - "modules/core_sys/**"
       - "modules/product_composition/**"
@@ -46,6 +50,10 @@ on:
       - "builds/linux_cmake/**"
       - "cmake/**"
       - "modules/core_chat/**"
+      - "modules/core_team/**"
+      - "modules/ui_shared/**"
+      - "scripts/check_team_containment_ui.py"
+      - "platform/esp/arduino_common/src/hostlink/hostlink_service.cpp"
       - "modules/core_gps/**"
       - "modules/core_sys/**"
       - "modules/product_composition/**"
@@ -82,6 +90,7 @@ jobs:
           python3 scripts/check_packet_id_storage.py
           python3 scripts/check_radio_packet_ids.py
           python3 scripts/check_channel_config_load.py
+          python3 scripts/check_team_containment_ui.py
 
       - name: Install simulator build dependencies
         run: |

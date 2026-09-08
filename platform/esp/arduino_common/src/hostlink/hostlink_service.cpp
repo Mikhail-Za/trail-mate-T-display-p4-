@@ -166,6 +166,7 @@ ErrorCode map_team_send_error(team::TeamService::SendError err)
     case team::TeamService::SendError::MeshSendFail:
         return ErrorCode::Busy;
     case team::TeamService::SendError::UnsupportedByProtocol:
+    case team::TeamService::SendError::SecurityUnavailable:
         return ErrorCode::Unsupported;
     case team::TeamService::SendError::EncodeFail:
     case team::TeamService::SendError::EncryptFail:

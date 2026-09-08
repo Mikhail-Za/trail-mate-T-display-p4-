@@ -1,0 +1,54 @@
+{
+  "baseline": "bebf9a8",
+  "production_sha256": {
+    "modules/core_team/include/team/usecase/team_service.h": "d9bdd87f449121ac7d805e1aea2ec8eb855844c794635b9b36d69af053b05e84",
+    "modules/core_team/src/usecase/team_service.cpp": "3c75fac05ccd05f94997a8a7be65057b90ac92b6f57864b25ea1214484cca04a",
+    "modules/ui_shared/src/ui/screens/team/team_page_components.cpp": "6cd69847d3f75b8e999697693ed659f1669a422781e4f053532ffe19cdd1cdba",
+    "modules/ui_shared/src/ui/screens/team/team_page_deferred_dispatch.cpp": "bb46bf11602a43235b288e991b9be2aec7c2f3289dda8aa6bdbc361e7958caa6",
+    "modules/ui_shared/src/ui/screens/team/team_page_key_request_action.cpp": "9b0e86c4cc44aa509c9610960c3931d059a8add9e7723aa3eadb39d8454fab19",
+    "modules/ui_shared/src/ui/screens/team/team_page_kick_confirm_action.cpp": "75174f585a866483fe202b1d0fe28c546007930e0afa3eebfbc37068f7edb436",
+    "modules/ui_shared/src/ui/screens/team/team_page_lvgl_renderer.cpp": "111b45c9dc72da3a855dcee9ef2f7014caf3a32c78e436666737734c2dad75d0",
+    "modules/ui_shared/src/ui/screens/team/team_page_request_keys_action.cpp": "2e5dda66702cb93aaeda96aa1db77a4deb037626dbcd2d3cba7e2533b449b836",
+    "platform/esp/arduino_common/src/hostlink/hostlink_service.cpp": "0ae00f0b4e5d6efeac90e68eb7e1aec98ae3907f6179d038bfafd8aa4e03a716"
+  },
+  "toolchain": "docker.io/espressif/idf:v5.5.4",
+  "dependencies_lock_sha256": "1dde8d4a34b9bca75a2fe906d7fb6c438ad315f3a80ddc5aa47a17f53ef7dce2",
+  "simulator": {
+    "build_exit": 0,
+    "tests_passed": 72,
+    "tests_failed": 0
+  },
+  "checks": {
+    "core_regression": "pass; baseline service fails derivation assertion",
+    "ui_live_handler": "pass; guard-removal mutation fails exact counters assertion",
+    "photo_viewer_and_staging": "pass",
+    "nonce_storage_radio_and_channel_loading": "pass",
+    "platform_ui_boundaries": "pass",
+    "root_artifacts": "pass"
+  },
+  "firmware": {
+    "tft": {
+      "build_exit": 0,
+      "bytes": 3116752,
+      "sha256": "0319562628f52756193a1a9951419c375c9c3f3dfd78e9ce8586953f2bcc1436"
+    },
+    "amoled": {
+      "build_exit": 0,
+      "bytes": 3070848,
+      "sha256": "c482d51decb2562bf02b9d7d33238fe3a85c976f0e49a7dcb63114c8c280103b"
+    }
+  },
+  "limitations": [
+    "No hardware flash, physical radio, NVS power-loss or display interaction test",
+    "Host crypto substitutes test control flow and key selection, not cryptographic authentication",
+    "Legacy Team management update/removal/recovery paths deliberately unavailable",
+    "Pairing authentication, leader authorization, replay and safe rotation remain open"
+  ],
+  "completed_work_review": {
+    "model": "claude-fable-5-1",
+    "session": "d25158de-59b2-41a8-9ff8-fb8f1ee31b6b",
+    "rounds": 1,
+    "verdict": "APPROVED",
+    "artifact_sha256": "73329c4bdf3f5be277fffab66cede3149abdc90d3468c21cdc72c620ce85cf55"
+  }
+}

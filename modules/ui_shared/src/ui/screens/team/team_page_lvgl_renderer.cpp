@@ -381,7 +381,7 @@ void TeamPageLvglRenderer::renderStatusInTeam(
     if (!summary.has_security_round)
     {
         addLabel(context.body, ::ui::i18n::tr("KeyId: --"), false, true);
-        addLabel(context.body, ::ui::i18n::tr("Security: OK (Round --)"), false, true);
+        addLabel(context.body, ::ui::i18n::tr("Key round: --"), false, true);
     }
     else
     {
@@ -392,7 +392,7 @@ void TeamPageLvglRenderer::renderStatusInTeam(
                  false,
                  true);
         addLabel(context.body,
-                 ::ui::i18n::format("Security: OK (Round %u)",
+                 ::ui::i18n::format("Key round: %u",
                                     static_cast<unsigned>(summary.security_round))
                      .c_str(),
                  false,
@@ -400,7 +400,7 @@ void TeamPageLvglRenderer::renderStatusInTeam(
     }
     if (summary.waiting_new_keys)
     {
-        addLabel(context.body, ::ui::i18n::tr("Waiting for new keys..."), false, true);
+        addLabel(context.body, ::ui::i18n::tr("Key recovery unavailable"), false, true);
     }
 
     addLabel(context.body, ::ui::i18n::tr("Team Health"), true, false);
@@ -427,7 +427,7 @@ void TeamPageLvglRenderer::renderStatusInTeam(
         context.action_btns[1] =
             input.self_is_leader
                 ? createActionButton(context, "Pair Member", handlers.invite)
-                : createActionButton(context, "Request Keys", handlers.request_keys);
+                : createActionButton(context, "Key Recovery", handlers.request_keys);
         registerFocus(context, context.action_btns[1]);
     }
     if (context.action_btns && context.action_btn_count > 2)

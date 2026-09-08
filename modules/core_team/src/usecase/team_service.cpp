@@ -164,26 +164,6 @@ void logTeamTransferLeader(const team::proto::TeamTransferLeader& msg, const cha
     TEAM_LOG("[TEAM] %s TransferLeader target=%08lX\n", dir, static_cast<unsigned long>(msg.target));
 }
 
-void logTeamKeyDist(const team::proto::TeamKeyDist& msg, const char* dir)
-{
-    std::string psk_hex = toHex(msg.channel_psk.data(), msg.channel_psk_len, msg.channel_psk_len);
-    TEAM_LOG("[TEAM] %s KeyDist team_id=%s key_id=%lu psk_len=%u psk_hex=%s\n",
-             dir,
-             hexFromArray(msg.team_id).c_str(),
-             static_cast<unsigned long>(msg.key_id),
-             static_cast<unsigned>(msg.channel_psk_len),
-             psk_hex.c_str());
-}
-
-void logTeamKeyRequest(const team::proto::TeamKeyRequest& msg, const char* dir)
-{
-    TEAM_LOG("[TEAM] %s KeyRequest team_id=%s current_key_id=%lu requester=%08lX\n",
-             dir,
-             hexFromArray(msg.team_id).c_str(),
-             static_cast<unsigned long>(msg.current_key_id),
-             static_cast<unsigned long>(msg.requester_id));
-}
-
 void logTeamStatus(const team::proto::TeamStatus& msg, const char* dir)
 {
     TEAM_LOG("[TEAM] %s Status key_id=%lu member_hash=%s params_has=%u pos_ms=%lu precision=%u flags=0x%08lX members=%u leader=%08lX\n",
@@ -445,48 +425,10 @@ void TeamService::processIncoming()
                 break;
             }
             case team::proto::TeamMgmtType::KeyDist:
-            {
-                team::proto::TeamKeyDist msg;
-                if (!team::proto::decodeTeamKeyDist(payload.data(), payload.size(), &msg))
-                {
-                    emitError(data, TeamProtocolError::DecodeFail,
-                              decoded_encrypted ? &envelope : nullptr);
-                    break;
-                }
-                logTeamKeyDist(msg, "RX");
-                TeamKeyDistEvent event{makeContext(data, decoded_encrypted ? &envelope : nullptr, runtime_), msg};
-                sink_.onTeamKeyDist(event);
-                rememberTeamMember(event.ctx.from);
-
-                if (msg.channel_psk_len > 0 && msg.key_id != 0)
-                {
-                    setKeysFromPsk(msg.team_id, msg.key_id,
-                                   msg.channel_psk.data(), msg.channel_psk_len);
-                }
-                break;
-            }
             case team::proto::TeamMgmtType::KeyRequest:
             {
-                if (!decoded_encrypted)
-                {
-                    break;
-                }
-                team::proto::TeamKeyRequest msg;
-                if (!team::proto::decodeTeamKeyRequest(payload.data(), payload.size(), &msg))
-                {
-                    emitError(data, TeamProtocolError::DecodeFail,
-                              decoded_encrypted ? &envelope : nullptr);
-                    break;
-                }
-                auto ctx = makeContext(data, &envelope, runtime_);
-                if (msg.requester_id == 0)
-                {
-                    msg.requester_id = ctx.from;
-                }
-                logTeamKeyRequest(msg, "RX");
-                TeamKeyRequestEvent event{ctx, msg};
-                sink_.onTeamKeyRequest(event);
-                rememberTeamMember(event.ctx.from);
+                // Legacy group encryption cannot authenticate the leader or safely
+                // exclude a removed peer, so these messages remain disabled.
                 break;
             }
             case team::proto::TeamMgmtType::Status:
@@ -682,65 +624,28 @@ bool TeamService::sendTransferLeader(const team::proto::TeamTransferLeader& msg,
                              want_ack, want_response);
 }
 
-bool TeamService::sendKeyDist(const team::proto::TeamKeyDist& msg,
-                              chat::ChannelId channel, chat::NodeId dest,
-                              bool want_ack, bool want_response)
+bool TeamService::sendKeyDist(const team::proto::TeamKeyDist&,
+                              chat::ChannelId, chat::NodeId,
+                              bool, bool)
 {
-    std::vector<uint8_t> payload;
-    if (!team::proto::encodeTeamKeyDist(msg, payload))
-    {
-        last_send_error_ = SendError::EncodeFail;
-        return false;
-    }
-    logTeamKeyDist(msg, "TX");
-    std::string payload_hex = toHex(payload.data(), payload.size(), payload.size());
-    TEAM_LOG("[TEAM] TX TEAM_MGMT KeyDist payload_len=%u payload_hex=%s\n",
-             static_cast<unsigned>(payload.size()),
-             payload_hex.c_str());
-    return sendMgmtEncrypted(team::proto::TeamMgmtType::KeyDist, payload, channel, dest,
-                             want_ack, want_response);
+    last_send_error_ = SendError::SecurityUnavailable;
+    return false;
 }
 
-bool TeamService::sendKeyDistPlain(const team::proto::TeamKeyDist& msg,
-                                   chat::ChannelId channel, chat::NodeId dest,
-                                   bool want_ack, bool want_response)
+bool TeamService::sendKeyDistPlain(const team::proto::TeamKeyDist&,
+                                   chat::ChannelId, chat::NodeId,
+                                   bool, bool)
 {
-    std::vector<uint8_t> payload;
-    if (!team::proto::encodeTeamKeyDist(msg, payload))
-    {
-        last_send_error_ = SendError::EncodeFail;
-        return false;
-    }
-    logTeamKeyDist(msg, "TX");
-    std::string payload_hex = toHex(payload.data(), payload.size(), payload.size());
-    TEAM_LOG("[TEAM] TX TEAM_MGMT KeyDist (plain) payload_len=%u payload_hex=%s\n",
-             static_cast<unsigned>(payload.size()),
-             payload_hex.c_str());
-    return sendMgmtPlain(team::proto::TeamMgmtType::KeyDist, payload, channel, dest,
-                         want_ack, want_response);
+    last_send_error_ = SendError::SecurityUnavailable;
+    return false;
 }
 
-bool TeamService::sendKeyRequest(const team::proto::TeamKeyRequest& msg,
-                                 chat::ChannelId channel, chat::NodeId dest,
-                                 bool want_ack, bool want_response)
+bool TeamService::sendKeyRequest(const team::proto::TeamKeyRequest&,
+                                 chat::ChannelId, chat::NodeId,
+                                 bool, bool)
 {
-    std::vector<uint8_t> payload;
-    if (!team::proto::encodeTeamKeyRequest(msg, payload))
-    {
-        last_send_error_ = SendError::EncodeFail;
-        return false;
-    }
-    logTeamKeyRequest(msg, "TX");
-    std::string payload_hex = toHex(payload.data(), payload.size(), payload.size());
-    TEAM_LOG("[TEAM] TX TEAM_MGMT KeyRequest payload_len=%u payload_hex=%s\n",
-             static_cast<unsigned>(payload.size()),
-             payload_hex.c_str());
-    return sendMgmtEncrypted(team::proto::TeamMgmtType::KeyRequest,
-                             payload,
-                             channel,
-                             dest,
-                             want_ack,
-                             want_response);
+    last_send_error_ = SendError::SecurityUnavailable;
+    return false;
 }
 
 bool TeamService::sendStatus(const team::proto::TeamStatus& msg,

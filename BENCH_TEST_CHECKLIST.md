@@ -173,3 +173,14 @@ Follow `docs/audits/2026-09-07-enterprise/NONCE-MIGRATION.md` before testing. Th
 - [ ] On the isolated fault-injection setup, fail NVS open/read/set/commit and interrupt power around reservation. No packet may transmit without a successful durable reservation. An uncertain commit must suppress TX for the remainder of that boot; reboot resumes past any committed reservation.
 - [ ] A corrupt/unreadable saved channel blob must prevent native Meshtastic runtime creation and nonce migration; it must not silently use defaults or overwrite the blob. Recover the original configuration and verify the old private-key block remains effective. MeshCore boot should remain available when only the Meshtastic channel blob is invalid.
 - [ ] Confirm storage/migration denials emit a useful, rate-limited error without key material. After any manual/automatic NVS erase or full backup restore, provision fresh private keys before field use.
+
+## Team legacy key-update containment (September 2026)
+
+These are pending physical checks for the containment patch, not a secure-pairing certification. Use synthetic test keys and keep raw captures and keys out of Git. Do not flash with generic IDF partition offsets; follow the existing app-only multiboot deployment procedure.
+
+- [ ] Restore an existing Team snapshot and verify ordinary Team chat/status/position traffic still works between units with matching keys.
+- [ ] Select a valid member for removal. Confirm an unavailable notice appears, with no success transition, changed roster, changed key round, persisted key change or outgoing Kick/KeyDist packet.
+- [ ] Tap Key Recovery as a member. Confirm the unavailable explanation and no transmitted KeyRequest. Verify a key-mismatch state does not promise that new keys are arriving.
+- [ ] Inject legacy management KeyDist/KeyRequest packets (plaintext and protected by the current shared group key) on an isolated test setup. Confirm no key installation, key response, pending retry or persistence change; subsequent ordinary messages still use the original keys.
+- [ ] Verify hostlink key-update commands return Unsupported without sending key material. Existing protocol-specific Unsupported responses should remain unchanged.
+- [ ] Keep authenticated pairing, leader authorization, replay protection and safe member exclusion tracked as separate unfinished work. Pair Member is not a secure workaround for the disabled recovery path.

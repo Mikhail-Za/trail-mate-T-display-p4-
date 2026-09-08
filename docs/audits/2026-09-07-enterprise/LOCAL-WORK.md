@@ -40,3 +40,7 @@ See NONCE-STATUS.md for the authoritative continuation. First local storage atte
 ## GPT continuation
 
 Three parallel Sol workers delivered storage, adapter and channel-loader assignments after Fable approved the revised plan. Astra reviewed and integrated actual diffs and independently passed the host checks and both firmware builds. See NONCE-STATUS.md and NONCE-CRUCIBLE-REVIEW.md for current acceptance and migration requirements. Earlier Spark retry instructions are superseded; do not dispatch them.
+
+## Team containment continuation
+
+Fable plan review REVISE then APPROVED; Astra accepted missed recovery action/UI/test findings before dispatch. Two Sol workers implemented core/UI protection in isolated worktrees; Terra performed read-only authenticated-protocol recon. Astra reproduced the baseline service key-replacement assertion failure, verified the new CMake test and full 72-test simulator suite, and built both firmware targets. Fable completed-work review approved in one round; live UI guard/mutation check passed. Spark untouched; no physical flash or RF test. See TEAM-CONTAINMENT-STATUS.md.

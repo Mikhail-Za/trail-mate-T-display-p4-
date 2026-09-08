@@ -101,57 +101,21 @@ TeamPageDeferredDispatchQueue::processKeyDistRetries(
     ITeamPageDeferredDispatchPort& port,
     uint32_t now_s)
 {
+    (void)state;
+    (void)port;
+    (void)now_s;
+
     TeamPageDeferredDispatchEffects effects;
-    if (keydist_pending_.empty() || !state.has_team_psk ||
-        !state.has_team_id || !port.hasController())
+    if (keydist_pending_.empty())
     {
         return effects;
     }
-
-    for (auto it = keydist_pending_.begin(); it != keydist_pending_.end();)
-    {
-        if (now_s < it->next_retry_s)
-        {
-            ++it;
-            continue;
-        }
-
-        if (it->attempts >= config_.keydist_max_retries)
-        {
-            effects.failures.push_back(makeFailure(
-                TeamPageDeferredDispatchAction::KeyDist,
-                TeamPageDeferredDispatchFailureKind::SendFailed,
-                false));
-            it = keydist_pending_.erase(it);
-            continue;
-        }
-
-        team::proto::TeamKeyDist key_dist;
-        key_dist.team_id = state.team_id;
-        key_dist.key_id = it->key_id;
-        key_dist.channel_psk_len =
-            static_cast<uint8_t>(state.team_psk.size());
-        key_dist.channel_psk = state.team_psk;
-
-        const bool ok =
-            port.sendKeyDistPlain(key_dist,
-                                  chat::ChannelId::PRIMARY,
-                                  it->node_id);
-        effects.sent_keydist = true;
-        if (!ok)
-        {
-            effects.failures.push_back(makeFailure(
-                TeamPageDeferredDispatchAction::KeyDist,
-                TeamPageDeferredDispatchFailureKind::SendFailedDetail,
-                false,
-                port.lastSendError()));
-        }
-
-        it->attempts += 1;
-        it->next_retry_s = now_s + config_.keydist_retry_interval_s;
-        ++it;
-    }
-
+    clearKeyDist();
+    effects.failures.push_back(makeFailure(
+        TeamPageDeferredDispatchAction::KeyDist,
+        TeamPageDeferredDispatchFailureKind::SendFailedDetail,
+        false,
+        team::TeamService::SendError::SecurityUnavailable));
     return effects;
 }
 
