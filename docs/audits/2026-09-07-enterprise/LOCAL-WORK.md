@@ -32,3 +32,7 @@ S5 produced an accepted persistent packet-ID allocator component, retained in it
 ## Private-key scope clarified
 
 User confirmed private channel keys are used only in Trail Mate. This supersedes the unanswered-key-sharing notes above. Preserve this constraint in the nonce repair: one serialized Trail Mate allocator and durable reserve-before-transmit state can own future IDs, but historical IDs remain unknown. A fresh-key migration and fail-closed storage-loss handling are still required by the current plan; do not initialize the accepted allocator at 1 under existing private keys. No radio code or channel keys changed with this clarification.
+
+## Nonce implementation attempt
+
+See NONCE-STATUS.md for the authoritative continuation. First local storage attempt timed out with zero changed files. Busy shared lock halted correction dispatch. Tests/task packets/plan are preserved; production radio remains unchanged. No corrections used yet, no cloud fallback, no flash.

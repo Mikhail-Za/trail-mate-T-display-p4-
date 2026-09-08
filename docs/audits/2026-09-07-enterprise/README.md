@@ -21,3 +21,5 @@ The packet-id-candidate directory preserves the accepted Spark allocator and fro
 Build logs and raw model transcripts are local evidence, not repository deliverables. Curated reports and reproducible checks are versioned here. Firmware-baseline-builds.json contains PRE-photo baseline hashes, not repaired firmware hashes. current-fixes.patch records the implementation diff against the original audit baseline, e3c0fbd.
 
 The Spark helper allowance change is committed in its separate local repository, which has no remote configured. spark-output-allowance.patch preserves that exact change here for remote backup. Raw transcript archive: /home/zaidm/reviews/trailmate-raw-audit-971dibli. Patch files retain Git-required blank context-line spaces; whitespace validation excludes those patch artifacts.
+
+Nonce follow-up: see NONCE-STATUS.md. The plan is pushed, the first local storage attempt timed out without edits, and the runner reported a busy shared lock before correction dispatch. Regression harnesses and task packets are tracked as pending implementation inputs; no production nonce fix is integrated.
