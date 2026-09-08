@@ -46,34 +46,44 @@ STUBS = r"""
 #include "chat/domain/persistent_packet_id_allocator.h"
 #include "chat/infra/meshtastic/mt_packet_wire.h"
 #include <array>
+#include <atomic>
 #include <vector>
 #include <cassert>
 #include <cstring>
 #include <iostream>
 std::vector<std::array<unsigned char,16>> nonces;
+uint32_t encoded_text_id=99;
+int error_logs=0;
 #define ESP_LOGI(...) ((void)0)
-#define ESP_LOGE(...) ((void)0)
+#define ESP_LOGE(...) (++error_logs)
 #define ESP_LOGW(...) ((void)0)
 namespace sys {
 struct ChatSendResultEvent{ChatSendResultEvent(uint32_t,bool){}};
 struct EventBus{static void publish(ChatSendResultEvent* p,int){delete p;}};
 }
 namespace chat::meshtastic {
-bool encodeTextMessage(ChannelId,const std::string& text,NodeId,MessageId,NodeId,uint8_t* p,size_t* n){
- if(text.size()>*n)return false;std::memcpy(p,text.data(),text.size());*n=text.size();return true;
+bool encodeTextMessage(ChannelId,const std::string& text,NodeId,MessageId id,NodeId,uint8_t* p,size_t* n){
+ ::encoded_text_id=id;
+ if(text.size()>*n)return false;
+ std::memcpy(p,text.data(),text.size());*n=text.size();return true;
 }
 bool encodeAppData(uint32_t,const uint8_t* data,size_t len,bool,uint8_t* p,size_t* n){
- if(len>*n)return false;std::memcpy(p,data,len);*n=len;return true;
+ if(len>*n)return false;
+ std::memcpy(p,data,len);*n=len;return true;
 }
 }
 namespace platform::esp::radio {
 constexpr uint32_t kRadioOk=0;
+uint32_t now_millis(){static uint32_t now=1;return now++;}
+uint8_t to_channel_index(chat::ChannelId channel){return static_cast<uint8_t>(channel);}
 int allocations=0,initializations=0;bool initialized=false,init_allowed=true,allocate_allowed=true;
+const uint8_t* expected_psk=nullptr;size_t expected_psk_len=0;
 chat::PersistentPacketIdAllocator allocator(1);
 bool initializePacketIds(uint32_t,const chat::MeshConfig&){++initializations;initialized=init_allowed;return initialized;}
-bool allocatePacketId(uint32_t,const uint8_t*,size_t,uint32_t requested,uint32_t& out){
+bool allocatePacketId(uint32_t,const uint8_t* psk,size_t psk_len,uint32_t& out){
+ assert(psk==expected_psk && psk_len==expected_psk_len);
  ++allocations;out=0;if(!initialized || !allocate_allowed)return false;
- return allocator.allocate(requested,[](uint64_t){return true;},out);
+ return allocator.allocate(0,[](uint64_t){return true;},out);
 }
 struct Board{
  bool online=true,success=true;std::vector<uint32_t> attempts;
@@ -87,17 +97,17 @@ class MeshtasticRadioAdapter {
 public:
  Board board_;bool ready_=false,rx_started_=false;
  chat::NodeId node_id_=0x12345678;
- chat::MessageId next_packet_id_=1; // Baseline-only member: test must fail before repair.
  static constexpr uint32_t kBroadcastNodeId=0xFFFFFFFF;
  chat::MeshConfig config_{};bool channel_enabled_[chat::kMaxChannels]{};
- uint8_t key_[16]{1};
+ uint8_t key_[16]{1};size_t key_len_=16;
+ std::atomic<uint32_t> last_packet_id_error_log_ms_{UINT32_MAX};
  bool sendText(chat::ChannelId,const std::string&,chat::MessageId*,chat::NodeId=0);
  bool sendAppData(chat::ChannelId,uint32_t,const uint8_t*,size_t,chat::NodeId=0,bool=false,chat::MessageId=0,bool=false);
  void applyConfig(const chat::MeshConfig&);
  DECLARATION
- const uint8_t* channelKeyFor(chat::ChannelId,size_t* n) const{*n=16;return key_;}
+ const uint8_t* channelKeyFor(chat::ChannelId,size_t* n) const{*n=key_len_;return key_;}
  uint8_t channelHashFor(chat::ChannelId) const{return 5;}
- void updateChannelKeys(){for(size_t i=0;i<chat::kMaxChannels;++i)channel_enabled_[i]=config_.channels[i].enabled;}
+ void updateChannelKeys(){assert(initializations>0);for(size_t i=0;i<chat::kMaxChannels;++i)channel_enabled_[i]=config_.channels[i].enabled;}
  void configureRadio(){ready_=true;}
  void ensureReceiveStarted(){rx_started_=true;}
 };
@@ -105,35 +115,46 @@ BODY
 }
 int main(){
  using namespace platform::esp::radio;
- MeshtasticRadioAdapter a;chat::MeshConfig cfg{};cfg.channels[0].enabled=true;a.applyConfig(cfg);
+ MeshtasticRadioAdapter a;expected_psk=a.key_;expected_psk_len=a.key_len_;
+ chat::MeshConfig cfg{};cfg.channels[0].enabled=true;a.applyConfig(cfg);
  uint32_t id=999;assert(a.sendText(chat::ChannelId::PRIMARY,"hello",&id));
- assert(initializations==1 && allocations==1 && id==1 && a.board_.attempts.back()==id);
+ assert(encoded_text_id==0 && initializations==1 && allocations==1 && id==1 && a.board_.attempts.back()==id);
  unsigned char payload[]={1,2,3};
  assert(a.sendAppData(chat::ChannelId::PRIMARY,1,payload,3));assert(a.board_.attempts.back()==2);
  a.board_.success=false;assert(!a.sendText(chat::ChannelId::PRIMARY,"fail",&id));
  assert(id==3 && a.board_.attempts.back()==3);a.board_.success=true;
  assert(a.sendText(chat::ChannelId::PRIMARY,"next",&id) && id==4);
  assert(a.sendAppData(chat::ChannelId::PRIMARY,1,payload,3,0,false,100));
+ assert(a.board_.attempts.back()==5);
+ assert(a.sendAppData(chat::ChannelId::PRIMARY,1,payload,3,0,false,100));
+ assert(a.board_.attempts.back()==6);
+ assert(a.sendAppData(chat::ChannelId::PRIMARY,1,payload,3,0,false,UINT32_MAX));
+ assert(a.board_.attempts.back()==7);
  const size_t sent=a.board_.attempts.size();const size_t encrypted=nonces.size();
- assert(!a.sendAppData(chat::ChannelId::PRIMARY,1,payload,3,0,false,100));
- assert(a.board_.attempts.size()==sent && nonces.size()==encrypted);
  allocate_allowed=false;id=999;assert(!a.sendText(chat::ChannelId::PRIMARY,"blocked",&id));
  assert(id==0 && a.board_.attempts.size()==sent && nonces.size()==encrypted);allocate_allowed=true;
+ allocate_allowed=false;assert(!a.sendText(chat::ChannelId::PRIMARY,"blocked again",&id));
+ assert(error_logs==1);allocate_allowed=true;
  const int before=allocations;
  assert(!a.sendText(chat::ChannelId::SECONDARY,"disabled",&id) && id==0);
  assert(!a.sendText(static_cast<chat::ChannelId>(255),"invalid",&id) && id==0);
  assert(allocations==before && a.board_.attempts.size()==sent);
- a.applyConfig(cfg);assert(a.sendText(chat::ChannelId::PRIMARY,"still",&id) && id==101);
- MeshtasticRadioAdapter b;b.applyConfig(cfg);assert(b.sendText(chat::ChannelId::PRIMARY,"second",&id) && id==102);
- assert(nonces.size()==a.board_.attempts.size()+b.board_.attempts.size());
+ a.key_len_=0;expected_psk_len=0;
+ assert(a.sendAppData(chat::ChannelId::PRIMARY,1,payload,3) && a.board_.attempts.back()==8);
+ a.key_len_=16;expected_psk_len=16;
+ a.applyConfig(cfg);assert(a.sendText(chat::ChannelId::PRIMARY,"still",&id) && id==9);
+ MeshtasticRadioAdapter b;expected_psk=b.key_;expected_psk_len=b.key_len_;
+ b.applyConfig(cfg);assert(b.sendText(chat::ChannelId::PRIMARY,"second",&id) && id==10);
+ assert(nonces.size()+1==a.board_.attempts.size()+b.board_.attempts.size()); // Open TX skips AES.
  for(size_t i=0;i<nonces.size();++i){
   uint64_t packet=0;uint32_t sender=0;std::memcpy(&packet,nonces[i].data(),8);std::memcpy(&sender,nonces[i].data()+8,4);
   assert(sender==0x12345678 && packet>0 && packet<=UINT32_MAX);
   assert(nonces[i][12]==0 && nonces[i][13]==0 && nonces[i][14]==0 && nonces[i][15]==0);
   for(size_t j=0;j<i;++j)assert(nonces[i]!=nonces[j]);
  }
- init_allowed=false;a.applyConfig(cfg);id=999;
+ init_allowed=false;expected_psk=a.key_;expected_psk_len=a.key_len_;a.applyConfig(cfg);assert(a.ready_);id=999;
  assert(!a.sendText(chat::ChannelId::PRIMARY,"init failed",&id) && id==0);
+ assert(error_logs==2);
  std::cout<<"native send IDs and wire nonce inputs PASS\n";
 }
 """

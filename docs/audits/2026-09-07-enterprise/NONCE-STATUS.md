@@ -1,21 +1,17 @@
-# Nonce repair continuation — implementation pending
+# Native Meshtastic nonce repair — verified and independently reviewed
 
-Plan and migration procedure committed/pushed as d2253c6. No production radio/storage source was changed or integrated. The existing reboot-counter vulnerability remains open.
+Current routing: user explicitly selected GPT execution workers and Anthropic review. Spark is reserved for benchmarks; do not access it. Astra integrated three parallel Sol assignments after the two-round Fable plan gate passed. Earlier Spark attempts and pending task packets are historical, not current dispatch instructions.
 
-Spark task 20260907-203953-7db477 attempt-01 (local Tiel) timed out after 938.45 seconds including preparation/collection; implementation deadline 900 seconds, output allowance 16,384. It generated 26,806 local tokens, changed zero files, and ran no implementation acceptance check. Rejected as an implementation result; this is not a passing task or a new finite-trial slot. No paid-worker fallback or Anthropic call.
+## Implementation and verification
 
-After completion, canonical worker.py status returned exit1: "Worker is busy; start/stop/run share one lock. Retry when it finishes." Per the Spark skill, dispatch halted without retrying or interrupting the lock owner. Current-task metadata still described the finished timeout; it did not identify the new lock holder. No assumption about the lock owner is justified. No correction has been dispatched. Two correction attempts remain for this same task.
+- One mutex-protected process-wide owner reserves 1024 packet IDs durably before use. Reboots skip the previous reservation; uncertain storage commits, malformed state and hash errors stop transmission. No wrap; native caller ID hints are ignored and failed transmissions consume IDs.
+- First upgrade records effective private keys from every saved slot, including disabled slots, and blocks transmission with those keys. Provision fresh private keys. Public/default keys and open channels remain supported. Channel-load errors stop Meshtastic startup before migration; unrelated MeshCore startup remains supported.
+- Astra independently reran all three production-source host harnesses: 29 storage scenarios, native send/wire nonce checks, and channel loader/facade checks. Both photo scripts, 71 existing simulator tests, UI boundaries, root-artifact check and whitespace check pass.
+- TFT and AMOLED builds pass in official ESP-IDF 5.5.4. Changed production files match the isolated build copy by SHA256; dependencies.lock is unchanged. The host substitutes test control flow, not real cryptographic or NVS power-loss behavior.
+- Fresh Fable completed-work review passed in two rounds: missing settings-store evidence supplied, then APPROVED. Plan review also passed in two rounds. See NONCE-CRUCIBLE-REVIEW.md for complete critiques and dispositions.
 
-## Saved work and verification
+## Deployment and remaining work
 
-- scripts/check_packet_id_storage.py: 23 planned fresh-process storage/migration/concurrency/fault scenarios compiling the future production store with NVS/SHA substitutes. Currently fails to compile because the production store is not implemented.
-- scripts/check_radio_packet_ids.py: actual native send bodies plus real wire codec, with observable allocator/AES/board substitutes. In minimal staging with the accepted allocator header, the original adapter compiles, then fails the missing persistent-initialization/allocation assertion. It records actual AES nonce inputs, not encryption correctness. The production allocator header is not integrated yet.
-- Parent corrected init_sha fixture to use nonzero key data because normalizeMeshtasticChannelKeyLen treats an all-zero key as absent. The fault assertion was unchanged. Running worker inputs were not modified. The saved correction explicitly authorizes this single fixture correction before immutable verification.
-- nonce-tasks contains the initial storage assignment, prepared correction1, adapter assignment, and declared storage API. These are implementation inputs, not an accepted patch. No new harness is wired into CI while implementation is missing. Existing verified checks remain unchanged.
-- Native SDK mbedtls_sha256 API confirmed in official ESP-IDF5.5.4. Adapter baseline regression compiled and failed as expected. Public/default keys provide no confidentiality; backup rollback and historic-key reuse constraints are documented in NONCE-MIGRATION.md.
+No hardware flashed. Follow NONCE-MIGRATION.md and BENCH_TEST_CHECKLIST.md before deployment. Restoring old NVS, erasing state, downgrade/re-upgrade, or importing historically used keys requires fresh private keys: software cannot reconstruct those historical IDs or reliably detect complete rollback. Private keys remain exclusive to Trail Mate per the user.
 
-## Resume
-
-Use canonical Spark worker under current local-model authorization; status must permit dispatch. Resume SAME task with nonce-tasks/store-correction-1.txt, deadline900, then inspect snapshot/diff and run native immutable verification with the corrected fixture. Do not reset the failed task or count it as a new first attempt. Original stage /home/zaidm/projects/trailmate-spark-nonce-store-20260907. Adapter stage /home/zaidm/projects/trailmate-spark-nonce-adapter-20260907 is prepared but not dispatched. Private evidence /home/zaidm/reviews/trailmate-nonce-20260907; raw native evidence remains in canonical runner runs/task/attempt-01.
-
-After storage acceptance, dispatch adapter assignment, independently inspect all changed functions, integrate source list and CI checks, run both host harnesses and TFT/AMOLED builds. Then Astra reviews final state under user override, commits/pushes accepted implementation, and hands off physical reboot/power-loss/RF bench checks. Do not claim the nonce fix from an accepted allocator or plan alone.
+Next security work is Team key authorization, authenticated rotation/recovery and replay protection. This repair addresses native Meshtastic packet counters, not those separate Team defects or every firmware/protocol.

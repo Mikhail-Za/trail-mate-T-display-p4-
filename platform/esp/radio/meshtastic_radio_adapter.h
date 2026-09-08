@@ -8,6 +8,7 @@
 #include "chat/infra/meshtastic/mt_dedup.h"
 #include "chat/ports/i_mesh_adapter.h"
 
+#include <atomic>
 #include <map>
 #include <queue>
 #include <string>
@@ -52,7 +53,8 @@ class MeshtasticRadioAdapter final : public chat::IMeshAdapter
                             chat::NodeId dest,
                             bool want_ack,
                             chat::MessageId packet_id,
-                            bool publish_send_result);
+                            bool publish_send_result,
+                            chat::MessageId* out_msg_id = nullptr);
     bool sendNodeInfoTo(chat::NodeId dest, bool want_response, chat::ChannelId channel);
     bool sendRoutingAck(chat::NodeId dest, chat::MessageId request_id, chat::ChannelId channel);
     void processReceivedPacket(const uint8_t* data, size_t size);
@@ -83,7 +85,6 @@ class MeshtasticRadioAdapter final : public chat::IMeshAdapter
     std::map<chat::NodeId, chat::ChannelId> node_last_channel_{};
     std::string user_long_name_{};
     std::string user_short_name_{};
-    chat::MessageId next_packet_id_ = 1;
     chat::NodeId node_id_ = 0;
     uint8_t mac_addr_[6] = {};
     bool ready_ = false;
@@ -96,6 +97,7 @@ class MeshtasticRadioAdapter final : public chat::IMeshAdapter
     uint32_t radio_bw_hz_ = 0;
     uint8_t radio_sf_ = 0;
     uint8_t radio_cr_ = 0;
+    std::atomic<uint32_t> last_packet_id_error_log_ms_{UINT32_MAX};
     // Per-channel derived hash + expanded PSK for all kMaxChannels slots. Only
     // enabled slots participate in TX/RX (channel_enabled_). Computed once per
     // applyConfig() in updateChannelKeys() using the SAME channelHashFromRecord

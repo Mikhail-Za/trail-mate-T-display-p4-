@@ -162,3 +162,14 @@ human at the screen -- the self-test only enters+exits, it does not tap or run t
       flip and current sign changes. If the gauge can't be read: "--%" + "Unknown" +
       "Current: n/a" (never a fake "0 mA / Discharging"). Leave it open a while on a healthy
       gauge -> no I2C/touch stutter (dead-gauge re-probe is throttled to 5s).
+
+## Native Meshtastic packet-counter migration (September 2026)
+
+Follow `docs/audits/2026-09-07-enterprise/NONCE-MIGRATION.md` before testing. These checks are pending on physical hardware. Use fresh test keys; keep keys and raw captures out of Git. Use a spare test device/partition for storage fault injection so licensed settings and user data are preserved.
+
+- [ ] Upgrade with a private key in an enabled slot and another in a disabled slot. Confirm both old keys are denied for TX after enabling/moving/renaming their slots. Receive remains available when channel loading and radio setup succeed. Confirm public/default-channel discovery still works, including a public key previously pasted in full form.
+- [ ] Provision matching fresh private keys on both units. Send text and Team/app data in both directions. Record only sender and packet IDs; verify no duplicate `(sender, packet ID)` for new transmissions. Failed TX attempts must consume their IDs.
+- [ ] Power-cycle each unit repeatedly, including immediately after sending. The next transmitted ID must skip past the previously reserved block; gaps are expected. Confirm peer decoding and text-delivery correlation still work.
+- [ ] On the isolated fault-injection setup, fail NVS open/read/set/commit and interrupt power around reservation. No packet may transmit without a successful durable reservation. An uncertain commit must suppress TX for the remainder of that boot; reboot resumes past any committed reservation.
+- [ ] A corrupt/unreadable saved channel blob must prevent native Meshtastic runtime creation and nonce migration; it must not silently use defaults or overwrite the blob. Recover the original configuration and verify the old private-key block remains effective. MeshCore boot should remain available when only the Meshtastic channel blob is invalid.
+- [ ] Confirm storage/migration denials emit a useful, rate-limited error without key material. After any manual/automatic NVS erase or full backup restore, provision fresh private keys before field use.

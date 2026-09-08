@@ -44,7 +44,7 @@ bool ensure_nvs_ready()
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
-        ESP_LOGW(kTag, "NVS init returned %s, erasing partition", esp_err_to_name(err));
+        ESP_LOGE(kTag, "NVS init returned %s, erasing partition; provision fresh private channel keys before transmitting", esp_err_to_name(err));
         if (nvs_flash_erase() == ESP_OK)
         {
             err = nvs_flash_init();

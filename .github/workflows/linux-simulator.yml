@@ -7,6 +7,13 @@ on:
       - "apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp"
       - "scripts/check_field_guide_photo_safety.py"
       - "scripts/check_field_guide_photo_staging.py"
+      - "scripts/check_packet_id_storage.py"
+      - "scripts/check_radio_packet_ids.py"
+      - "scripts/check_channel_config_load.py"
+      - "platform/esp/radio/**"
+      - "platform/esp/idf_common/src/idf_chat_factory.cpp"
+      - "platform/esp/idf_common/src/idf_chat_facade.cpp"
+      - "platform/esp/idf_common/include/platform/esp/idf_common/idf_chat_factory.h"
       - "tools/offline_content/build_sd_content.py"
       - "builds/linux_cmake/**"
       - "cmake/**"
@@ -28,6 +35,13 @@ on:
       - "apps/esp32_lvgl/src/esp32_lvgl_field_guide_app.cpp"
       - "scripts/check_field_guide_photo_safety.py"
       - "scripts/check_field_guide_photo_staging.py"
+      - "scripts/check_packet_id_storage.py"
+      - "scripts/check_radio_packet_ids.py"
+      - "scripts/check_channel_config_load.py"
+      - "platform/esp/radio/**"
+      - "platform/esp/idf_common/src/idf_chat_factory.cpp"
+      - "platform/esp/idf_common/src/idf_chat_facade.cpp"
+      - "platform/esp/idf_common/include/platform/esp/idf_common/idf_chat_factory.h"
       - "tools/offline_content/build_sd_content.py"
       - "builds/linux_cmake/**"
       - "cmake/**"
@@ -62,6 +76,12 @@ jobs:
         run: |
           python3 scripts/check_field_guide_photo_safety.py
           python3 scripts/check_field_guide_photo_staging.py
+
+      - name: Verify native radio packet IDs and channel loading
+        run: |
+          python3 scripts/check_packet_id_storage.py
+          python3 scripts/check_radio_packet_ids.py
+          python3 scripts/check_channel_config_load.py
 
       - name: Install simulator build dependencies
         run: |

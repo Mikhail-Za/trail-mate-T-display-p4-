@@ -8,6 +8,7 @@
 #include "chat/infra/meshtastic/mt_protocol_helpers.h"
 #include "chat/infra/meshtastic/mt_radio_config.h"
 #include "chat/time_utils.h"
+#include "platform/esp/radio/persistent_packet_ids.h"
 #include "esp_log.h"
 #include "esp_mac.h"
 #include "esp_timer.h"
@@ -120,20 +121,16 @@ bool MeshtasticRadioAdapter::sendText(chat::ChannelId channel,
     }
 
     const chat::NodeId dest = (peer != 0) ? peer : kBroadcastNodeId;
-    const chat::MessageId msg_id = next_packet_id_++;
     uint8_t data_buffer[256];
     size_t data_size = sizeof(data_buffer);
-    if (!chat::meshtastic::encodeTextMessage(channel, text, node_id_, msg_id, dest,
+    if (!chat::meshtastic::encodeTextMessage(channel, text, node_id_, 0, dest,
                                              data_buffer, &data_size))
     {
         return false;
     }
 
-    if (out_msg_id)
-    {
-        *out_msg_id = msg_id;
-    }
-    return sendEncodedPayload(channel, data_buffer, data_size, peer, false, msg_id, true);
+    return sendEncodedPayload(channel, data_buffer, data_size, peer, false, 0, true,
+                              out_msg_id);
 }
 
 bool MeshtasticRadioAdapter::pollIncomingText(chat::MeshIncomingText* out)
@@ -214,6 +211,10 @@ bool MeshtasticRadioAdapter::triggerDiscoveryAction(chat::MeshDiscoveryAction ac
 void MeshtasticRadioAdapter::applyConfig(const chat::MeshConfig& config)
 {
     config_ = config;
+    if (!initializePacketIds(node_id_, config_))
+    {
+        ESP_LOGE(kTag, "packet ID storage unavailable; TX disabled");
+    }
     updateChannelKeys();
     configureRadio();
 }
@@ -298,9 +299,20 @@ bool MeshtasticRadioAdapter::sendEncodedPayload(chat::ChannelId channel,
                                                 chat::NodeId dest,
                                                 bool want_ack,
                                                 chat::MessageId packet_id,
-                                                bool publish_send_result)
+                                                bool publish_send_result,
+                                                chat::MessageId* out_msg_id)
 {
+    if (out_msg_id)
+    {
+        *out_msg_id = 0;
+    }
     if (!ready_ || !payload || len == 0 || !board_.isRadioOnline())
+    {
+        return false;
+    }
+
+    const uint8_t channel_index = to_channel_index(channel);
+    if (channel_index >= chat::kMaxChannels || !channel_enabled_[channel_index])
     {
         return false;
     }
@@ -309,7 +321,28 @@ bool MeshtasticRadioAdapter::sendEncodedPayload(chat::ChannelId channel,
     const uint8_t* psk = channelKeyFor(channel, &psk_len);
     const uint8_t channel_hash = channelHashFor(channel);
     const chat::NodeId dest_node = (dest != 0) ? dest : kBroadcastNodeId;
-    const chat::MessageId msg_id = (packet_id != 0) ? packet_id : next_packet_id_++;
+    (void)packet_id;
+    chat::MessageId msg_id = 0;
+    if (!allocatePacketId(node_id_, psk, psk_len, msg_id))
+    {
+        const uint32_t now_ms = now_millis();
+        uint32_t last_ms = last_packet_id_error_log_ms_.load(std::memory_order_relaxed);
+        while (last_ms == UINT32_MAX || now_ms - last_ms >= 60000U)
+        {
+            if (last_packet_id_error_log_ms_.compare_exchange_weak(
+                    last_ms, now_ms, std::memory_order_relaxed))
+            {
+                ESP_LOGE(kTag,
+                         "TX blocked: provision a fresh private key or repair counter storage");
+                break;
+            }
+        }
+        return false;
+    }
+    if (out_msg_id)
+    {
+        *out_msg_id = msg_id;
+    }
 
     uint8_t wire_buffer[512];
     size_t wire_size = sizeof(wire_buffer);

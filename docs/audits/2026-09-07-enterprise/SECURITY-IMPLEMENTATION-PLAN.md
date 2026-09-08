@@ -1,6 +1,6 @@
 # Security remediation acceptance plan (2026-09-07 continuation)
 
-User authorizes the explained photo, Team-key, and reboot nonce repairs; local Tiel implementation with Astra review replaces the unavailable Anthropic workflow. Existing uncommitted repairs are preserved. This document is a plan, not evidence that security is repaired.
+User authorizes the explained photo, Team-key, and reboot nonce repairs. Current routing uses GPT workers, Astra orchestration/verification and Anthropic Crucible; do not access Spark during benchmarks. This document records acceptance criteria; NONCE-STATUS.md and the photo review records give current outcomes.
 
 ## Photo metadata
 
@@ -20,7 +20,7 @@ Acceptance: turn the existing foreign-team reproduction into rejection tests; ve
 
 ## Meshtastic nonce allocation
 
-User-confirmed scope: private channel keys are used only in Trail Mate. No coordination with Meshtastic/MeshOS counters is needed for those keys. This resolves the cross-firmware question, but does not establish unused packet numbers for existing keys or make NVS rollback safe. The repair remains unintegrated.
+User-confirmed scope: private channel keys are used only in Trail Mate. No coordination with Meshtastic/MeshOS counters is needed for those keys. This resolves the cross-firmware question, but does not establish unused packet numbers for existing keys or make NVS rollback safe. The native repair is now integrated; see NONCE-STATUS.md for verification and review status.
 
 Evidence: adapter restarts next_packet_id_ at 1; AES-CTR nonce includes that packet ID and stable sender identity. sendText and sendEncodedPayload allocate IDs independently; sendAppData can supply explicit IDs. All must use a single allocation policy.
 

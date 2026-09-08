@@ -20,12 +20,14 @@
 
 #include "platform/esp/idf_common/idf_chat_factory.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <utility> // std::move
 #include <vector>
 
 #include "esp_log.h"
+#include "nvs.h"
 
 #include "board/LoraBoard.h"
 #include "chat/domain/channel_persist.h"
@@ -184,16 +186,57 @@ class NvsContactBlobStore final : public chat::IContactBlobStore
 class NvsChannelBlobStore final
 {
   public:
-    // Decode the persisted channel array into recs[0..max). Returns the record
-    // count on success, or 0 when no (valid) blob exists.
-    size_t load(chat::ChannelRecord* recs, size_t max)
+    // Decode the persisted channel array into recs[0..max). Returns -1 on a
+    // storage/format error, 0 when absent, or the 1..8 record count on success.
+    int load(chat::ChannelRecord* recs, size_t max)
     {
-        std::vector<uint8_t> raw;
-        if (!platform::ui::settings_store::get_blob(kNamespace, kKey, raw))
+        if (recs == nullptr)
+        {
+            return -1;
+        }
+        nvs_handle_t handle = 0;
+        const esp_err_t open_err = nvs_open(kNamespace, NVS_READONLY, &handle);
+        if (open_err == ESP_ERR_NVS_NOT_FOUND)
         {
             return 0;
         }
-        return chat::channel_persist::decode(raw.data(), raw.size(), recs, max);
+        if (open_err != ESP_OK)
+        {
+            return -1;
+        }
+
+        size_t len = 0;
+        esp_err_t err = nvs_get_blob(handle, kKey, nullptr, &len);
+        if (err == ESP_ERR_NVS_NOT_FOUND)
+        {
+            nvs_close(handle);
+            return 0;
+        }
+        if (err != ESP_OK || len < kHeaderSize + kRecordSize || len > kMaxBlobSize)
+        {
+            nvs_close(handle);
+            return -1;
+        }
+
+        std::array<uint8_t, kMaxBlobSize> raw{};
+        size_t read = len;
+        err = nvs_get_blob(handle, kKey, raw.data(), &read);
+        nvs_close(handle);
+        if (err != ESP_OK || read != len)
+        {
+            return -1;
+        }
+
+        const size_t count = raw[4];
+        if (raw[0] != 'T' || raw[1] != 'M' || raw[2] != 'H' || raw[3] != 0x01 ||
+            count == 0 || count > chat::kMaxChannels || count > max ||
+            len != kHeaderSize + count * kRecordSize)
+        {
+            return -1;
+        }
+        return chat::channel_persist::decode(raw.data(), len, recs, max) == count
+                   ? static_cast<int>(count)
+                   : -1;
     }
 
     // Encode and persist n channel records. n == 0 erases the key.
@@ -211,6 +254,9 @@ class NvsChannelBlobStore final
   private:
     static constexpr const char* kNamespace = "tm_chans";
     static constexpr const char* kKey = "channels_v1";
+    static constexpr size_t kHeaderSize = 5;
+    static constexpr size_t kRecordSize = 70;
+    static constexpr size_t kMaxBlobSize = kHeaderSize + chat::kMaxChannels * kRecordSize;
 };
 
 // Self-owning store wrappers: each bundles its volatile blob store with the
@@ -361,7 +407,12 @@ bool loadChannelConfigFromNvs(app::AppConfig& config)
 {
     NvsChannelBlobStore store;
     chat::ChannelRecord loaded[chat::kMaxChannels];
-    const size_t n = store.load(loaded, chat::kMaxChannels);
+    const int loaded_count = store.load(loaded, chat::kMaxChannels);
+    if (loaded_count < 0)
+    {
+        return false;
+    }
+    const size_t n = static_cast<size_t>(loaded_count);
     if (n > 0)
     {
         for (size_t i = 0; i < chat::kMaxChannels; ++i)
@@ -390,7 +441,7 @@ bool loadChannelConfigFromNvs(app::AppConfig& config)
     {
         config.channel_enabled[i] = config.meshtastic_config.channels[i].enabled;
     }
-    return false;
+    return true;
 }
 
 void saveChannelConfigToNvs(const app::AppConfig& config)

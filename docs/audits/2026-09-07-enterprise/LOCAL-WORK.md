@@ -1,8 +1,8 @@
 # Local continuation — chronological record
 
-Current Git checkpoint: see README.md. Earlier uncommitted/pending statements below are historical. Completed repairs are now committed; Team and nonce integration remain open.
+Current Git checkpoint: see README.md. Earlier uncommitted/pending statements below are historical. Earlier repairs are committed; see NONCE-STATUS.md for integrated nonce work and review status. Team security remains open.
 
-User explicitly replaced Anthropic workers/review with local Spark implementation and Astra as orchestrator/reviewer. Do not call Anthropic. Prior RESUME.md describes the earlier pause, not current model authority.
+Current user routing supersedes the historical local-only phase: use GPT workers and Anthropic Crucible; do not access Spark during benchmarks. Astra orchestrates and verifies. Prior RESUME.md and historical entries below do not define current routing.
 
 Astra independently reviewed and applied0001(CMake) and0002(CI token defaults) to the actual source checkout. Full integrated simulator build passes;69/69CTest tests pass. YAML structures equal baseline except4explicit read-only token mappings; release job scope unchanged. Boundary/root-artifact and git diff checks pass. No hosted CI/firmware/hardware execution claimed. No commits or pushes.
 
@@ -36,3 +36,7 @@ User confirmed private channel keys are used only in Trail Mate. This supersedes
 ## Nonce implementation attempt
 
 See NONCE-STATUS.md for the authoritative continuation. First local storage attempt timed out with zero changed files. Busy shared lock halted correction dispatch. Tests/task packets/plan are preserved; production radio remains unchanged. No corrections used yet, no cloud fallback, no flash.
+
+## GPT continuation
+
+Three parallel Sol workers delivered storage, adapter and channel-loader assignments after Fable approved the revised plan. Astra reviewed and integrated actual diffs and independently passed the host checks and both firmware builds. See NONCE-STATUS.md and NONCE-CRUCIBLE-REVIEW.md for current acceptance and migration requirements. Earlier Spark retry instructions are superseded; do not dispatch them.

@@ -182,7 +182,15 @@ bool IdfChatFacade::initialize()
     // BEFORE building the runtime so the radio adapter starts from the stored
     // channels. On first boot (no blob), this migrates the legacy
     // primary_/secondary_ scalars into slots 0/1 so channel 0 is unchanged.
-    (void)loadChannelConfigFromNvs(config_);
+    const bool channel_config_loaded = loadChannelConfigFromNvs(config_);
+    if (!channel_config_loaded &&
+        config_.mesh_protocol == ::chat::MeshProtocol::Meshtastic)
+    {
+        ESP_LOGE("idf-chat",
+                 "Meshtastic channel storage could not be read; startup stopped to protect "
+                 "channel keys. Repair NVS or erase it and provision fresh private keys.");
+        return false;
+    }
 
     // Create the global EventBus queue BEFORE the chat runtime/bridge is built.
     // On Arduino this happens in app_context.cpp; the IDF startup path never did

@@ -86,7 +86,8 @@ IdfChatRuntime createIdfChatRuntime(const app::AppConfig& config, LoraBoard& lor
  * 0/1 so the pre-existing channel-0 config is preserved. Call before building the
  * chat runtime so the radio adapter starts from the persisted channels.
  *
- * @return true if a stored blob was loaded; false if it migrated legacy defaults.
+ * @return true if a stored blob was loaded or absent storage was migrated;
+ *         false on any storage or format error (config remains unchanged).
  */
 bool loadChannelConfigFromNvs(app::AppConfig& config);
 

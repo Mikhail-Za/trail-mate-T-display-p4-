@@ -793,7 +793,8 @@ set(TRAILMATE_ESP_IDF_PLATFORM_COMMON_SOURCES
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_hostlink_gps_compat.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_chat_factory.cpp"
     "${TRAILMATE_ROOT}/platform/esp/idf_common/src/idf_chat_facade.cpp"
-    "${TRAILMATE_ROOT}/platform/esp/radio/meshtastic_radio_adapter.cpp")
+    "${TRAILMATE_ROOT}/platform/esp/radio/meshtastic_radio_adapter.cpp"
+    "${TRAILMATE_ROOT}/platform/esp/radio/persistent_packet_ids.cpp")
 
 # Walkie-talkie (push-to-talk FSK voice) backend, shared by every IDF board that
 # has both an audio codec and the SX1262: the platform::ui::walkie facade runtime

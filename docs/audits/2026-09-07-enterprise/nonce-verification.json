@@ -1,0 +1,55 @@
+{
+  "baseline": "d302b20",
+  "toolchain": "docker.io/espressif/idf:v5.5.4",
+  "changed_production_sha256": {
+    "builds/esp_idf/ESP_IDF_COMPONENT_SOURCES.cmake": "e35fe8716e7a3bdfcc0efe283977d467680f0bd4656f561f5e2942ceb1d073fc",
+    "platform/esp/idf_common/include/platform/esp/idf_common/idf_chat_factory.h": "4ead8f20d9bf6a27c943f7d57a56eee5da250618cca4a80f60b3424ece2bef9e",
+    "platform/esp/idf_common/src/bsp_runtime.cpp": "0e6a6a637616e51ec3ca09c408bb7d0f80dc23693ee38c13a2d1109b354dd53d",
+    "platform/esp/idf_common/src/idf_chat_facade.cpp": "b9b1f861517a0cd4ba34473704f35b6c9fa33affce932298c95490af521f4788",
+    "platform/esp/idf_common/src/idf_chat_factory.cpp": "6160f37e55b74a5a4cf3d9d6158cac1af5242e0a05ff3864045a53749393c61d",
+    "platform/esp/radio/meshtastic_radio_adapter.cpp": "9bb59705621d58c6e97264c3a31202786392aa3154de8e5a68c45d7f294a584f",
+    "platform/esp/radio/meshtastic_radio_adapter.h": "11a98537e7d6b3a587a8403b40d378590638499211a1244000bf165946994d50",
+    "modules/core_chat/include/chat/domain/persistent_packet_id_allocator.h": "ec913cfd45ae7c44b5daf05701c9b9cfc1831e2aa07aa6fdfe2b216152ab5255",
+    "platform/esp/radio/persistent_packet_ids.cpp": "71e9e3190d99d5498c5b745701152163b95fe00cd476872dc7e5e78d6cdabb74",
+    "platform/esp/radio/persistent_packet_ids.h": "86ce9b96e7e3a985e16ea4678ad37f30d2ffedaaecf0f8d1875fdad8b91a266f"
+  },
+  "dependencies_lock_sha256": "1dde8d4a34b9bca75a2fe906d7fb6c438ad315f3a80ddc5aa47a17f53ef7dce2",
+  "firmware": {
+    "tft": {
+      "build_exit": 0,
+      "bytes": 3119584,
+      "sha256": "866212219638e37e0acdbd1ec55b1d5917e8e2155958a3ec9d538b741cb2a194"
+    },
+    "amoled": {
+      "build_exit": 0,
+      "bytes": 3073680,
+      "sha256": "752d488d01bff8dea6392ca0f41c4340101d69d559e09f45ced27ab074784e4f"
+    }
+  },
+  "checks": {
+    "storage_host_scenarios": 29,
+    "native_send_and_wire_nonce_host": "pass",
+    "channel_loader_and_facade_guard_host": "pass",
+    "photo_viewer_host": "pass",
+    "photo_staging_tests": 10,
+    "existing_simulator_ctest": {
+      "passed": 71,
+      "failed": 0
+    },
+    "platform_ui_boundaries": "pass",
+    "root_build_artifacts": "pass"
+  },
+  "limitations": [
+    "No hardware flash or physical NVS power-loss/RF/SD checks",
+    "Host NVS/SHA/AES substitutes verify control flow, not actual cryptography or storage durability",
+    "Existing simulator binaries do not test native radio",
+    "Complete persistent-state rollback requires fresh private keys"
+  ],
+  "completed_work_review": {
+    "model": "claude-fable-5-1",
+    "session": "758d694a-d61a-497d-92dc-2bf2e9470350",
+    "rounds": 2,
+    "verdict": "APPROVED",
+    "artifact_sha256": "08fb10e1ff5144196cc3a8b88280fdfc0f2f93e389ec013f88354697aa20a0f4"
+  }
+}
